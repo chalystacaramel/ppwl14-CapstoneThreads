@@ -1,0 +1,13 @@
+{
+  "name": "ppwl14-capstone-threads",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:fe": "bun --cwd apps/fe dev",
+    "dev:be": "bun --cwd apps/be dev",
+    "dev": "bun run dev:fe & bun run dev:be"
+  }
+}

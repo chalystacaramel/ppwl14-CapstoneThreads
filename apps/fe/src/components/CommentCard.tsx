@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Heart, MoreHorizontal } from "lucide-react";
-import CommentReply from "@/components/CommentReply";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,22 +18,15 @@ interface Comment {
   content: string;
   author: User;
   createdAt: string;
-  parentId?: string | null;
-  replies: Comment[];
 }
 
 interface CommentCardProps {
   comment: Comment;
-  currentUserId: string;
-  onAddReply: (parentId: string, content: string) => void;
-  canComment: boolean;
 }
 
-export default function CommentCard({ comment, currentUserId, onAddReply, canComment }: CommentCardProps) {
+export default function CommentCard({ comment }: CommentCardProps) {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
-  const [showReplyForm, setShowReplyForm] = useState(false);
-  const [replyText, setReplyText] = useState("");
 
   const getInitial = (name: string) => name.charAt(0).toUpperCase();
 
@@ -47,13 +39,6 @@ export default function CommentCard({ comment, currentUserId, onAddReply, canCom
     if (diffMin < 60) return `${diffMin} menit`;
     if (diffH < 24) return `${diffH} jam`;
     return d.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
-  };
-
-  const handleSubmitReply = () => {
-    if (!replyText.trim() || !canComment) return;
-    onAddReply(comment.id, replyText.trim());
-    setReplyText("");
-    setShowReplyForm(false);
   };
 
   return (
@@ -97,48 +82,7 @@ export default function CommentCard({ comment, currentUserId, onAddReply, canCom
               <Heart size={16} className={liked ? "fill-[#FF2E40] text-[#FF2E40]" : ""} />
               {likeCount > 0 && <span className="text-xs">{likeCount}</span>}
             </button>
-            <button
-              onClick={() => setShowReplyForm(p => !p)}
-              disabled={!canComment}
-              className="text-xs text-[#777] hover:text-[#F3F5F7] transition-colors disabled:opacity-40"
-            >
-              Balas
-            </button>
           </div>
-
-          {showReplyForm && (
-            <div className="mt-2 flex items-start gap-2">
-              <textarea
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                placeholder="Tulis balasan..."
-                rows={2}
-                className="flex-1 bg-[#1E1E1E] text-[14px] text-[#F3F5F7] placeholder:text-[#777] resize-none outline-none rounded-xl px-3 py-2 border border-[#3E4042] focus:border-[#777] transition-colors"
-              />
-              <div className="flex flex-col gap-1">
-                <button onClick={handleSubmitReply} disabled={!replyText.trim()} className="px-3 py-1.5 rounded-full bg-[#F3F5F7] text-[#101010] text-xs font-semibold disabled:opacity-30 hover:bg-white transition-colors">
-                  Kirim
-                </button>
-                <button onClick={() => { setShowReplyForm(false); setReplyText(""); }} className="px-3 py-1.5 rounded-full text-[#777] text-xs hover:text-[#F3F5F7] transition-colors">
-                  Batal
-                </button>
-              </div>
-            </div>
-          )}
-
-          {comment.replies.length > 0 && (
-            <div className="mt-2">
-              {comment.replies.map((reply) => (
-                <CommentReply
-                  key={reply.id}
-                  reply={reply}
-                  currentUserId={currentUserId}
-                  onAddReply={onAddReply}
-                  canComment={canComment}
-                />
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </div>

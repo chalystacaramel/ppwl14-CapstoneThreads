@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Heart, MessageCircle, Repeat2, Send, MoreHorizontal } from "lucide-react";
 import CommentCard from "@/components/CommentCard";
@@ -20,8 +20,6 @@ interface Comment {
   content: string;
   author: User;
   createdAt: string;
-  parentId?: string | null;
-  replies: Comment[];
 }
 
 interface Post {
@@ -31,7 +29,6 @@ interface Post {
   author: User;
   createdAt: string;
   likes: { userId: string }[];
-  comments: Comment[];
 }
 
 const DUMMY_POST: Post = {
@@ -40,58 +37,39 @@ const DUMMY_POST: Post = {
   author: { id: "u1", name: "Aisyah" },
   createdAt: new Date().toISOString(),
   likes: [{ userId: "u2" }],
-  comments: [
-    {
-      id: "c1",
-      content: "Wah keren banget ini!",
-      author: { id: "u2", name: "Adhelia" },
-      createdAt: new Date().toISOString(),
-      parentId: null,
-      replies: [
-        {
-          id: "c1-r1",
-          content: "Setuju banget!",
-          author: { id: "u3", name: "Andy" },
-          createdAt: new Date().toISOString(),
-          parentId: "c1",
-          replies: [],
-        },
-      ],
-    },
-    {
-      id: "c2",
-      content: "Semangat timnya!",
-      author: { id: "u4", name: "Iqlima" },
-      createdAt: new Date().toISOString(),
-      parentId: null,
-      replies: [],
-    },
-  ],
 };
 
 const CURRENT_USER: User = { id: "u5", name: "Chalysta" };
 const MAX_COMMENTS = 5;
+const API_URL = "http://localhost:3000";
 
 export default function DetailPostPage() {
-  useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
   const post = DUMMY_POST;
 
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likes.length);
-  const [comments, setComments] = useState<Comment[]>(post.comments);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const countUserComments = (cmts: Comment[]): number => {
-    let count = 0;
-    for (const c of cmts) {
-      if (c.author.id === CURRENT_USER.id) count++;
-      count += countUserComments(c.replies);
-    }
-    return count;
-  };
+  useEffect(() => {
+    const fetchComments = async () => {
+      try {
+        const res = await fetch(`${API_URL}/comments/${id ?? "1"}`);
+        const json = await res.json();
+        setComments(json.data);
+      } catch (err) {
+        console.error("Gagal fetch komentar:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchComments();
+  }, [id]);
 
-  const userCommentCount = countUserComments(comments);
+  const userCommentCount = comments.filter(c => c.author.id === CURRENT_USER.id).length;
   const canComment = userCommentCount < MAX_COMMENTS;
 
   const handleLike = () => {
@@ -106,36 +84,9 @@ export default function DetailPostPage() {
       content: newComment.trim(),
       author: CURRENT_USER,
       createdAt: new Date().toISOString(),
-      parentId: null,
-      replies: [],
     };
     setComments((prev) => [comment, ...prev]);
     setNewComment("");
-  };
-
-  const handleAddReply = (parentId: string, content: string) => {
-    if (!canComment) return;
-    const addReply = (cmts: Comment[]): Comment[] =>
-      cmts.map((c) => {
-        if (c.id === parentId) {
-          return {
-            ...c,
-            replies: [
-              ...c.replies,
-              {
-                id: `r-${Date.now()}`,
-                content,
-                author: CURRENT_USER,
-                createdAt: new Date().toISOString(),
-                parentId,
-                replies: [],
-              },
-            ],
-          };
-        }
-        return { ...c, replies: addReply(c.replies) };
-      });
-    setComments((prev) => addReply(prev));
   };
 
   const formatTime = (iso: string) => {
@@ -256,7 +207,11 @@ export default function DetailPostPage() {
 
         {/* Daftar komentar */}
         <div>
-          {comments.length === 0 ? (
+          {loading ? (
+            <div className="flex justify-center py-16">
+              <p className="text-sm text-[#777]">Memuat komentar...</p>
+            </div>
+          ) : comments.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-[#777]">
               <MessageCircle size={40} className="mb-3 opacity-50" />
               <p className="text-sm">Belum ada komentar</p>
@@ -266,9 +221,6 @@ export default function DetailPostPage() {
               <CommentCard
                 key={comment.id}
                 comment={comment}
-                currentUserId={CURRENT_USER.id}
-                onAddReply={handleAddReply}
-                canComment={canComment}
               />
             ))
           )}

@@ -3,6 +3,7 @@
 
 **Class A / Team 1**
 **Main Web:** https://www.threads.net
+**Link Gdoc** https://docs.google.com/document/d/1F0-oigb74NtKCum7WHZKPEOZBSMQ88rckOREho5bpis/edit?tab=t.cdm5lks88t9d
 
 | Name | NIM | Reference Page | Specific Component |
 |---|---|---|---|

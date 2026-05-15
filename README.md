@@ -1,44 +1,46 @@
-# PPWL 11 / Monorepo - AWS Team
+# ppwl14-CapstoneThreads
 
-### 👥 Kelas A / Tim 1
+**Class A / Team 1**
+**Main Web:** https://www.threads.net
 
-<<<<<<< HEAD
-Link canva 
-https://canva.link/zt5n0he0vl939nl 
+## 📄 Dokumen
+- [Dokumen PPWL TEAM 1 CLONE THREADS - Google Docs](https://docs.google.com/document/d/1F0-oigb74NtKCum7WHZKPEOZBSMQ88rckOREho5bpis/edit?tab=t.cdm5lks88t9d)
+
+## 🔗 Link Deploy
+- **Frontend (S3):** http://s3-monorepo-frontend-pro.s3-website-us-east-1.amazonaws.com
+- **Backend (Lambda):** https://ut2tmtdfxdfe6dmg6hkykhfkwy0vqxoa.lambda-url.us-east-1.on.aws
+
+## 👥 Pembagian Jobdesk
+
+| Name | NIM | Reference Page | Specific Component |
+|---|---|---|---|
+| Aisyah | H1101241044 | https://www.threads.net | Navbar.tsx, Feed.tsx, ThreadCard.tsx |
+| Chalysta Setyani | H1101241003 | https://www.threads.net/@threads | DetailPost.tsx, CommentCard.tsx, CommentReply.tsx |
+| Adhelia Issabel | H1101241001 | https://www.threads.net/login | LoginPage.tsx, RegisterPage.tsx, AuthForm.tsx |
+| Andy Emerik | H1101241045 | https://www.threads.net/login | FormPost.tsx, ImageUpload.tsx |
+| Iqlima Nur'Ain | H1101241007 | https://www.threads.net/activity | NotifPage.tsx, NotifItem.tsx, EditProfile.tsx |
+
+## 🛠️ Tech Stack
+- **FE:** Vite + React + TypeScript + Tailwind v4 + ShadcnUI
+- **BE:** ElysiaJS + Prisma
+- **DB:** SQLite (dev) / AWS RDS PostgreSQL (production)
+- **Deploy:** AWS Lambda (BE) + AWS S3/CloudFront (FE)
+
+## 🚀 Cara Menjalankan
+
+### Install dependencies
 ```bash
 bun install
 ```
-=======
-| Nama                              | Job                                      |
-|-----------------------------------|-------------------------------------------|
-| Aisyah                            | Admin                                     |
-| Adhelia Issabel                   | Budget & Cost                             |
-| Chalsyta Setyani                  | RDS Database                              |
-| Adhelia Issabel & Chalsyta Setyani| Lambda Backend                            |
-| Adhelia Issabel & Chalsyta Setyani| S3 + CloudFront Frontend, Test & Docs     |
->>>>>>> 8f1645db5ce98351d00e0e5ebfe9a5ab8fa6c6e7
 
----
+### Jalankan Backend
+```bash
+cd apps/backend
+bun run src/server.ts
+```
 
-## 🎨 Link Desain
-- Canva: https://canva.link/zt5n0he0vl939nl
-
----
-
-## 📌 Deskripsi Project
-Project ini merupakan implementasi arsitektur **Monorepo berbasis AWS** yang digunakan untuk mendukung pengembangan aplikasi secara terintegrasi dalam satu repository.
-
----
-
-## 🏗️ Arsitektur yang Digunakan
-Beberapa layanan AWS yang digunakan dalam project ini:
-
-- **AWS Lambda** → Backend (serverless)
-- **Amazon RDS** → Database
-- **Amazon S3** → Penyimpanan frontend
-- **Amazon CloudFront** → CDN untuk distribusi frontend
-- **IAM & Management** → Akses dan kontrol
-
-
-Link Frontend S3 → http://s3-monorepo-frontend-pro.s3-website-us-east-1.amazonaws.com
-Link Lambda URL → https://ut2tmtdfxdfe6dmg6hkykhfkwy0vqxoa.lambda-url.us-east-1.on.aws
+### Jalankan Frontend
+```bash
+cd apps/frontend
+bun dev
+```

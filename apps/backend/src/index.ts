@@ -5,6 +5,7 @@ import { createOAuthClient, getAuthUrl } from "./auth";
 import { getCourses, getCourseWorks, getSubmissions } from "./classroom";
 import type { ApiResponse, HealthCheck, User } from "shared";
 import type { DbClient } from "./types";
+import { authRoutes } from "./auth.routes"; 
 
 // Auth middleware — reusable di semua route yang butuh autentikasi
 const makeAuthMiddleware = (jwtInstance: any) =>
@@ -136,5 +137,6 @@ export const createApp = (getPrisma: () => DbClient) => {
       };
     });
 
+app.use(authRoutes(getPrisma))
   return app;
 };

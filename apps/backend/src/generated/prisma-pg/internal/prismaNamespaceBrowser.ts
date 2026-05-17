@@ -51,10 +51,7 @@ export const AnyNull = runtime.AnyNull
 
 
 export const ModelName = {
-  User: 'User',
-  Post: 'Post',
-  Comment: 'Comment',
-  Notification: 'Notification'
+  User: 'User'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -75,53 +72,11 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 
 export const UserScalarFieldEnum = {
   id: 'id',
-  name: 'name',
   email: 'email',
-  password: 'password',
-  isGoogle: 'isGoogle',
-  avatar: 'avatar',
-  createdAt: 'createdAt'
+  name: 'name'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
-
-
-export const PostScalarFieldEnum = {
-  id: 'id',
-  content: 'content',
-  image: 'image',
-  authorId: 'authorId',
-  likes: 'likes',
-  createdAt: 'createdAt'
-} as const
-
-export type PostScalarFieldEnum = (typeof PostScalarFieldEnum)[keyof typeof PostScalarFieldEnum]
-
-
-export const CommentScalarFieldEnum = {
-  id: 'id',
-  content: 'content',
-  postId: 'postId',
-  authorId: 'authorId',
-  createdAt: 'createdAt'
-} as const
-
-export type CommentScalarFieldEnum = (typeof CommentScalarFieldEnum)[keyof typeof CommentScalarFieldEnum]
-
-
-export const NotificationScalarFieldEnum = {
-  id: 'id',
-  userId: 'userId',
-  actorId: 'actorId',
-  message: 'message',
-  type: 'type',
-  postId: 'postId',
-  commentId: 'commentId',
-  isRead: 'isRead',
-  createdAt: 'createdAt'
-} as const
-
-export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -1,85 +1,59 @@
 import { Elysia } from "elysia";
-import type { PrismaClient } from "./generated/prisma/client";
+import { cookie } from "@elysiajs/cookie";
+import { jwt } from "@elysiajs/jwt";
+import type { ApiResponse, HealthCheck, User } from "shared";
+import type { DbClient } from "./types";
+import { authRoutes } from "./auth.routes";
+import { postRoutes } from "./posts.routes";
+import { notificationRoutes } from "./notifications.routes";
 
-export const createApp = (getPrisma: () => PrismaClient) => {
-  const prisma = getPrisma();
-
+export const createApp = (getPrisma: () => DbClient) => {
   const app = new Elysia()
-    .get("/", () => ({
-      message: "Threads Clone API is running!",
+    .use(cookie())
+    .use(
+      jwt({
+        name: "jwt",
+        secret: process.env.JWT_SECRET!,
+        exp: "1d",
+      })
+    )
+
+    // Middleware debug + /users key guard
+    .onRequest(({ request, set }) => {
+      const url = new URL(request.url);
+      console.log(`[${request.method}] ${url.pathname}`);
+      if (request.method === "OPTIONS") return;
+      if (!url.pathname.startsWith("/users")) return;
+      const origin = request.headers.get("origin");
+      const frontendUrl = process.env.FRONTEND_URL ?? "http://localhost:5173";
+      const key = url.searchParams.get("key");
+      if (origin === frontendUrl) return;
+      if (key !== process.env.API_KEY) {
+        set.status = 401;
+        return { message: "Unauthorized" };
+      }
+    })
+
+    // Health check
+    .get("/", (): ApiResponse<HealthCheck> => ({
+      data: { status: "ok" },
+      message: "server running",
     }))
+
+    // Users list (admin)
     .get("/users", async () => {
-      const users = await prisma.user.findMany();
-      return { data: users };
-    })
-    .post("/auth/login", async ({ body }) => {
-      const { email, password } = body as { email: string; password: string };
-
-      const user = await prisma.user.findUnique({
-        where: { email }
-      });
-
-      if (!user) {
-        return new Response(
-          JSON.stringify({ message: "Email tidak ditemukan" }),
-          { status: 404 }
-        );
-      }
-
-      if (user.password !== password) {
-        return new Response(
-          JSON.stringify({ message: "Password salah" }),
-          { status: 401 }
-        );
-      }
-
-      return {
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-        },
-        message: "Login berhasil"
+      const users = await getPrisma().user.findMany();
+      const response: ApiResponse<User[]> = {
+        data: users,
+        message: "User list retrieved",
       };
+      return response;
     })
-    .get("/posts", async () => {
-      const posts = await prisma.post.findMany({
-        include: {
-          author: true,
-          comments: true,
-        },
-        orderBy: { createdAt: "desc" },
-      });
-      return { data: posts };
-    })
-    .get("/posts/:id", async ({ params }) => {
-      const post = await prisma.post.findUnique({
-        where: { id: Number(params.id) },
-        include: {
-          author: true,
-          comments: {
-            include: { author: true },
-            orderBy: { createdAt: "desc" },
-          },
-        },
-      });
-      return { data: post };
-    })
-    .get("/posts/:id/comments", async ({ params }) => {
-      const comments = await prisma.comment.findMany({
-        where: { postId: Number(params.id) },
-        include: { author: true },
-        orderBy: { createdAt: "desc" },
-      });
-      return { data: comments };
-    })
-    .get("/notifications/:userId", async ({ params }) => {
-      const notifications = await prisma.notification.findMany({
-        where: { userId: Number(params.userId) },
-        orderBy: { createdAt: "desc" },
-      });
-      return { data: notifications };
-    });
+
+    // ── Routes ─────────────────────────────────────────────────
+    .use(authRoutes(getPrisma))
+    .use(postRoutes(getPrisma))
+    .use(notificationRoutes(getPrisma));
 
   return app;
 };

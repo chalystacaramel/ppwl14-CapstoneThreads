@@ -10,29 +10,31 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String?
-  isGoogle  Boolean  @default(false)
-  avatar    String?
-  createdAt DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  name       String
+  email      String   @unique
+  password   String?
+  avatar_url String?
+  isGoogle   Boolean  @default(false)
+  createdAt  DateTime @default(now())
 
   posts         Post[]
   comments      Comment[]
-  notifications Notification[]
+  likes         PostLike[]
+  notifications Notification[] @relation("UserNotifications")
+  actorNotifs   Notification[] @relation("ActorNotifications")
 }
 
 model Post {
   id        Int      @id @default(autoincrement())
   content   String
-  image     String?
-  authorId  Int
-  author    User     @relation(fields: [authorId], references: [id])
-  likes     Int      @default(0)
+  image_url String?
+  userId    Int
   createdAt DateTime @default(now())
 
-  comments      Comment[]
+  user     User       @relation(fields: [userId], references: [id])
+  comments Comment[]
+  likes    PostLike[]
   notifications Notification[]
 }
 
@@ -40,25 +42,38 @@ model Comment {
   id        Int      @id @default(autoincrement())
   content   String
   postId    Int
-  post      Post     @relation(fields: [postId], references: [id])
-  authorId  Int
-  author    User     @relation(fields: [authorId], references: [id])
+  userId    Int
   createdAt DateTime @default(now())
 
+  post Post @relation(fields: [postId], references: [id])
+  user User @relation(fields: [userId], references: [id])
   notifications Notification[]
+}
+
+model PostLike {
+  id        Int      @id @default(autoincrement())
+  postId    Int
+  userId    Int
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([postId, userId])
 }
 
 model Notification {
   id        Int      @id @default(autoincrement())
   userId    Int
-  user      User     @relation(fields: [userId], references: [id])
   actorId   Int
-  message   String
   type      String
   postId    Int?
-  post      Post?    @relation(fields: [postId], references: [id])
   commentId Int?
-  comment   Comment? @relation(fields: [commentId], references: [id])
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  user    User     @relation("UserNotifications", fields: [userId], references: [id])
+  actor   User     @relation("ActorNotifications", fields: [actorId], references: [id])
+  post    Post?    @relation(fields: [postId], references: [id])
+  comment Comment? @relation(fields: [commentId], references: [id])
 }

@@ -12,6 +12,36 @@ export const createApp = (getPrisma: () => PrismaClient) => {
       const users = await prisma.user.findMany();
       return { data: users };
     })
+    .post("/auth/login", async ({ body }) => {
+      const { email, password } = body as { email: string; password: string };
+
+      const user = await prisma.user.findUnique({
+        where: { email }
+      });
+
+      if (!user) {
+        return new Response(
+          JSON.stringify({ message: "Email tidak ditemukan" }),
+          { status: 404 }
+        );
+      }
+
+      if (user.password !== password) {
+        return new Response(
+          JSON.stringify({ message: "Password salah" }),
+          { status: 401 }
+        );
+      }
+
+      return {
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+        },
+        message: "Login berhasil"
+      };
+    })
     .get("/posts", async () => {
       const posts = await prisma.post.findMany({
         include: {

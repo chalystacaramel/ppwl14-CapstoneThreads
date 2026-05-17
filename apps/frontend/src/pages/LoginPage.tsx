@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { GoogleLogin } from '@react-oauth/google'
 import { useAuthStore } from "../stores/auth.store";
+import { toast } from 'sonner'  
 
 // ─── API helper ───────────────────────────────────────────────
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
@@ -74,6 +75,7 @@ export default function LoginPage() {
         method: 'POST', body: JSON.stringify(body),
       })
       setAuth(data.user, data.accessToken)
+      toast.success(`Selamat datang, ${data.user.name}! 👋`)
       navigate('/')
     } catch (err: any) {
       setError(err.message)
@@ -92,6 +94,7 @@ export default function LoginPage() {
         body: JSON.stringify({ token: googleToken }),
       })
       setAuth(data.user, data.accessToken)
+      toast.success(`Selamat datang, ${data.user.name}! 👋`)  // tambah ini
       navigate('/')
     } catch (err: any) {
       setError('Login Google gagal: ' + err.message)

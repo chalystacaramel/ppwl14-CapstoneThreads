@@ -1,23 +1,28 @@
 import { getPrisma } from './db';
+import { Argon2id } from "oslo/password";
+
 const prisma = getPrisma();
+const argon2 = new Argon2id();
 
 async function main() {
+  const hash = async (pw: string) => await argon2.hash(pw);
+
   const user1 = await prisma.user.upsert({
     where: { email: "aisyah@example.com" },
-    update: {},
-    create: { name: "Aisyah", email: "aisyah@example.com", password: "password123" }
+    update: { password: await hash("password123") },
+    create: { name: "Aisyah", email: "aisyah@example.com", password: await hash("password123") }
   });
 
   const user2 = await prisma.user.upsert({
     where: { email: "chalysta@example.com" },
-    update: {},
-    create: { name: "Chalysta", email: "chalysta@example.com", password: "password123" }
+    update: { password: await hash("password123") },
+    create: { name: "Chalysta", email: "chalysta@example.com", password: await hash("password123") }
   });
 
   const user3 = await prisma.user.upsert({
     where: { email: "adhelia@example.com" },
-    update: {},
-    create: { name: "Adhelia", email: "adhelia@example.com", password: "password123" }
+    update: { password: await hash("password123") },
+    create: { name: "Adhelia", email: "adhelia@example.com", password: await hash("password123") }
   });
 
   const post1 = await prisma.post.create({

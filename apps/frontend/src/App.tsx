@@ -1,26 +1,19 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
-
-// Halaman placeholder sementara (nanti diganti tim masing-masing)
-function HomePage() {
-  return <div style={{ color: '#fff', padding: 24 }}>🏠 Beranda — dikerjakan Aisyah</div>
-}
-function FormPostPage() {
-  return <div style={{ color: '#fff', padding: 24 }}>📝 Form Post — dikerjakan Andy</div>
-}
-function NotifPage() {
-  return <div style={{ color: '#fff', padding: 24 }}>🔔 Notifikasi — dikerjakan Iqlima</div>
-}
+import Feed from './pages/Feed'
+import FormPostPage from './pages/FormPostPage'
+import NotifPage from './pages/NotifPage'
+import DetailPostPage from './pages/DetailPostPage'
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<Feed />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/post" element={<FormPostPage />} />
+        <Route path="/post/new" element={<FormPostPage />} />
+        <Route path="/post/:id" element={<DetailPostPage />} />
         <Route path="/notifications" element={<NotifPage />} />
-        {/* Redirect semua path tidak dikenal ke beranda */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

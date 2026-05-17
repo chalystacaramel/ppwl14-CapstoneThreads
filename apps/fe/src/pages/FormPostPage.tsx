@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Laugh, AlignLeft, List, MapPin, ChevronRight, FileText, MoreHorizontal, LayoutGrid, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ImageUpload from "@/components/ImageUpload";
-import { usePostStore } from "@/store/usePostStore";
+import { usePostStore } from "@/stores/usePostStore";
 
 const MAX_CHARS = 500;
 const tokens = {

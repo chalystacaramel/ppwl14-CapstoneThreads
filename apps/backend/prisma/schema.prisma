@@ -1,0 +1,79 @@
+generator client {
+  provider   = "prisma-client"
+  output     = "../src/generated/prisma"
+  engineType = "client"
+  runtime    = "bun"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id         Int      @id @default(autoincrement())
+  name       String
+  email      String   @unique
+  password   String?
+  avatar_url String?
+  isGoogle   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  posts         Post[]
+  comments      Comment[]
+  likes         PostLike[]
+  notifications Notification[] @relation("UserNotifications")
+  actorNotifs   Notification[] @relation("ActorNotifications")
+}
+
+model Post {
+  id        Int      @id @default(autoincrement())
+  content   String
+  image_url String?
+  userId    Int
+  createdAt DateTime @default(now())
+
+  user     User       @relation(fields: [userId], references: [id])
+  comments Comment[]
+  likes    PostLike[]
+  notifications Notification[]
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  postId    Int
+  userId    Int
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+  notifications Notification[]
+}
+
+model PostLike {
+  id        Int      @id @default(autoincrement())
+  postId    Int
+  userId    Int
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([postId, userId])
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  actorId   Int
+  type      String
+  postId    Int?
+  commentId Int?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user    User     @relation("UserNotifications", fields: [userId], references: [id])
+  actor   User     @relation("ActorNotifications", fields: [actorId], references: [id])
+  post    Post?    @relation(fields: [postId], references: [id])
+  comment Comment? @relation(fields: [commentId], references: [id])
+}

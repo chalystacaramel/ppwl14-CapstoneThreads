@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+<<<<<<< HEAD
     // Environment setup & latest features
     "lib": ["ESNext"],
     "target": "ESNext",
@@ -27,3 +28,12 @@
     "noPropertyAccessFromIndexSignature": false
   }
 }
+=======
+    "strict": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true
+  }
+}
+>>>>>>> f609029b6680277151f49c198b29d075b6d35496

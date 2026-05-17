@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "name": "ppwl14-capstone-threads",
   "private": true,
   "workspaces": [
@@ -9,5 +10,16 @@
     "dev:fe": "bun --cwd apps/fe dev",
     "dev:be": "bun --cwd apps/be dev",
     "dev": "bun run dev:fe & bun run dev:be"
+=======
+  "name": "monorepo",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "bun run --filter '*' dev",
+    "start": "bun run --env-file=apps/backend/.env.production --filter '*' start",
+    "dev:frontend": "bun run --filter frontend dev",
+    "dev:backend": "bun run --filter backend dev",
+    "build": "bun run --filter '*' build"
+>>>>>>> f609029b6680277151f49c198b29d075b6d35496
   }
 }

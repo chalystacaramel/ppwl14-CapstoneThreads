@@ -1,5 +1,6 @@
 {
   "name": "shared",
+<<<<<<< HEAD
   "module": "index.ts",
   "type": "module",
   "private": true,
@@ -10,3 +11,9 @@
     "typescript": "^5"
   }
 }
+=======
+  "private": true,
+  "module": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" }
+}
+>>>>>>> f609029b6680277151f49c198b29d075b6d35496

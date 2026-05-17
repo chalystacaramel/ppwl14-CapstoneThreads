@@ -1,21 +1,64 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider   = "prisma-client"
+  output     = "../src/generated/prisma"
   engineType = "client"
-  runtime = "bun"
+  runtime    = "bun"
 }
 
 datasource db {
   provider = "sqlite"
 }
 
-model User { 
-  id    Int     @id @default(autoincrement()) 
-  email String  @unique
-  name  String?
-} 
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String?
+  isGoogle  Boolean  @default(false)
+  avatar    String?
+  createdAt DateTime @default(now())
+
+  posts         Post[]
+  comments      Comment[]
+  notifications Notification[]
+}
+
+model Post {
+  id        Int      @id @default(autoincrement())
+  content   String
+  image     String?
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id])
+  likes     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  comments      Comment[]
+  notifications Notification[]
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  postId    Int
+  post      Post     @relation(fields: [postId], references: [id])
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id])
+  createdAt DateTime @default(now())
+
+  notifications Notification[]
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  actorId   Int
+  message   String
+  type      String
+  postId    Int?
+  post      Post?    @relation(fields: [postId], references: [id])
+  commentId Int?
+  comment   Comment? @relation(fields: [commentId], references: [id])
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}

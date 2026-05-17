@@ -1,7 +1,9 @@
 import { defineConfig } from 'tsdown'
 
 export default defineConfig({
-  deps: {
-    alwaysBundle: ['shared']
-  }
+  entry: ['src/lambda.ts'],
+  outDir: 'dist-lambda',
+  format: 'cjs',
+  noExternal: [/.*/],
+  clean: false,
 })

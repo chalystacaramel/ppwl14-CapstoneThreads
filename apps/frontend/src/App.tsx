@@ -1,7 +1,7 @@
 // apps/frontend/src/App.tsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
-import Feed from './pages/HomePage'
+import Feed from './pages/Feed'
 import Navbar from './components/layout/Navbar'
 import { useAuthStore } from './stores/auth.store'
 

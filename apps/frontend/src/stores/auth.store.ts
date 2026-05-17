@@ -1,20 +1,19 @@
-// apps/frontend/src/stores/auth.store.ts
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 
-export type AuthUser = {
+type User = {
   id: string
   name: string
   email: string
   avatarUrl?: string
-  isGoogle?: boolean
 }
 
 type AuthStore = {
-  user: AuthUser | null
-  token: string | null
+  user: User | null
+  accessToken: string | null
   isAuthenticated: boolean
-  setAuth: (user: AuthUser, token: string) => void
+
+  setAuth: (user: User, token: string) => void
   logout: () => void
 }
 
@@ -22,11 +21,17 @@ export const useAuthStore = create<AuthStore>()(
   persist(
     (set) => ({
       user: null,
-      token: null,
+      accessToken: null,
       isAuthenticated: false,
-      setAuth: (user, token) => set({ user, token, isAuthenticated: true }),
-      logout: () => set({ user: null, token: null, isAuthenticated: false }),
+
+      setAuth: (user, accessToken) =>
+        set({ user, accessToken, isAuthenticated: true }),
+
+      logout: () =>
+        set({ user: null, accessToken: null, isAuthenticated: false })
     }),
-    { name: "auth-storage" }
+    {
+      name: "auth-storage"
+    }
   )
 )

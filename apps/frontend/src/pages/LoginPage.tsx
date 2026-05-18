@@ -5,11 +5,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { GoogleLogin } from '@react-oauth/google'
-import { useAuthStore } from "../stores/auth.store";
-<<<<<<< HEAD
-=======
-import { toast } from 'sonner'  
->>>>>>> 7397ce46e8b8638c965fbbf288adb3afa417592f
+import { useAuthStore } from '../stores/auth.store'
 
 // ─── API helper ───────────────────────────────────────────────
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
@@ -78,10 +74,6 @@ export default function LoginPage() {
         method: 'POST', body: JSON.stringify(body),
       })
       setAuth(data.user, data.accessToken)
-<<<<<<< HEAD
-=======
-      toast.success(`Selamat datang, ${data.user.name}! 👋`)
->>>>>>> 7397ce46e8b8638c965fbbf288adb3afa417592f
       navigate('/')
     } catch (err: any) {
       setError(err.message)
@@ -100,10 +92,6 @@ export default function LoginPage() {
         body: JSON.stringify({ token: googleToken }),
       })
       setAuth(data.user, data.accessToken)
-<<<<<<< HEAD
-=======
-      toast.success(`Selamat datang, ${data.user.name}! 👋`)  // tambah ini
->>>>>>> 7397ce46e8b8638c965fbbf288adb3afa417592f
       navigate('/')
     } catch (err: any) {
       setError('Login Google gagal: ' + err.message)

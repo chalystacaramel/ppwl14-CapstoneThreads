@@ -132,6 +132,7 @@ export default function FormPostPage() {
                   ))}
                 </div>
               )}
+              
 
               <div className="flex items-center gap-0.5 mt-3">
                 <div className="w-0.5 h-5 rounded-full mr-2" style={{ backgroundColor: tokens.threadline }} />

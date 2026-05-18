@@ -2,6 +2,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
 import Feed from './pages/Feed'
+import FormPostPage from './pages/FormPostPage'
+import NotifPage from './pages/NotifPage'
+import DetailPostPage from './pages/DetailPostPage'
 import Navbar from './components/layout/Navbar'
 import { useAuthStore } from './stores/auth.store'
 
@@ -41,16 +44,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-// ─── Placeholder pages (nanti diganti per tim) ─────────────────
-function FormPostPage() {
-  return <AppLayout><div style={{ color: '#f3f3f3', padding: 24 }}>📝 Form Post — dikerjakan Andy</div></AppLayout>
-}
-function NotifPage() {
-  return <AppLayout><div style={{ color: '#f3f3f3', padding: 24 }}>🔔 Notifikasi — dikerjakan Iqlima</div></AppLayout>
-}
+// ─── Profile placeholder ──────────────────────────────────────
 function ProfilePage() {
   return <AppLayout><div style={{ color: '#f3f3f3', padding: 24 }}>👤 Profil — coming soon</div></AppLayout>
 }
+
 function SearchPage() {
   return <AppLayout><div style={{ color: '#f3f3f3', padding: 24 }}>🔍 Pencarian — coming soon</div></AppLayout>
 }
@@ -64,7 +62,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/post/new" element={<ProtectedRoute><FormPostPage /></ProtectedRoute>} />
-        <Route path="/post/:id" element={<AppLayout><div style={{ color: '#f3f3f3', padding: 24 }}>Detail Post</div></AppLayout>} />
+        <Route path="/post/:id" element={<AppLayout><DetailPostPage /></AppLayout>} />
         <Route path="/notifications" element={<ProtectedRoute><NotifPage /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
         <Route path="/profile/:userId" element={<AppLayout><ProfilePage /></AppLayout>} />

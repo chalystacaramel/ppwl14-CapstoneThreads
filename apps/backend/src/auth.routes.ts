@@ -124,6 +124,7 @@ export const authRoutes = (getPrisma: () => DbClient) =>
         }),
       }
     )
+
     // ── Google OAuth ─────────────────────────────────────────
     .post(
       "/google",
@@ -131,12 +132,14 @@ export const authRoutes = (getPrisma: () => DbClient) =>
         const { token: googleToken } = body as any
 
         let db: any
-        try { db = getPrisma() } catch (e) {
-          set.status = 500; return { message: "Database error" }
+        try {
+          db = getPrisma()
+        } catch (e) {
+          set.status = 500
+          return { message: "Database error" }
         }
 
         try {
-          // Verifikasi token Google menggunakan Google API
           const res = await fetch(
             `https://oauth2.googleapis.com/tokeninfo?id_token=${googleToken}`
           )
@@ -147,9 +150,8 @@ export const authRoutes = (getPrisma: () => DbClient) =>
             return { message: "Token Google tidak valid" }
           }
 
-          const { email, name, picture, sub: googleId } = info
+          const { email, name, picture } = info
 
-          // Cari atau buat user
           let user = await db.user.findUnique({ where: { email } })
 
           if (!user) {

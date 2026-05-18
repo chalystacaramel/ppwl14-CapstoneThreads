@@ -5,6 +5,7 @@ import Feed from './pages/Feed'
 import FormPostPage from './pages/FormPostPage'
 import NotifPage from './pages/NotifPage'
 import DetailPostPage from './pages/DetailPostPage'
+import EditProfilePage from './pages/EditProfilePage'
 import Navbar from './components/layout/Navbar'
 import { useAuthStore } from './stores/auth.store'
 
@@ -64,7 +65,7 @@ function App() {
         <Route path="/post/new" element={<ProtectedRoute><FormPostPage /></ProtectedRoute>} />
         <Route path="/post/:id" element={<AppLayout><DetailPostPage /></AppLayout>} />
         <Route path="/notifications" element={<ProtectedRoute><NotifPage /></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><EditProfilePage /></ProtectedRoute>} />
         <Route path="/profile/:userId" element={<AppLayout><ProfilePage /></AppLayout>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

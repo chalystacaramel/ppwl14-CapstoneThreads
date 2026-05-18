@@ -5,6 +5,7 @@ import { Elysia, t } from "elysia"
 import { jwt } from "@elysiajs/jwt"
 import type { DbClient } from "./types"
 
+<<<<<<< HEAD
 // Verifikasi Google token
 async function verifyGoogleToken(token: string) {
   const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${token}`)
@@ -12,6 +13,8 @@ async function verifyGoogleToken(token: string) {
   return res.json() as Promise<{ sub: string; email: string; name: string; picture: string }>
 }
 
+=======
+>>>>>>> 7397ce46e8b8638c965fbbf288adb3afa417592f
 export const authRoutes = (getPrisma: () => DbClient) =>
   new Elysia({ prefix: "/auth" })
     .use(jwt({ name: "jwt", secret: process.env.JWT_SECRET!, exp: "1d" }))
@@ -131,11 +134,15 @@ export const authRoutes = (getPrisma: () => DbClient) =>
         }),
       }
     )
+<<<<<<< HEAD
 
+=======
+>>>>>>> 7397ce46e8b8638c965fbbf288adb3afa417592f
     // ── Google OAuth ─────────────────────────────────────────
     .post(
       "/google",
       async ({ body, jwt, set }) => {
+<<<<<<< HEAD
         const { token } = body
         console.log("[GOOGLE] verifying token...")
 
@@ -168,6 +175,41 @@ export const authRoutes = (getPrisma: () => DbClient) =>
             console.log("[GOOGLE] new user created:", user.id)
           } else {
             console.log("[GOOGLE] existing user:", user.id)
+=======
+        const { token: googleToken } = body as any
+
+        let db: any
+        try { db = getPrisma() } catch (e) {
+          set.status = 500; return { message: "Database error" }
+        }
+
+        try {
+          // Verifikasi token Google menggunakan Google API
+          const res = await fetch(
+            `https://oauth2.googleapis.com/tokeninfo?id_token=${googleToken}`
+          )
+          const info = await res.json() as any
+
+          if (!res.ok || !info.email) {
+            set.status = 401
+            return { message: "Token Google tidak valid" }
+          }
+
+          const { email, name, picture, sub: googleId } = info
+
+          // Cari atau buat user
+          let user = await db.user.findUnique({ where: { email } })
+
+          if (!user) {
+            user = await db.user.create({
+              data: {
+                name: name ?? email.split("@")[0],
+                email,
+                avatar_url: picture ?? null,
+                isGoogle: true,
+              },
+            })
+>>>>>>> 7397ce46e8b8638c965fbbf288adb3afa417592f
           }
 
           const accessToken = await jwt.sign({ userId: user.id, email: user.email })
@@ -183,14 +225,47 @@ export const authRoutes = (getPrisma: () => DbClient) =>
             },
           }
         } catch (e) {
+<<<<<<< HEAD
           console.error("[GOOGLE] error:", e)
           set.status = 401
+=======
+          console.error("[GOOGLE AUTH] error:", e)
+          set.status = 500
+>>>>>>> 7397ce46e8b8638c965fbbf288adb3afa417592f
           return { message: "Login Google gagal: " + String(e) }
         }
       },
       {
+<<<<<<< HEAD
         body: t.Object({
           token: t.String(),
         }),
       }
     )
+=======
+        body: t.Object({ token: t.String() }),
+      }
+    )
+
+    // ── GET /auth/me — cek sesi user ─────────────────────────
+    .get("/me", async ({ headers, jwt, set }) => {
+      const authHeader = headers.authorization
+      if (!authHeader) { set.status = 401; return { message: "Unauthorized" } }
+
+      const token = authHeader.replace("Bearer ", "")
+      const payload = await jwt.verify(token) as any
+      if (!payload) { set.status = 401; return { message: "Token tidak valid" } }
+
+      const db = getPrisma() as any
+      const user = await db.user.findUnique({ where: { id: payload.userId } })
+      if (!user) { set.status = 404; return { message: "User tidak ditemukan" } }
+
+      return {
+        id: String(user.id),
+        name: user.name,
+        email: user.email,
+        avatarUrl: user.avatar_url ?? null,
+        isGoogle: user.isGoogle,
+      }
+    })
+>>>>>>> 7397ce46e8b8638c965fbbf288adb3afa417592f

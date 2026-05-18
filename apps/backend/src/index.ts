@@ -1,4 +1,5 @@
 import { Elysia } from "elysia";
+import { cors } from "@elysiajs/cors"; 
 import { cookie } from "@elysiajs/cookie";
 import { jwt } from "@elysiajs/jwt";
 import { createOAuthClient, getAuthUrl } from "./auth";
@@ -31,6 +32,11 @@ const makeAuthMiddleware = (jwtInstance: any) =>
 // sehingga dev pakai LibSQL, prod pakai PostgreSQL — tanpa mengubah routes
 export const createApp = (getPrisma: () => DbClient) => {
   const app = new Elysia()
+    .use(cors({
+      origin: process.env.FRONTEND_URL || "http://localhost:5173",
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization"],
+    }))
     .use(cookie())
     .use(
       jwt({

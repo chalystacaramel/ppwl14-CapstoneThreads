@@ -10,70 +10,51 @@ datasource db {
 }
 
 model User {
-  id         Int      @id @default(autoincrement())
-  name       String
-  email      String   @unique
-  password   String?
-  avatar_url String?
-  isGoogle   Boolean  @default(false)
-  createdAt  DateTime @default(now())
-
-  posts         Post[]
-  comments      Comment[]
-  likes         PostLike[]
+  id            Int            @id @default(autoincrement())
+  name          String
+  email         String         @unique
+  password      String?
+  avatar        String?
+  createdAt     DateTime       @default(now())
+  Comment       Comment[]
   notifications Notification[] @relation("UserNotifications")
-  actorNotifs   Notification[] @relation("ActorNotifications")
+  Post          Post[]
 }
 
 model Post {
-  id        Int      @id @default(autoincrement())
-  content   String
-  image_url String?
-  userId    Int
-  createdAt DateTime @default(now())
-
-  user     User       @relation(fields: [userId], references: [id])
-  comments Comment[]
-  likes    PostLike[]
+  id            Int            @id @default(autoincrement())
+  content       String
+  image         String?
+  authorId      Int
+  likes         Int            @default(0)
+  createdAt     DateTime       @default(now())
+  comments      Comment[]
   notifications Notification[]
+  User          User           @relation(fields: [authorId], references: [id])
 }
 
 model Comment {
-  id        Int      @id @default(autoincrement())
-  content   String
-  postId    Int
-  userId    Int
-  createdAt DateTime @default(now())
-
-  post Post @relation(fields: [postId], references: [id])
-  user User @relation(fields: [userId], references: [id])
+  id            Int            @id @default(autoincrement())
+  content       String
+  postId        Int
+  authorId      Int
+  createdAt     DateTime       @default(now())
+  User          User           @relation(fields: [authorId], references: [id])
+  post          Post           @relation(fields: [postId], references: [id])
   notifications Notification[]
-}
-
-model PostLike {
-  id        Int      @id @default(autoincrement())
-  postId    Int
-  userId    Int
-  createdAt DateTime @default(now())
-
-  post Post @relation(fields: [postId], references: [id])
-  user User @relation(fields: [userId], references: [id])
-
-  @@unique([postId, userId])
 }
 
 model Notification {
   id        Int      @id @default(autoincrement())
   userId    Int
   actorId   Int
+  message   String
   type      String
   postId    Int?
   commentId Int?
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
-
-  user    User     @relation("UserNotifications", fields: [userId], references: [id])
-  actor   User     @relation("ActorNotifications", fields: [actorId], references: [id])
-  post    Post?    @relation(fields: [postId], references: [id])
-  comment Comment? @relation(fields: [commentId], references: [id])
+  comment   Comment? @relation(fields: [commentId], references: [id])
+  post      Post?    @relation(fields: [postId], references: [id])
+  user      User     @relation("UserNotifications", fields: [userId], references: [id])
 }

@@ -16,6 +16,8 @@ export const createApp = (getPrisma: () => DbClient) => {
       allowedHeaders: ["Content-Type", "Authorization"],
     }))
     .use(cookie())
+    .onError(({ error, code }) => {
+  console.error("[ERROR]", code, error)})
     .use(
       jwt({
         name: "jwt",

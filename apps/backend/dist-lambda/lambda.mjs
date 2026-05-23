@@ -98215,12 +98215,13 @@ var PrismaLibSqlWebAdapterFactory = class extends PrismaLibSqlAdapterFactoryBase
 // prisma/db.ts
 import path2 from "path";
 var __dirname = "C:\\laragon\\www\\ppwl14-CapstoneThreads\\apps\\backend\\prisma";
-var dbUrl = process.env.DATABASE_URL || `file:${path2.resolve(__dirname, "../dev.db")}`;
+var getDbUrl = () => process.env.DATABASE_URL || `file:${path2.resolve(__dirname, "../dev.db")}`;
 var prisma;
 var getPrisma = () => {
   if (!prisma) {
-    console.log("[DB] Connecting to:", dbUrl);
-    const adapter = new PrismaLibSqlWebAdapterFactory({ url: dbUrl, authToken: process.env.DB_AUTH_TOKEN });
+    const currentDbUrl = getDbUrl();
+    console.log("[DB] Connecting to:", currentDbUrl);
+    const adapter = new PrismaLibSqlWebAdapterFactory({ url: currentDbUrl, authToken: process.env.DB_AUTH_TOKEN });
     prisma = new PrismaClient({ adapter });
   }
   return prisma;

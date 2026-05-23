@@ -6,8 +6,8 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:fe": "bun --cwd apps/fe dev",
-    "dev:be": "bun --cwd apps/be dev",
-    "dev": "bun run dev:fe & bun run dev:be"
+    "dev:frontend": "bun --cwd apps/frontend dev",
+    "dev:backend": "bun --cwd apps/backend dev",
+    "dev": "bun run dev:frontend & bun run dev:backend"
   }
 }

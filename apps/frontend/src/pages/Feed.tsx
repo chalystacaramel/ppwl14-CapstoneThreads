@@ -121,7 +121,7 @@ export default function Feed() {
   const [useDummy, setUseDummy] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
 
-  const { token } = useAuthStore()
+  const {accessToken} = useAuthStore()
 
   const loadPosts = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true)
@@ -129,7 +129,7 @@ export default function Feed() {
     setError(null)
 
     try {
-      const data = await fetchPosts(token)
+      const data = await fetchPosts(accessToken)
       if (data.length === 0 && !isRefresh) {
         // Backend belum ada data — pakai dummy
         setPosts(DUMMY_POSTS)
@@ -146,7 +146,7 @@ export default function Feed() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [token])
+  }, [accessToken])
 
   useEffect(() => { loadPosts() }, [loadPosts])
 
@@ -154,8 +154,8 @@ export default function Feed() {
   const handleRefresh = () => loadPosts(true)
 
   const handleLike = async (postId: string) => {
-    if (!token) return
-    await toggleLike(postId, token)
+    if (!accessToken) return
+    await toggleLike(postId, accessToken)
   }
 
   return (

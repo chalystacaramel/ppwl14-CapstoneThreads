@@ -1,15 +1,17 @@
 import { PrismaClient } from "../src/generated/prisma/client.ts"
-import { PrismaLibSql } from "@prisma/adapter-libsql"
-import path from "path"
-
-export const dbUrl = process.env.DATABASE_URL || `file:${path.resolve(__dirname, "../dev.db")}`
-
-const adapter = new PrismaLibSql({ url: dbUrl, authToken: process.env.DB_AUTH_TOKEN })
+import { PrismaPg } from "@prisma/adapter-pg"
+import { Pool } from "pg"
 
 let prisma: PrismaClient
 
 export const getPrisma = () => {
   if (!prisma) {
+    console.log("[DB] Connecting to:", process.env.DATABASE_URL)
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL!,
+      ssl: { rejectUnauthorized: false },
+    })
+    const adapter = new PrismaPg(pool)
     prisma = new PrismaClient({ adapter })
   }
   return prisma

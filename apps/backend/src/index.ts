@@ -4,6 +4,8 @@ import { cookie } from "@elysiajs/cookie";
 import { jwt } from "@elysiajs/jwt";
 import type { DbClient } from "./types";
 import { authRoutes } from "./auth.routes";
+import { postRoutes } from "./posts.routes";
+import { notificationRoutes } from "./notifications.routes";
 
 export const createApp = (getPrisma: () => DbClient) => {
   const app = new Elysia()
@@ -13,7 +15,16 @@ export const createApp = (getPrisma: () => DbClient) => {
       allowedHeaders: ["Content-Type", "Authorization"],
     }))
     .use(cookie())
-    .use(jwt({ name: "jwt", secret: process.env.JWT_SECRET!, exp: "1d" }))
+    .onError(({ error, code }) => {
+      console.error("[ERROR]", code, error)
+    })
+    .use(
+      jwt({
+        name: "jwt",
+        secret: process.env.JWT_SECRET!,
+        exp: "1d",
+      })
+    )
 
     .onRequest(({ request, set }) => {
       const url = new URL(request.url);
@@ -37,7 +48,9 @@ export const createApp = (getPrisma: () => DbClient) => {
       return { data: users, message: "User list retrieved" };
     })
 
-    .use(authRoutes(getPrisma));
+    .use(authRoutes(getPrisma))
+    .use(postRoutes(getPrisma))
+    .use(notificationRoutes(getPrisma));
 
   return app;
 };

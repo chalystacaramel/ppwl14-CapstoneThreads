@@ -5,7 +5,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { GoogleLogin } from '@react-oauth/google'
-import { useAuthStore } from "../stores/auth.store";
+import { useAuthStore } from '../stores/auth.store'
 import { toast } from 'sonner'
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
@@ -105,7 +105,6 @@ export default function LoginPage() {
     setError(null)
     setForm({ name: '', email: '', password: '' })
   }
-
   return (
     <div style={s.page}>
       <div style={s.ballsLeft}>

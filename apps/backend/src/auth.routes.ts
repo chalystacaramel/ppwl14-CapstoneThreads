@@ -1,62 +1,41 @@
 // apps/backend/src/auth.routes.ts
-// Route: Register & Login dengan email/password
-
 import { Elysia, t } from "elysia"
 import { jwt } from "@elysiajs/jwt"
 import type { DbClient } from "./types"
+
+async function verifyGoogleToken(token: string) {
+  const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${token}`)
+  if (!res.ok) throw new Error("Invalid Google token")
+  return res.json() as Promise<{ sub: string; email: string; name: string; picture: string }>
+}
 
 export const authRoutes = (getPrisma: () => DbClient) =>
   new Elysia({ prefix: "/auth" })
     .use(jwt({ name: "jwt", secret: process.env.JWT_SECRET!, exp: "1d" }))
 
-    // ── Register ────────────────────────────────────────────
+    // ── Register ─────────────────────────────────────────────
     .post(
       "/register",
       async ({ body, jwt, set }) => {
         const { name, email, password } = body
-        console.log("[REGISTER] body:", { name, email })
-
         let db: any
         try {
           db = getPrisma()
-          console.log("[REGISTER] db ready:", !!db)
         } catch (e) {
-          console.error("[REGISTER] getPrisma error:", e)
           set.status = 500
-          return { message: "Database error: " + String(e) }
+          return { message: "DB error: " + String(e) }
         }
-
         try {
-          console.log("[REGISTER] checking existing user...")
           const existing = await db.user.findUnique({ where: { email } })
-          if (existing) {
-            set.status = 400
-            return { message: "Email sudah terdaftar" }
-          }
-
-          console.log("[REGISTER] hashing password...")
+          if (existing) { set.status = 400; return { message: "Email sudah terdaftar" } }
           const hashedPassword = await Bun.password.hash(password)
-
-          console.log("[REGISTER] creating user...")
-          const user = await db.user.create({
-            data: { name, email, password: hashedPassword },
-          })
-          console.log("[REGISTER] user created:", user.id)
-
+          const user = await db.user.create({ data: { name, email, password: hashedPassword } })
           const token = await jwt.sign({ userId: user.id, email: user.email })
-
           return {
             accessToken: token,
-            user: {
-              id: String(user.id),
-              name: user.name,
-              email: user.email,
-              avatarUrl: user.avatar_url ?? null,
-              isGoogle: false,
-            },
+            user: { id: String(user.id), name: user.name, email: user.email, avatarUrl: user.avatar_url ?? null, isGoogle: false },
           }
         } catch (e) {
-          console.error("[REGISTER] error:", e)
           set.status = 500
           return { message: "Register gagal: " + String(e) }
         }
@@ -70,7 +49,7 @@ export const authRoutes = (getPrisma: () => DbClient) =>
       }
     )
 
-    // ── Login ───────────────────────────────────────────────
+    // ── Login ─────────────────────────────────────────────────
     .post(
       "/login",
       async ({ body, jwt, set }) => {
@@ -100,16 +79,9 @@ export const authRoutes = (getPrisma: () => DbClient) =>
           }
 
           const token = await jwt.sign({ userId: user.id, email: user.email })
-
           return {
             accessToken: token,
-            user: {
-              id: String(user.id),
-              name: user.name,
-              email: user.email,
-              avatarUrl: user.avatar_url ?? null,
-              isGoogle: false,
-            },
+            user: { id: String(user.id), name: user.name, email: user.email, avatarUrl: user.avatar_url ?? null, isGoogle: false },
           }
         } catch (e) {
           console.error("[LOGIN] error:", e)
@@ -125,61 +97,44 @@ export const authRoutes = (getPrisma: () => DbClient) =>
       }
     )
 
-    // ── Google OAuth ─────────────────────────────────────────
+    // ── Google OAuth ──────────────────────────────────────────
     .post(
       "/google",
       async ({ body, jwt, set }) => {
-        const { token: googleToken } = body as any
+        const { token } = body
 
         let db: any
         try {
           db = getPrisma()
         } catch (e) {
           set.status = 500
-          return { message: "Database error" }
+          return { message: "Database error: " + String(e) }
         }
 
         try {
-          const res = await fetch(
-            `https://oauth2.googleapis.com/tokeninfo?id_token=${googleToken}`
-          )
-          const info = await res.json() as any
+          const googleUser = await verifyGoogleToken(token)
 
-          if (!res.ok || !info.email) {
-            set.status = 401
-            return { message: "Token Google tidak valid" }
-          }
-
-          const { email, name, picture } = info
-
-          let user = await db.user.findUnique({ where: { email } })
-
+          let user = await db.user.findUnique({ where: { email: googleUser.email } })
           if (!user) {
             user = await db.user.create({
               data: {
-                name: name ?? email.split("@")[0],
-                email,
-                avatar_url: picture ?? null,
+                name: googleUser.name ?? googleUser.email.split("@")[0],
+                email: googleUser.email,
+                avatar_url: googleUser.picture ?? null,
                 isGoogle: true,
+                password: null,
               },
             })
           }
 
           const accessToken = await jwt.sign({ userId: user.id, email: user.email })
-
           return {
             accessToken,
-            user: {
-              id: String(user.id),
-              name: user.name,
-              email: user.email,
-              avatarUrl: user.avatar_url ?? null,
-              isGoogle: true,
-            },
+            user: { id: String(user.id), name: user.name, email: user.email, avatarUrl: user.avatar_url ?? null, isGoogle: true },
           }
         } catch (e) {
           console.error("[GOOGLE AUTH] error:", e)
-          set.status = 500
+          set.status = 401
           return { message: "Login Google gagal: " + String(e) }
         }
       },
@@ -188,7 +143,7 @@ export const authRoutes = (getPrisma: () => DbClient) =>
       }
     )
 
-    // ── GET /auth/me — cek sesi user ─────────────────────────
+    // ── GET /auth/me ──────────────────────────────────────────
     .get("/me", async ({ headers, jwt, set }) => {
       const authHeader = headers.authorization
       if (!authHeader) { set.status = 401; return { message: "Unauthorized" } }

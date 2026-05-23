@@ -2,7 +2,6 @@ import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { cookie } from "@elysiajs/cookie";
 import { jwt } from "@elysiajs/jwt";
-import type { ApiResponse, HealthCheck, User } from "shared";
 import type { DbClient } from "./types";
 import { authRoutes } from "./auth.routes";
 import { postRoutes } from "./posts.routes";
@@ -17,7 +16,8 @@ export const createApp = (getPrisma: () => DbClient) => {
     }))
     .use(cookie())
     .onError(({ error, code }) => {
-  console.error("[ERROR]", code, error)})
+      console.error("[ERROR]", code, error)
+    })
     .use(
       jwt({
         name: "jwt",
@@ -26,10 +26,9 @@ export const createApp = (getPrisma: () => DbClient) => {
       })
     )
 
-    // Middleware debug + /users key guard
     .onRequest(({ request, set }) => {
       const url = new URL(request.url);
-      console.log(`[${request.method}] ${url.pathname}`);
+      console.log(`[DEBUG] [${request.method}] ${url.pathname}`);
       if (request.method === "OPTIONS") return;
       if (!url.pathname.startsWith("/users")) return;
       const origin = request.headers.get("origin");
@@ -38,27 +37,17 @@ export const createApp = (getPrisma: () => DbClient) => {
       if (origin === frontendUrl) return;
       if (key !== process.env.API_KEY) {
         set.status = 401;
-        return { message: "Unauthorized" };
+        return { message: "Unauthorized: Access denied without valid API Key" };
       }
     })
 
-    // Health check
-    .get("/", (): ApiResponse<HealthCheck> => ({
-      data: { status: "ok" },
-      message: "server running",
-    }))
+    .get("/", () => ({ data: { status: "ok" }, message: "server running" }))
 
-    // Users list (admin)
     .get("/users", async () => {
       const users = await getPrisma().user.findMany();
-      const response: ApiResponse<User[]> = {
-        data: users,
-        message: "User list retrieved",
-      };
-      return response;
+      return { data: users, message: "User list retrieved" };
     })
 
-    // ── Routes ─────────────────────────────────────────────────
     .use(authRoutes(getPrisma))
     .use(postRoutes(getPrisma))
     .use(notificationRoutes(getPrisma));

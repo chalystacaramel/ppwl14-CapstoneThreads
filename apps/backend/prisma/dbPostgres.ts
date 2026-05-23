@@ -1,6 +1,6 @@
 // AWS Lambda tidak bisa langsung menggunakan file SQLite, jadi kita buat file baru khusus untuk PostgreSQL yang akan digunakan di Lambda. 
 // File ini akan tetap menggunakan Prisma Client dengan skema PostgreSQL.
-import { PrismaClient } from "../src/generated/prisma-pg/client";
+import { PrismaClient } from "../src/generated/prisma/client.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import fs from "fs";
 import path from "path";

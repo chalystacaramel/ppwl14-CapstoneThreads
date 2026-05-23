@@ -1,6 +1,6 @@
 import { createApp } from "./index";
 import { loadConfig } from "./config";       // SSM loader
-import { getPrisma } from "../prisma/dbPostgres"; // PostgreSQL
+import { getPrisma } from "../prisma/db"; // Turso / SQLite
 
 let app: ReturnType<typeof createApp>;
 
@@ -29,12 +29,14 @@ export const handler = async (event: any) => {
 
   // Handle preflight OPTIONS langsung di handler — sebelum masuk Elysia
   // Lambda URL CORS config tidak reliable, jadi kita handle manual
+  const requestOrigin = event.headers?.origin || event.headers?.Origin || frontendUrl;
+  
   if (event.requestContext.http.method === "OPTIONS") {
     console.log("[OPTIONS] preflight handled for:", event.rawPath);
     return {
       statusCode: 204,
       headers: {
-        "Access-Control-Allow-Origin": frontendUrl,
+        "Access-Control-Allow-Origin": requestOrigin,
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
         "Access-Control-Allow-Credentials": "true",
@@ -64,7 +66,7 @@ export const handler = async (event: any) => {
   console.log("[RESPONSE] status:", response.status);
   console.log("[RESPONSE] headers before inject:", JSON.stringify(resHeaders));
 
-  resHeaders["Access-Control-Allow-Origin"] = frontendUrl;
+  resHeaders["Access-Control-Allow-Origin"] = requestOrigin;
   resHeaders["Access-Control-Allow-Credentials"] = "true";
 
   // DEBUG — log headers setelah inject  
@@ -74,7 +76,7 @@ export const handler = async (event: any) => {
     statusCode: response.status,
     headers: {
       ...Object.fromEntries(response.headers),
-      "Access-Control-Allow-Origin": frontendUrl,
+      "Access-Control-Allow-Origin": requestOrigin,
       "Access-Control-Allow-Credentials": "true",
     },
     body: await response.text(),

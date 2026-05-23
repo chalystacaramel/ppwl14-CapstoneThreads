@@ -4,7 +4,7 @@ import { cookie } from "@elysiajs/cookie";
 import { jwt } from "@elysiajs/jwt";
 import type { DbClient } from "./types";
 import { authRoutes } from "./auth.routes";
-
+import { postRoutes } from "./posts.routes";
 export const createApp = (getPrisma: () => DbClient) => {
   const app = new Elysia()
     .use(cors({
@@ -37,7 +37,8 @@ export const createApp = (getPrisma: () => DbClient) => {
       return { data: users, message: "User list retrieved" };
     })
 
-    .use(authRoutes(getPrisma));
+    .use(authRoutes(getPrisma))
+    .use(postRoutes(getPrisma));
 
   return app;
 };

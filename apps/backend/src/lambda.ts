@@ -1,6 +1,6 @@
 import { createApp } from "./index";
 import { loadConfig } from "./config";       // SSM loader
-import { getPrisma } from "../prisma/dbPostgres"; // Postgres for Lambda
+import { getPrisma } from "../prisma/db"; // Turso / SQLite
 
 let app: ReturnType<typeof createApp>;
 

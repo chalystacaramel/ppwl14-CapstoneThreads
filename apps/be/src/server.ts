@@ -1,5 +1,5 @@
 import { createApp } from "./index";
-import { getPrisma, dbUrl } from "../prisma/db"; // LibSQL
+import { getPrisma, dbUrl } from "../prisma/db";
 import cors from "@elysiajs/cors";
 
 const app = createApp(getPrisma);

@@ -1,5 +1,6 @@
 import { useRef, useState, useCallback } from "react";
 import { ImageIcon } from "lucide-react";
+import type { ImageItem } from "../stores/usePostStore";
 
 export type UploadedImage = {
   id: string;
@@ -8,8 +9,8 @@ export type UploadedImage = {
 };
 
 type ImageUploadProps = {
-  images: UploadedImage[];
-  onChange: (images: UploadedImage[]) => void;
+  images: ImageItem[];
+  onChange: (images: ImageItem[]) => void;
   maxImages?: number;
 };
 

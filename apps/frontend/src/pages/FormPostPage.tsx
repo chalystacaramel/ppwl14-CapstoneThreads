@@ -19,8 +19,8 @@ export default function FormPostPage() {
   const editId = searchParams.get("edit");
 
   const { draft, setDraft, clearDraft, addPost, updatePost, posts } = usePostStore();
-  const text = draft.text;
-  const images = draft.images;
+  const {text, images} = draft;
+   // const images = draft.images;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const remaining = MAX_CHARS - text.length;
@@ -132,6 +132,7 @@ export default function FormPostPage() {
                   ))}
                 </div>
               )}
+              
 
               <div className="flex items-center gap-0.5 mt-3">
                 <div className="w-0.5 h-5 rounded-full mr-2" style={{ backgroundColor: tokens.threadline }} />

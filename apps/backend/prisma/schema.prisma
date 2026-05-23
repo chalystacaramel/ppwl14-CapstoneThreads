@@ -6,60 +6,44 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model User {
-  id         Int      @id @default(autoincrement())
-  name       String
-  email      String   @unique
-  password   String?
-  avatar_url String?
-  isGoogle   Boolean  @default(false)
-  createdAt  DateTime @default(now())
-
-  posts         Post[]
-  comments      Comment[]
-  likes         PostLike[]
+  id            Int            @id @default(autoincrement())
+  name          String
+  email         String         @unique
+  password      String?
+  createdAt     DateTime       @default(now())
+  avatar        String?
+  Comment       Comment[]
   notifications Notification[] @relation("UserNotifications")
-  actorNotifs   Notification[] @relation("ActorNotifications")
+  Post          Post[]
+  postLikes     PostLike[]
 }
 
 model Post {
-  id        Int      @id @default(autoincrement())
-  content   String
-  image_url String?
-  userId    Int
-  createdAt DateTime @default(now())
-
-  user     User       @relation(fields: [userId], references: [id])
-  comments Comment[]
-  likes    PostLike[]
+  id            Int            @id @default(autoincrement())
+  content       String
+  createdAt     DateTime       @default(now())
+  authorId      Int
+  image         String?
+  likes         Int            @default(0)
+  comments      Comment[]
   notifications Notification[]
+  User          User           @relation(fields: [authorId], references: [id])
+  postLikes     PostLike[]
 }
 
 model Comment {
-  id        Int      @id @default(autoincrement())
-  content   String
-  postId    Int
-  userId    Int
-  createdAt DateTime @default(now())
-
-  post Post @relation(fields: [postId], references: [id])
-  user User @relation(fields: [userId], references: [id])
+  id            Int            @id @default(autoincrement())
+  content       String
+  postId        Int
+  createdAt     DateTime       @default(now())
+  authorId      Int
+  User          User           @relation(fields: [authorId], references: [id])
+  post          Post           @relation(fields: [postId], references: [id])
   notifications Notification[]
-}
-
-model PostLike {
-  id        Int      @id @default(autoincrement())
-  postId    Int
-  userId    Int
-  createdAt DateTime @default(now())
-
-  post Post @relation(fields: [postId], references: [id])
-  user User @relation(fields: [userId], references: [id])
-
-  @@unique([postId, userId])
 }
 
 model Notification {
@@ -71,9 +55,18 @@ model Notification {
   commentId Int?
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+  message   String
+  comment   Comment? @relation(fields: [commentId], references: [id])
+  post      Post?    @relation(fields: [postId], references: [id])
+  user      User     @relation("UserNotifications", fields: [userId], references: [id])
+}
 
-  user    User     @relation("UserNotifications", fields: [userId], references: [id])
-  actor   User     @relation("ActorNotifications", fields: [actorId], references: [id])
-  post    Post?    @relation(fields: [postId], references: [id])
-  comment Comment? @relation(fields: [commentId], references: [id])
+model PostLike {
+  id     Int  @id @default(autoincrement())
+  postId Int
+  userId Int
+  post   Post @relation(fields: [postId], references: [id])
+  user   User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, postId])
 }

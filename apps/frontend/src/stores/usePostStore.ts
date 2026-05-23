@@ -1,7 +1,8 @@
 import { create } from "zustand";
 
-type ImageItem = {
+export type ImageItem = {
   id: string;
+  file?: File;
   previewUrl: string;
 };
 
@@ -25,7 +26,7 @@ export const usePostStore = create<PostStore>((set) => ({
   posts: [],
   setDraft: (text, images) => set({ draft: { text, images } }),
   clearDraft: () => set({ draft: { text: "", images: [] } }),
-  addPost: (text, images, username) =>
+  addPost: (text, images) =>
     set((state) => ({
       posts: [...state.posts, { id: Date.now().toString(), text, images }],
     })),

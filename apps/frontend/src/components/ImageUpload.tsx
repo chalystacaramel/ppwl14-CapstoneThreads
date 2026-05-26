@@ -3,7 +3,7 @@ import { ImageIcon } from "lucide-react";
 
 export type UploadedImage = {
   id: string;
-  file: File;
+  file?: File;
   previewUrl: string;
 };
 

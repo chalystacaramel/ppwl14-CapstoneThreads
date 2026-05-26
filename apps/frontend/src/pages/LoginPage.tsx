@@ -2,7 +2,7 @@
 // Dikerjakan oleh: Adhelia
 // Target: Login & Register berhasil, data tersimpan di BE, UI clone Threads asli
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { GoogleLogin } from '@react-oauth/google'
 import { useAuthStore } from '../stores/auth.store'
@@ -31,6 +31,18 @@ export default function LoginPage() {
   const [form, setForm] = useState({ name: '', email: '', password: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [googleWidth, setGoogleWidth] = useState(380)
+
+  useEffect(() => {
+    function handleResize() {
+      // Calculate responsive width: subtract margin/padding, cap between 200px and 380px
+      const calculated = Math.min(window.innerWidth - 48, 380)
+      setGoogleWidth(calculated > 200 ? calculated : 200)
+    }
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   const { setAuth } = useAuthStore()
   const navigate = useNavigate()
@@ -89,7 +101,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#101010] text-[#f3f3f3] font-sans flex flex-col relative overflow-hidden selection:bg-[#333]">
+    <div className="min-h-screen bg-[#101010] text-[#f3f3f3] font-sans flex flex-col relative overflow-x-hidden selection:bg-[#333]">
       
       {/* Background Graphic (User Uploaded Pattern) */}
       <div className="absolute inset-0 z-0 pointer-events-none flex justify-center overflow-hidden">
@@ -175,7 +187,7 @@ export default function LoginPage() {
                 shape="rectangular"
                 size="large"
                 text={mode === 'login' ? 'signin_with' : 'signup_with'}
-                width="380" // approximate width of the container
+                width={String(googleWidth)}
               />
             </div>
           </div>
@@ -213,7 +225,7 @@ export default function LoginPage() {
       <footer className="w-full flex justify-center pb-6 z-10 px-4">
         <p className="text-[12px] md:text-[13px] text-[#555] text-center flex flex-wrap justify-center gap-x-4 gap-y-2">
           <span>© 2026</span>
-          <span className="hover:underline cursor-pointer">Ketentuan Threads</span>
+          <span className="hover:underline cursor-pointer">Ketentuan Tehreads</span>
           <span className="hover:underline cursor-pointer">Kebijakan Privasi</span>
           <span className="hover:underline cursor-pointer">Kebijakan Cookie</span>
           <span className="hover:underline cursor-pointer">Laporkan masalah</span>

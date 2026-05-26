@@ -26,7 +26,7 @@ export const usePostStore = create<PostStore>((set) => ({
   posts: [],
   setDraft: (text, images) => set({ draft: { text, images } }),
   clearDraft: () => set({ draft: { text: "", images: [] } }),
-  addPost: (text, images) =>
+  addPost: (text, images, _username) =>
     set((state) => ({
       posts: [...state.posts, { id: Date.now().toString(), text, images }],
     })),

@@ -4,7 +4,7 @@ import type { ImageItem } from "../stores/usePostStore";
 
 export type UploadedImage = {
   id: string;
-  file: File;
+  file?: File;
   previewUrl: string;
 };
 

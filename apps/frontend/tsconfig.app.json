@@ -22,5 +22,6 @@
       "shared": ["../../packages/shared/index.ts"]
     }
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/ApiTest.tsx", "src/App2.tsx", "src/App3.tsx"]
 }

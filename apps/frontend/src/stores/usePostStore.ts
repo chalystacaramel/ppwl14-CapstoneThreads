@@ -1,7 +1,8 @@
 import { create } from "zustand";
 
-type ImageItem = {
+export type ImageItem = {
   id: string;
+  file?: File;
   previewUrl: string;
 };
 

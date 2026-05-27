@@ -24,7 +24,7 @@ export default function FormPostPage() {
 
   const { accessToken, user } = useAuthStore();
   const username = user?.name?.toLowerCase().replace(/\s+/g, "_") ?? "me";
-  const { draft, setDraft, clearDraft, addPost, updatePost, posts } =
+  const { draft, setDraft, clearDraft, updatePost, posts } =
     usePostStore();
 
   const { text, images } = draft;
@@ -88,7 +88,7 @@ export default function FormPostPage() {
       navigate("/");
     } catch (err) {
       console.error(err);
-      alert("Error: " + (err?.message || String(err)));
+      alert("Error: " + ((err as any)?.message || String(err)));
     } finally {
       setUploading(false);
     }

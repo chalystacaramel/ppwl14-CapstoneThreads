@@ -18,14 +18,16 @@ function App() {
   return (
     <BrowserRouter>
       {isAuthenticated && <Navbar />}
-      <Routes>
-        <Route path="/" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
-        <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
-        <Route path="/post" element={<ProtectedRoute><FormPostPage /></ProtectedRoute>} />
-        <Route path="/post/:id" element={<ProtectedRoute><DetailPostPage /></ProtectedRoute>} />
-        <Route path="/notifications" element={<ProtectedRoute><NotifPage /></ProtectedRoute>} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <div className={isAuthenticated ? "md:pl-[72px]" : ""}>
+        <Routes>
+          <Route path="/" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
+          <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
+          <Route path="/post" element={<ProtectedRoute><FormPostPage /></ProtectedRoute>} />
+          <Route path="/post/:id" element={<ProtectedRoute><DetailPostPage /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute><NotifPage /></ProtectedRoute>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
     </BrowserRouter>
   )
 }

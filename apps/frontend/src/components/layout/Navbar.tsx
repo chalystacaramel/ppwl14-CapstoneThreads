@@ -190,27 +190,14 @@ export default function Navbar() {
   return (
     <>
       {/* Desktop */}
-      <div style={{ display: 'none' }} className="desktop-nav-wrapper">
+      <div className="hidden md:block">
         <DesktopNav />
       </div>
-      <DesktopNav />
 
       {/* Mobile bottom nav */}
-      <div style={ms.mobileOnly}>
+      <div className="block md:hidden">
         <MobileNav />
       </div>
-
-      <style>{`
-        /* Show desktop sidebar only on md+ */
-        @media (max-width: 767px) {
-          .threads-desktop-nav { display: none !important; }
-          .threads-mobile-nav { display: flex !important; }
-        }
-        @media (min-width: 768px) {
-          .threads-desktop-nav { display: flex !important; }
-          .threads-mobile-nav { display: none !important; }
-        }
-      `}</style>
     </>
   )
 }

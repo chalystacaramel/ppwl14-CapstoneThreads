@@ -18,6 +18,7 @@ model User {
   avatar        String?
   Comment       Comment[]
   notifications Notification[] @relation("UserNotifications")
+  actorNotifications Notification[] @relation("ActorNotifications")
   Post          Post[]
   postLikes     PostLike[]
 }
@@ -59,6 +60,7 @@ model Notification {
   comment   Comment? @relation(fields: [commentId], references: [id])
   post      Post?    @relation(fields: [postId], references: [id])
   user      User     @relation("UserNotifications", fields: [userId], references: [id])
+  actor     User     @relation("ActorNotifications", fields: [actorId], references: [id])
 }
 
 model PostLike {

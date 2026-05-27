@@ -5,6 +5,7 @@ import { jwt } from "@elysiajs/jwt";
 import type { DbClient } from "./types";
 import { authRoutes } from "./auth.routes";
 import { postRoutes } from "./posts.routes";
+import { notificationRoutes } from "./notifications.routes";
 export const createApp = (getPrisma: () => DbClient) => {
   const app = new Elysia()
     .use(cors({
@@ -38,7 +39,8 @@ export const createApp = (getPrisma: () => DbClient) => {
     })
 
     .use(authRoutes(getPrisma))
-    .use(postRoutes(getPrisma));
+    .use(postRoutes(getPrisma))
+    .use(notificationRoutes(getPrisma));
 
   return app;
 };

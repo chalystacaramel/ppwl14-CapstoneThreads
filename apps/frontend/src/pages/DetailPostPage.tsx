@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuthStore } from "@/stores/auth.store";
 
 interface User {
   id: string;
@@ -39,54 +40,128 @@ const DUMMY_POST: Post = {
   likes: [{ userId: "u2" }],
 };
 
-const CURRENT_USER: User = { id: "u5", name: "Chalysta" };
 const MAX_COMMENTS = 5;
-const API_URL = "http://localhost:3000";
+const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 export default function DetailPostPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const post = DUMMY_POST;
+  const { user, accessToken } = useAuthStore();
 
+  const [post, setPost] = useState<Post | null>(null);
   const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(post.likes.length);
+  const [likeCount, setLikeCount] = useState(0);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchComments = async () => {
+    const fetchPostAndComments = async () => {
       try {
-        const res = await fetch(`${API_URL}/comments/${id ?? "1"}`);
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (accessToken) {
+          headers["Authorization"] = `Bearer ${accessToken}`;
+        }
+        const res = await fetch(`${API_URL}/posts/${id ?? "1"}`, { headers });
+        if (!res.ok) throw new Error("Gagal memuat post");
         const json = await res.json();
-        setComments(json.data);
+        
+        const postData = json.data ?? json;
+        if (postData && postData.id) {
+          setPost({
+            id: postData.id,
+            content: postData.content,
+            image: postData.image || postData.imageUrl,
+            createdAt: postData.createdAt,
+            likes: [],
+            author: {
+              id: postData.user.id,
+              name: postData.user.name,
+              avatar: postData.user.avatarUrl
+            }
+          });
+          setComments(postData.comments?.map((c: any) => ({
+            id: c.id,
+            content: c.content,
+            createdAt: c.createdAt,
+            author: {
+              id: c.user.id,
+              name: c.user.name,
+              avatar: c.user.avatarUrl
+            }
+          })) ?? []);
+          setLiked(postData.isLiked ?? false);
+          setLikeCount(postData.likeCount ?? 0);
+        }
       } catch (err) {
-        console.error("Gagal fetch komentar:", err);
+        console.error("Gagal fetch post/komentar:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchComments();
-  }, [id]);
+    fetchPostAndComments();
+  }, [id, accessToken]);
 
-  const userCommentCount = comments.filter(c => c.author.id === CURRENT_USER.id).length;
+  const CURRENT_USER = user ? { id: String(user.id), name: user.name, avatar: user.avatarUrl } : { id: "guest", name: "Guest" };
+  const userCommentCount = CURRENT_USER ? comments.filter(c => c.author.id === CURRENT_USER.id).length : 0;
   const canComment = userCommentCount < MAX_COMMENTS;
 
-  const handleLike = () => {
-    setLiked((prev) => !prev);
-    setLikeCount((prev) => (liked ? prev - 1 : prev + 1));
+  const handleLike = async () => {
+    if (!accessToken) { navigate("/login"); return; }
+    try {
+      const nextLiked = !liked;
+      setLiked(nextLiked);
+      setLikeCount((prev) => (nextLiked ? prev + 1 : prev - 1));
+
+      const res = await fetch(`${API_URL}/posts/${id ?? "1"}/like`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+        },
+      });
+      const data = await res.json();
+      if (data && typeof data.liked === "boolean") {
+        setLiked(data.liked);
+      }
+    } catch (err) {
+      console.error("Gagal toggle like:", err);
+      const nextLiked = !liked;
+      setLiked(nextLiked);
+      setLikeCount((prev) => (nextLiked ? prev + 1 : prev - 1));
+    }
   };
 
-  const handleSubmitComment = () => {
-    if (!newComment.trim() || !canComment) return;
-    const comment: Comment = {
-      id: `c-${Date.now()}`,
-      content: newComment.trim(),
-      author: CURRENT_USER,
-      createdAt: new Date().toISOString(),
-    };
-    setComments((prev) => [comment, ...prev]);
-    setNewComment("");
+  const handleSubmitComment = async () => {
+    if (!newComment.trim() || !canComment || !accessToken) return;
+    try {
+      const res = await fetch(`${API_URL}/posts/${id ?? "1"}/comment`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ content: newComment.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const comment: Comment = {
+          id: data.id,
+          content: data.content,
+          createdAt: data.createdAt,
+          author: {
+            id: data.user.id,
+            name: data.user.name,
+            avatar: data.user.avatarUrl
+          }
+        };
+        setComments((prev) => [comment, ...prev]);
+        setNewComment("");
+      } else {
+        console.error("Gagal kirim komentar:", data.message);
+      }
+    } catch (err) {
+      console.error("Gagal kirim komentar:", err);
+    }
   };
 
   const formatTime = (iso: string) => {
@@ -99,6 +174,14 @@ export default function DetailPostPage() {
     if (diffH < 24) return `${diffH} jam`;
     return d.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
   };
+
+  if (loading || !post) {
+    return (
+      <div className="min-h-screen bg-[#101010] text-[#F3F5F7] flex items-center justify-center">
+        <p className="text-sm text-[#777]">Memuat thread...</p>
+      </div>
+    );
+  }
 
   const getInitial = (name: string) => name.charAt(0).toUpperCase();
 
@@ -176,12 +259,20 @@ export default function DetailPostPage() {
               <textarea
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                placeholder={canComment ? `Balas sebagai ${CURRENT_USER.name}...` : "Kamu sudah mencapai batas 5 komentar"}
-                disabled={!canComment}
+                placeholder={
+                  !accessToken
+                    ? "Silakan login untuk memberikan komentar"
+                    : canComment
+                    ? `Balas sebagai ${CURRENT_USER.name}...`
+                    : "Kamu sudah mencapai batas 5 komentar"
+                }
+                disabled={!canComment || !accessToken}
                 rows={2}
                 className="w-full bg-transparent text-[15px] text-[#F3F5F7] placeholder:text-[#777] resize-none outline-none disabled:opacity-50"
               />
-              {!canComment ? (
+              {!accessToken ? (
+                <p className="text-xs text-[#777] mt-1">Gunakan akun Anda untuk berdiskusi</p>
+              ) : !canComment ? (
                 <p className="text-xs text-[#FF2E40] mt-1">Batas komentar (5) sudah tercapai</p>
               ) : (
                 <p className="text-xs text-[#777] mt-1">Sisa komentar: {MAX_COMMENTS - userCommentCount}</p>
@@ -189,7 +280,7 @@ export default function DetailPostPage() {
             </div>
             <button
               onClick={handleSubmitComment}
-              disabled={!newComment.trim() || !canComment}
+              disabled={!newComment.trim() || !canComment || !accessToken}
               className="px-4 py-1.5 rounded-full bg-[#F3F5F7] text-[#101010] text-sm font-semibold disabled:opacity-30 hover:bg-white transition-colors shrink-0"
             >
               Kirim

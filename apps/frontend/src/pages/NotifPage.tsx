@@ -34,7 +34,7 @@ export default function NotifPage() {
     }
   }
 
-  useEffect(() => { fetchNotifs(); }, []);
+  useEffect(() => { fetchNotifs(); }, [accessToken]);
 
   const unreadCount = notifs.filter((n) => !n.read).length;
 

@@ -22,7 +22,8 @@ export default function FormPostPage() {
   const [searchParams] = useSearchParams();
   const editId = searchParams.get("edit");
 
-  const { accessToken } = useAuthStore();
+  const { accessToken, user } = useAuthStore();
+  const username = user?.name?.toLowerCase().replace(/\s+/g, "_") ?? "me";
   const { draft, setDraft, clearDraft, addPost, updatePost, posts } =
     usePostStore();
 
@@ -55,6 +56,9 @@ export default function FormPostPage() {
     if (isEmpty || isOver || uploading) return;
     if (!accessToken) return alert("Login dulu");
 
+    console.log("TOKEN:", accessToken);
+    console.log("USER:", user);
+
     setUploading(true);
 
     try {
@@ -70,18 +74,21 @@ export default function FormPostPage() {
           },
           body: JSON.stringify({
             content: text.trim(),
-            imageUrl,
+            ...(imageUrl ? { imageUrl } : {}),
           }),
         }
       );
 
-      if (!res.ok) throw new Error("Gagal post");
+      if (!res.ok) {
+        const errData = await res.json()
+        throw new Error(`${res.status}: ${errData.message || 'Unknown error'}`)
+      }
 
       clearDraft();
       navigate("/");
     } catch (err) {
       console.error(err);
-      alert("Gagal membuat post");
+      alert("Error: " + (err?.message || String(err)));
     } finally {
       setUploading(false);
     }

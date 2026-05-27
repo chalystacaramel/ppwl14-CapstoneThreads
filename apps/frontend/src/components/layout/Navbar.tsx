@@ -75,7 +75,7 @@ function ProfileIcon({ avatarUrl, size = 24 }: { avatarUrl?: string; size?: numb
 const NAV_ITEMS = [
   { path: '/',              label: 'Beranda',   icon: HomeIcon },
   { path: '/search',       label: 'Cari',      icon: SearchIcon },
-  { path: '/post/new',     label: 'Buat Post', icon: PlusIcon, isCreate: true },
+  { path: '/post',     label: 'Buat Post', icon: PlusIcon, isCreate: true },
   { path: '/notifications',label: 'Aktivitas', icon: HeartIcon },
 ]
 

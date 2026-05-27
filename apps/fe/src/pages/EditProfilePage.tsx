@@ -2,12 +2,11 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Camera } from "lucide-react";
 
-const CURRENT_USER = {
-  name: "Iqlima Nur`ain",
-  email: "iqlima@example.com",
-  bio: "",
-  avatar: "",
-};
+import { useAuthStore } from "@/stores/auth.store";
+
+const user = useAuthStore((state) => state.user);
+const [name, setName] = useState(user?.name ?? "");
+const [email, setEmail] = useState(user?.email ?? "");
 
 const getInitial = (name: string) => name.charAt(0).toUpperCase();
 
@@ -59,7 +58,9 @@ export default function EditProfilePage() {
               <Camera size={14} />
             </button>
           </div>
-          <span className="text-sm text-[#777]">Ubah foto profil</span>
+          <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-[#333638] flex items-center justify-center opacity-50 cursor-not-allowed">
+            <Camera size={14} />
+          </div>
         </div>
 
         {/* Form */}

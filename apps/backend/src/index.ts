@@ -15,6 +15,9 @@ export const createApp = (getPrisma: () => DbClient) => {
     }))
     .use(cookie())
     .use(jwt({ name: "jwt", secret: process.env.JWT_SECRET!, exp: "1d" }))
+    .onError(({ code, error }) => {
+      console.error("[SERVER_ERROR]", code, error);
+    })
 
     .onRequest(({ request, set }) => {
       const url = new URL(request.url);

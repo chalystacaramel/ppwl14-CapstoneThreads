@@ -3,8 +3,8 @@ import { CloudWatchLogsClient, FilterLogEventsCommand } from "@aws-sdk/client-cl
 const cw = new CloudWatchLogsClient({
   region: "us-east-1",
   credentials: {
-    accessKeyId: "REDACTED",
-    secretAccessKey: "10iW1c2u62VKds9RWZrLIbZxAOIRAdKXyMY3G0pn",
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
 });
 

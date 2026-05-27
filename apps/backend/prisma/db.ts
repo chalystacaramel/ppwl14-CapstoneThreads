@@ -1,4 +1,4 @@
-import { PrismaLibSql } from "@prisma/adapter-libsql"
+import { PrismaLibSql } from "@prisma/adapter-libsql/web"
 import { PrismaClient } from "../src/generated/prisma/client.ts"
 
 export const getDbUrl = () => process.env.DATABASE_URL || "file:./dev.db"

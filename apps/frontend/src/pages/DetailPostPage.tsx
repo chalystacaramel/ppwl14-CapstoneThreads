@@ -32,14 +32,6 @@ interface Post {
   likes: { userId: string }[];
 }
 
-const DUMMY_POST: Post = {
-  id: "1",
-  content: "Ini adalah postingan pertama di Threads clone kita! Semoga tugasnya lancar semua ya 🙏",
-  author: { id: "u1", name: "Aisyah" },
-  createdAt: new Date().toISOString(),
-  likes: [{ userId: "u2" }],
-};
-
 const MAX_COMMENTS = 5;
 const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 

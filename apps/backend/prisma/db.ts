@@ -8,7 +8,6 @@ let prisma: PrismaClient
 export const getPrisma = () => {
   if (!prisma) {
     const url = getDbUrl()
-    console.log("[DB] Connecting to:", url)
     const adapter = new PrismaLibSql({
       url,
       authToken: process.env.DB_AUTH_TOKEN,

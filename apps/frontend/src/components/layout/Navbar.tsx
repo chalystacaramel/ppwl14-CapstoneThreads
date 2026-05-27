@@ -279,9 +279,6 @@ const ds: Record<string, React.CSSProperties> = {
 
 // ─── Mobile Styles ─────────────────────────────────────────────
 const ms: Record<string, React.CSSProperties> = {
-  mobileOnly: {
-    display: 'none', // hidden on desktop — controlled by @media in JSX style tag
-  },
   bottomNav: {
     position: 'fixed',
     bottom: 0,

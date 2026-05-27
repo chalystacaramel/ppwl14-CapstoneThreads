@@ -26,11 +26,11 @@ async function main() {
   });
 
   const post1 = await prisma.post.create({
-    data: { content: "Ini postingan pertama di Threads Clone! 🙏", userId: user1.id }
+    data: { content: "Ini postingan pertama di Threadster Clone! 🙏", userId: user1.id }
   });
 
   const post2 = await prisma.post.create({
-    data: { content: "Halo semua! Selamat datang di Threads Clone PPWL 2026 🎉", userId: user2.id }
+    data: { content: "Halo semua! Selamat datang di Threadster Clone PPWL 2026 🎉", userId: user2.id }
   });
 
   const comment1 = await prisma.comment.create({

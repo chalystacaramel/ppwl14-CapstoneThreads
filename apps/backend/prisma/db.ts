@@ -1,16 +1,18 @@
+import { PrismaLibSql } from "@prisma/adapter-libsql"
 import { PrismaClient } from "../src/generated/prisma/client.ts"
-import { PrismaLibSql } from "@prisma/adapter-libsql/web"
-import path from "path"
 
-export const getDbUrl = () => process.env.DATABASE_URL || `file:${path.resolve(__dirname, "../dev.db")}`
+export const getDbUrl = () => process.env.DATABASE_URL || "file:./dev.db"
 
 let prisma: PrismaClient
 
 export const getPrisma = () => {
   if (!prisma) {
-    const currentDbUrl = getDbUrl();
-    console.log("[DB] Connecting to:", currentDbUrl)
-    const adapter = new PrismaLibSql({ url: currentDbUrl, authToken: process.env.DB_AUTH_TOKEN })
+    const url = getDbUrl()
+    console.log("[DB] Connecting to:", url)
+    const adapter = new PrismaLibSql({
+      url,
+      authToken: process.env.DB_AUTH_TOKEN,
+    })
     prisma = new PrismaClient({ adapter })
   }
   return prisma

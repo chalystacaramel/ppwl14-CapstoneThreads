@@ -13,12 +13,12 @@ type AuthStore = {
   user: AuthUser | null;
   accessToken: string | null;
   isAuthenticated: boolean;
+  hasHydrated: boolean;
 
   setAuth: (user: AuthUser, token: string) => void;
   logout: () => void;
-
-  // helper tambahan biar lebih enak dipakai di FE
   getToken: () => string | null;
+  setHasHydrated: (state: boolean) => void;
 };
 
 export const useAuthStore = create<AuthStore>()(
@@ -27,26 +27,23 @@ export const useAuthStore = create<AuthStore>()(
       user: null,
       accessToken: null,
       isAuthenticated: false,
+      hasHydrated: false,
 
       setAuth: (user, accessToken) =>
-        set({
-          user,
-          accessToken,
-          isAuthenticated: true,
-        }),
+        set({ user, accessToken, isAuthenticated: true }),
 
       logout: () =>
-        set({
-          user: null,
-          accessToken: null,
-          isAuthenticated: false,
-        }),
+        set({ user: null, accessToken: null, isAuthenticated: false }),
 
-      // helper biar tidak selalu destructure manual
       getToken: () => get().accessToken,
+
+      setHasHydrated: (state) => set({ hasHydrated: state }),
     }),
     {
       name: "auth-storage",
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );

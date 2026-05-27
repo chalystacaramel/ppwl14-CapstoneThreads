@@ -253,7 +253,7 @@ export type PostLikeScalarWhereWithAggregatesInput = {
 }
 
 export type PostLikeCreateInput = {
-  post: Prisma.PostCreateNestedOneWithoutPostLikesInput
+  post: Prisma.PostCreateNestedOneWithoutLikesInput
   user: Prisma.UserCreateNestedOneWithoutPostLikesInput
 }
 
@@ -264,7 +264,7 @@ export type PostLikeUncheckedCreateInput = {
 }
 
 export type PostLikeUpdateInput = {
-  post?: Prisma.PostUpdateOneRequiredWithoutPostLikesNestedInput
+  post?: Prisma.PostUpdateOneRequiredWithoutLikesNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutPostLikesNestedInput
 }
 
@@ -420,7 +420,7 @@ export type PostLikeUncheckedUpdateManyWithoutPostNestedInput = {
 }
 
 export type PostLikeCreateWithoutUserInput = {
-  post: Prisma.PostCreateNestedOneWithoutPostLikesInput
+  post: Prisma.PostCreateNestedOneWithoutLikesInput
 }
 
 export type PostLikeUncheckedCreateWithoutUserInput = {
@@ -502,7 +502,7 @@ export type PostLikeCreateManyUserInput = {
 }
 
 export type PostLikeUpdateWithoutUserInput = {
-  post?: Prisma.PostUpdateOneRequiredWithoutPostLikesNestedInput
+  post?: Prisma.PostUpdateOneRequiredWithoutLikesNestedInput
 }
 
 export type PostLikeUncheckedUpdateWithoutUserInput = {

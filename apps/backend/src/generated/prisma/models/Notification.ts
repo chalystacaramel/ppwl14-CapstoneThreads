@@ -341,7 +341,7 @@ export type NotificationCreateInput = {
   type: string
   isRead?: boolean
   createdAt?: Date | string
-  message: string
+  message?: string
   comment?: Prisma.CommentCreateNestedOneWithoutNotificationsInput
   post?: Prisma.PostCreateNestedOneWithoutNotificationsInput
   user: Prisma.UserCreateNestedOneWithoutNotificationsInput
@@ -357,7 +357,7 @@ export type NotificationUncheckedCreateInput = {
   commentId?: number | null
   isRead?: boolean
   createdAt?: Date | string
-  message: string
+  message?: string
 }
 
 export type NotificationUpdateInput = {
@@ -392,7 +392,7 @@ export type NotificationCreateManyInput = {
   commentId?: number | null
   isRead?: boolean
   createdAt?: Date | string
-  message: string
+  message?: string
 }
 
 export type NotificationUpdateManyMutationInput = {
@@ -660,7 +660,7 @@ export type NotificationCreateWithoutUserInput = {
   type: string
   isRead?: boolean
   createdAt?: Date | string
-  message: string
+  message?: string
   comment?: Prisma.CommentCreateNestedOneWithoutNotificationsInput
   post?: Prisma.PostCreateNestedOneWithoutNotificationsInput
   actor: Prisma.UserCreateNestedOneWithoutActorNotificationsInput
@@ -674,7 +674,7 @@ export type NotificationUncheckedCreateWithoutUserInput = {
   commentId?: number | null
   isRead?: boolean
   createdAt?: Date | string
-  message: string
+  message?: string
 }
 
 export type NotificationCreateOrConnectWithoutUserInput = {
@@ -690,7 +690,7 @@ export type NotificationCreateWithoutActorInput = {
   type: string
   isRead?: boolean
   createdAt?: Date | string
-  message: string
+  message?: string
   comment?: Prisma.CommentCreateNestedOneWithoutNotificationsInput
   post?: Prisma.PostCreateNestedOneWithoutNotificationsInput
   user: Prisma.UserCreateNestedOneWithoutNotificationsInput
@@ -704,7 +704,7 @@ export type NotificationUncheckedCreateWithoutActorInput = {
   commentId?: number | null
   isRead?: boolean
   createdAt?: Date | string
-  message: string
+  message?: string
 }
 
 export type NotificationCreateOrConnectWithoutActorInput = {
@@ -767,7 +767,7 @@ export type NotificationCreateWithoutPostInput = {
   type: string
   isRead?: boolean
   createdAt?: Date | string
-  message: string
+  message?: string
   comment?: Prisma.CommentCreateNestedOneWithoutNotificationsInput
   user: Prisma.UserCreateNestedOneWithoutNotificationsInput
   actor: Prisma.UserCreateNestedOneWithoutActorNotificationsInput
@@ -781,7 +781,7 @@ export type NotificationUncheckedCreateWithoutPostInput = {
   commentId?: number | null
   isRead?: boolean
   createdAt?: Date | string
-  message: string
+  message?: string
 }
 
 export type NotificationCreateOrConnectWithoutPostInput = {
@@ -813,7 +813,7 @@ export type NotificationCreateWithoutCommentInput = {
   type: string
   isRead?: boolean
   createdAt?: Date | string
-  message: string
+  message?: string
   post?: Prisma.PostCreateNestedOneWithoutNotificationsInput
   user: Prisma.UserCreateNestedOneWithoutNotificationsInput
   actor: Prisma.UserCreateNestedOneWithoutActorNotificationsInput
@@ -827,7 +827,7 @@ export type NotificationUncheckedCreateWithoutCommentInput = {
   postId?: number | null
   isRead?: boolean
   createdAt?: Date | string
-  message: string
+  message?: string
 }
 
 export type NotificationCreateOrConnectWithoutCommentInput = {
@@ -863,7 +863,7 @@ export type NotificationCreateManyUserInput = {
   commentId?: number | null
   isRead?: boolean
   createdAt?: Date | string
-  message: string
+  message?: string
 }
 
 export type NotificationCreateManyActorInput = {
@@ -874,7 +874,7 @@ export type NotificationCreateManyActorInput = {
   commentId?: number | null
   isRead?: boolean
   createdAt?: Date | string
-  message: string
+  message?: string
 }
 
 export type NotificationUpdateWithoutUserInput = {
@@ -949,7 +949,7 @@ export type NotificationCreateManyPostInput = {
   commentId?: number | null
   isRead?: boolean
   createdAt?: Date | string
-  message: string
+  message?: string
 }
 
 export type NotificationUpdateWithoutPostInput = {
@@ -992,7 +992,7 @@ export type NotificationCreateManyCommentInput = {
   postId?: number | null
   isRead?: boolean
   createdAt?: Date | string
-  message: string
+  message?: string
 }
 
 export type NotificationUpdateWithoutCommentInput = {

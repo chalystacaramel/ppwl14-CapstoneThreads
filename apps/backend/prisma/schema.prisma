@@ -15,11 +15,11 @@ model User {
   email         String         @unique
   password      String?
   createdAt     DateTime       @default(now())
-  avatar        String?
-  Comment       Comment[]
+  avatar_url    String?
+  comments      Comment[]
   notifications Notification[] @relation("UserNotifications")
   actorNotifications Notification[] @relation("ActorNotifications")
-  Post          Post[]
+  posts         Post[]
   postLikes     PostLike[]
 }
 
@@ -27,13 +27,12 @@ model Post {
   id            Int            @id @default(autoincrement())
   content       String
   createdAt     DateTime       @default(now())
-  authorId      Int
-  image         String?
-  likes         Int            @default(0)
+  userId        Int
+  image_url     String?
   comments      Comment[]
   notifications Notification[]
-  User          User           @relation(fields: [authorId], references: [id])
-  postLikes     PostLike[]
+  user          User           @relation(fields: [userId], references: [id])
+  likes         PostLike[]
 }
 
 model Comment {
@@ -41,8 +40,8 @@ model Comment {
   content       String
   postId        Int
   createdAt     DateTime       @default(now())
-  authorId      Int
-  User          User           @relation(fields: [authorId], references: [id])
+  userId        Int
+  user          User           @relation(fields: [userId], references: [id])
   post          Post           @relation(fields: [postId], references: [id])
   notifications Notification[]
 }
@@ -56,7 +55,7 @@ model Notification {
   commentId Int?
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
-  message   String
+  message   String   @default("")
   comment   Comment? @relation(fields: [commentId], references: [id])
   post      Post?    @relation(fields: [postId], references: [id])
   user      User     @relation("UserNotifications", fields: [userId], references: [id])

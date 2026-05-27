@@ -125,7 +125,7 @@ export default function LoginPage() {
           </div>
 
           <h1 className="text-[16px] md:text-[18px] font-bold text-center mb-6 text-[#f3f3f3] tracking-wide">
-            {mode === 'login' ? 'Login dengan akun Instagram Anda' : 'Buat Akun Threads Baru'}
+            {mode === 'login' ? 'Login dengan akun Instagram Anda' : 'Buat Akun Tehreads Baru'}
           </h1>
 
           {error && (

@@ -1,3 +1,4 @@
+import "dotenv/config"
 import { createApp } from "./index";
 import { getPrisma, getDbUrl } from "../prisma/db";
 import cors from "@elysiajs/cors";

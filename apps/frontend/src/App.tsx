@@ -1,9 +1,9 @@
-// apps/frontend/src/App.tsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
 import Feed from './pages/Feed'
 import FormPostPage from './pages/FormPostPage'
 import NotifPage from './pages/NotifPage'
+import Navbar from './components/layout/Navbar'
 import { useAuthStore } from './stores/auth.store'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -12,17 +12,20 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-export default function App() {
+function App() {
   const { isAuthenticated } = useAuthStore()
   return (
     <BrowserRouter>
+      {isAuthenticated && <Navbar />}
       <Routes>
-        <Route path="/"             element={<ProtectedRoute><Feed /></ProtectedRoute>} />
-        <Route path="/login"        element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
-        <Route path="/post/new"     element={<ProtectedRoute><FormPostPage /></ProtectedRoute>} />
-        <Route path="/notifications"element={<ProtectedRoute><NotifPage /></ProtectedRoute>} />
-        <Route path="*"             element={<Navigate to="/" replace />} />
+        <Route path="/" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
+        <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
+        <Route path="/post" element={<ProtectedRoute><FormPostPage /></ProtectedRoute>} />
+        <Route path="/notifications" element={<ProtectedRoute><NotifPage /></ProtectedRoute>} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   )
 }
+
+export default App

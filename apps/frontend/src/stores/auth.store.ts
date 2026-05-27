@@ -1,35 +1,52 @@
-import { create } from "zustand"
-import { persist } from "zustand/middleware"
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export type AuthUser = {
-  id: string
-  name: string
-  email: string
-  avatarUrl?: string
-  isGoogle?: boolean
-}
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl?: string;
+  isGoogle?: boolean;
+};
 
 type AuthStore = {
-  user: AuthUser | null
-  accessToken: string | null
-  isAuthenticated: boolean
-  setAuth: (user: AuthUser, token: string) => void
-  logout: () => void
-}
+  user: AuthUser | null;
+  accessToken: string | null;
+  isAuthenticated: boolean;
+
+  setAuth: (user: AuthUser, token: string) => void;
+  logout: () => void;
+
+  // helper tambahan biar lebih enak dipakai di FE
+  getToken: () => string | null;
+};
 
 export const useAuthStore = create<AuthStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       accessToken: null,
       isAuthenticated: false,
+
       setAuth: (user, accessToken) =>
-        set({ user, accessToken, isAuthenticated: true }),
+        set({
+          user,
+          accessToken,
+          isAuthenticated: true,
+        }),
+
       logout: () =>
-        set({ user: null, accessToken: null, isAuthenticated: false }),
+        set({
+          user: null,
+          accessToken: null,
+          isAuthenticated: false,
+        }),
+
+      // helper biar tidak selalu destructure manual
+      getToken: () => get().accessToken,
     }),
     {
       name: "auth-storage",
     }
   )
-)
+);

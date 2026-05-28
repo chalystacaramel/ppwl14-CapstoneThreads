@@ -9,5 +9,8 @@
     "dev:fe": "bun --cwd apps/fe dev",
     "dev:be": "bun --cwd apps/be dev",
     "dev": "bun run dev:fe & bun run dev:be"
+  },
+  "dependencies": {
+    "lucide-react": "^1.16.0"
   }
 }

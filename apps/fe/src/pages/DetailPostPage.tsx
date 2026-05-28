@@ -33,7 +33,7 @@ interface Post {
 
 const DUMMY_POST: Post = {
   id: "1",
-  content: "Ini adalah postingan pertama di Threads clone kita! Semoga tugasnya lancar semua ya 🙏",
+  content: "Ini adalah postingan pertama di Tehreads clone kita! Semoga tugasnya lancar semua ya 🙏",
   author: { id: "u1", name: "Aisyah" },
   createdAt: new Date().toISOString(),
   likes: [{ userId: "u2" }],

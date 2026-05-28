@@ -38,7 +38,7 @@ function ThreadsBall({ style }: { style: React.CSSProperties }) {
         letterSpacing: 3, transform: 'rotate(-30deg)',
         lineHeight: 1.3, textAlign: 'center', userSelect: 'none',
       }}>
-        THREADS<br />SCHOOL<br />THREADS<br />SCH<br />THREADS
+        TEHREADS<br />SCHOOL<br />TEHREADS<br />SCH<br />TEHREADS
       </div>
     </div>
   )
@@ -187,7 +187,7 @@ export default function LoginPage() {
 
         <p style={s.footer}>
           ┬⌐ 2026 &nbsp;┬╖&nbsp;
-          <span style={s.footerLink}>Ketentuan Threads</span> &nbsp;┬╖&nbsp;
+          <span style={s.footerLink}>Ketentuan Tehreads</span> &nbsp;┬╖&nbsp;
           <span style={s.footerLink}>Kebijakan Privasi</span> &nbsp;┬╖&nbsp;
           <span style={s.footerLink}>Kebijakan Cookie</span> &nbsp;┬╖&nbsp;
           <span style={s.footerLink}>Laporkan masalah</span>

@@ -1,4 +1,5 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
+import { useAuthStore } from "./stores/auth.store";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -7,10 +8,16 @@ import NotifPage from "./pages/NotifPage";
 import FormPostPage from "./pages/FormPostPage";
 import EditProfilePage from "./pages/EditProfilePage";
 
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuthStore();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <HomePage />,
+    element: <ProtectedRoute><HomePage /></ProtectedRoute>,
   },
   {
     path: "/login",
@@ -22,19 +29,23 @@ const router = createBrowserRouter([
   },
   {
     path: "/post/:id",
-    element: <DetailPostPage />,
+    element: <ProtectedRoute><DetailPostPage /></ProtectedRoute>,
   },
   {
     path: "/notifications",
-    element: <NotifPage />,
+    element: <ProtectedRoute><NotifPage /></ProtectedRoute>,
   },
   {
     path: "/new-post",
-    element: <FormPostPage />,
+    element: <ProtectedRoute><FormPostPage /></ProtectedRoute>,
   },
   {
     path: "/edit-profile",
-    element: <EditProfilePage />,
+    element: <ProtectedRoute><EditProfilePage /></ProtectedRoute>,
+  },
+  {
+    path: "*",
+    element: <Navigate to="/" replace />,
   },
 ]);
 

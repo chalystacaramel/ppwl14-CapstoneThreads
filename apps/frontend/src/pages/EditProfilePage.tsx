@@ -44,7 +44,11 @@ export default function EditProfilePage() {
         </div>
       </div>
 
-      <div className="max-w-xl mx-auto px-4 py-6 space-y-6">
+      {/*
+        pb-20 = 80px padding bawah supaya konten tidak tertutup bottom nav mobile (56px)
+        + sedikit ruang napas. Desktop tidak terpengaruh karena sidebar di kiri.
+      */}
+      <div className="max-w-xl mx-auto px-4 py-6 pb-24 space-y-6">
         {/* Avatar */}
         <div className="flex flex-col items-center gap-3">
           <div className="relative">

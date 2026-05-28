@@ -1,3 +1,4 @@
+// apps/frontend/src/App.tsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
 import Feed from './pages/Feed'
@@ -19,10 +20,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function App() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const hasHydrated = useAuthStore((s) => s.hasHydrated)
+
   return (
     <BrowserRouter>
       {isAuthenticated && <Navbar />}
-      <div className={isAuthenticated ? "md:pl-[72px]" : ""}>
+      {/* Desktop: sidebar width 200px | Mobile: bottom nav 56px */}
+      <div className={isAuthenticated ? 'md:pl-[240px]' : ''}>
         <Routes>
           <Route path="/" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
           <Route path="/login" element={

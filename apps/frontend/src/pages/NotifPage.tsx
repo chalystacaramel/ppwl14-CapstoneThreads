@@ -1,43 +1,47 @@
-﻿import { Bell } from "lucide-react";
-import NotifItem, { type NotifItemProps } from "@/components/NotifItem";
+﻿// apps/frontend/src/pages/NotifPage.tsx
+import { useEffect, useState } from "react"
+import { Bell } from "lucide-react"
+import NotifItem from "@/components/NotifItem"
+import { useAuthStore } from "@/stores/auth.store"
+import { BACKEND_URL } from "@/constants"
 
-const DUMMY_NOTIFS: NotifItemProps[] = [
-  {
-    id: "n1",
-    type: "like",
-    fromUser: "Aisyah",
-    message: "menyukai postinganmu.",
-    createdAt: new Date(Date.now() - 5 * 60000).toISOString(),
-    read: false,
-  },
-  {
-    id: "n2",
-    type: "comment",
-    fromUser: "Chalysta",
-    message: "mengomentari postinganmu: \"Keren banget!\"",
-    createdAt: new Date(Date.now() - 30 * 60000).toISOString(),
-    read: false,
-  },
-  {
-    id: "n3",
-    type: "follow",
-    fromUser: "Andy",
-    message: "mulai mengikutimu.",
-    createdAt: new Date(Date.now() - 2 * 3600000).toISOString(),
-    read: true,
-  },
-  {
-    id: "n4",
-    type: "like",
-    fromUser: "Adhelia",
-    message: "menyukai komentarmu.",
-    createdAt: new Date(Date.now() - 5 * 3600000).toISOString(),
-    read: true,
-  },
-];
+interface Notif {
+  id: string
+  type: "like" | "comment" | "follow"
+  isRead: boolean
+  createdAt: string
+  actor: { id: string; name: string; avatarUrl?: string; username: string }
+  post?: { id: string; content: string } | null
+}
 
 export default function NotifPage() {
-  const unreadCount = DUMMY_NOTIFS.filter((n) => !n.read).length;
+  const { accessToken } = useAuthStore()
+  const [notifs, setNotifs] = useState<Notif[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!accessToken) return
+    setLoading(true)
+    fetch(`${BACKEND_URL}/notifications`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+      .then((r) => r.json())
+      .then((data) => setNotifs(Array.isArray(data) ? data : []))
+      .catch(() => setError("Gagal memuat notifikasi"))
+      .finally(() => setLoading(false))
+  }, [accessToken])
+
+  const markAllRead = async () => {
+    if (!accessToken) return
+    await fetch(`${BACKEND_URL}/notifications/read-all`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+    setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })))
+  }
+
+  const unreadCount = notifs.filter((n) => !n.isRead).length
 
   return (
     <div className="min-h-screen bg-[#101010] text-[#F3F5F7]">
@@ -46,25 +50,48 @@ export default function NotifPage() {
         <div className="flex items-center justify-between max-w-xl mx-auto">
           <h1 className="text-xl font-bold">Notifikasi</h1>
           {unreadCount > 0 && (
-            <span className="text-xs bg-[#1877F2] text-white px-2 py-0.5 rounded-full font-semibold">
-              {unreadCount} baru
-            </span>
+            <button
+              onClick={markAllRead}
+              className="text-xs text-[#1877F2] font-semibold"
+            >
+              Tandai semua dibaca
+            </button>
           )}
         </div>
       </div>
 
       <div className="max-w-xl mx-auto">
-        {DUMMY_NOTIFS.length === 0 ? (
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <div className="w-6 h-6 border-2 border-[#333] border-t-[#f3f3f3] rounded-full animate-spin" />
+          </div>
+        ) : error ? (
+          <p className="text-center text-[#777] py-16 text-sm">{error}</p>
+        ) : notifs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-[#777]">
             <Bell size={40} className="mb-3 opacity-50" />
             <p className="text-sm">Belum ada notifikasi</p>
           </div>
         ) : (
-          DUMMY_NOTIFS.map((notif) => (
-            <NotifItem key={notif.id} {...notif} />
+          notifs.map((n) => (
+            <NotifItem
+              key={n.id}
+              id={n.id}
+              type={n.type}
+              fromUser={n.actor.name}
+              message={
+                n.type === "like"
+                  ? "menyukai postinganmu."
+                  : n.type === "comment"
+                  ? `mengomentari: "${n.post?.content ?? ""}"`
+                  : "mulai mengikutimu."
+              }
+              createdAt={n.createdAt}
+              read={n.isRead}
+            />
           ))
         )}
       </div>
     </div>
-  );
+  )
 }

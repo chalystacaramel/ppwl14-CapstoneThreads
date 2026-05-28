@@ -122862,7 +122862,7 @@ var postRoutes = (getPrisma) => new Elysia({ prefix: "/posts" }).use(jwt({ name:
     return { message: "Post tidak ditemukan" };
   }
   const existing = await db.postLike.findUnique({
-    where: { postId_userId: { postId, userId: me.userId } }
+    where: { userId_postId: { userId: me.userId, postId } }
   });
   if (existing) {
     await db.postLike.delete({ where: { id: existing.id } });

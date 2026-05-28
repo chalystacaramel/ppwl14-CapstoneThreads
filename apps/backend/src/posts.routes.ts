@@ -281,7 +281,7 @@ export const postRoutes = (getPrisma: () => DbClient) =>
       if (!post) { set.status = 404; return { message: "Post tidak ditemukan" } }
 
       const existing = await db.postLike.findUnique({
-        where: { postId_userId: { postId, userId: me.userId } },
+        where: { userId_postId: { userId: me.userId, postId } },
       })
 
       if (existing) {

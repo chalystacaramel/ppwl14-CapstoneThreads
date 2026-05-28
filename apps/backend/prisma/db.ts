@@ -21,13 +21,19 @@ export const getPrisma = () => {
       const adapter = new PrismaPg(pool)
       prisma = new PrismaClient({ adapter } as any)
     } else {
-      // Local dev: LibSQL/SQLite
-      const { PrismaLibSql } = require("@prisma/adapter-libsql/web")
-      const adapter = new PrismaLibSql({
-        url,
-        authToken: process.env.DB_AUTH_TOKEN,
-      })
-      prisma = new PrismaClient({ adapter } as any)
+      // Local dev (file:) vs Turso (libsql:/https:)
+      if (url.startsWith("file:")) {
+        const { PrismaLibSql } = require("@prisma/adapter-libsql")
+        const adapter = new PrismaLibSql({ url })
+        prisma = new PrismaClient({ adapter } as any)
+      } else {
+        const { PrismaLibSql } = require("@prisma/adapter-libsql/web")
+        const adapter = new PrismaLibSql({
+          url,
+          authToken: process.env.DB_AUTH_TOKEN,
+        })
+        prisma = new PrismaClient({ adapter } as any)
+      }
     }
   }
   return prisma

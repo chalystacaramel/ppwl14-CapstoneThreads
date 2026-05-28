@@ -9,7 +9,7 @@ const cw = new CloudWatchLogsClient({
 });
 
 cw.send(new FilterLogEventsCommand({
-  logGroupName: "/aws/lambda/monorepo-backend-andy",
+  logGroupName: "/aws/lambda/monorepo-backend",
   startTime: Date.now() - 1000 * 60 * 10,
 })).then(res => {
   res.events?.forEach(e => console.log(e.message));

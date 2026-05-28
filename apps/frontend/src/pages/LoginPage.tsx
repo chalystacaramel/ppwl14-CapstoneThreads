@@ -72,13 +72,14 @@ export default function LoginPage() {
       })
       setAuth(data.user, data.accessToken)
       navigate('/')
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err) {
+      setError((err as Error).message)
     } finally {
       setLoading(false)
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async function handleGoogleLogin(credentialResponse: any) {
     try {
       setError(null)
@@ -88,8 +89,8 @@ export default function LoginPage() {
       })
       setAuth(data.user, data.accessToken)
       navigate('/')
-    } catch (err: any) {
-      setError('Login Google gagal: ' + err.message)
+    } catch (err) {
+      setError('Login Google gagal: ' + (err as Error).message)
     }
   }
 

@@ -244,7 +244,7 @@ export default function ThreadCard({ post, onLike, showThread = false }: ThreadC
 
           {/* Comment */}
           <button
-            onClick={e => { e.stopPropagation(); isAuthenticated ? goToPost() : navigate('/login') }}
+            onClick={e => { e.stopPropagation(); if (isAuthenticated) goToPost(); else navigate('/login'); }}
             aria-label="Balas"
             style={{
               display: 'flex', alignItems: 'center', gap: 5,

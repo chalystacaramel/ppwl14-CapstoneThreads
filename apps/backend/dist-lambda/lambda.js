@@ -36446,9 +36446,9 @@ var require_es5 = __commonJS((exports2, module2) => {
   });
 });
 
-// ../../node_modules/.bun/@aws-sdk+core@3.974.14/node_modules/@aws-sdk/core/dist-cjs/submodules/client/index.js
+// ../../node_modules/.bun/@aws-sdk+core@3.974.13/node_modules/@aws-sdk/core/dist-cjs/submodules/client/index.js
 var require_client2 = __commonJS((exports2) => {
-  var __dirname = "E:\\PPWL\\ppwl14-CapstoneThreads\\node_modules\\.bun\\@aws-sdk+core@3.974.14\\node_modules\\@aws-sdk\\core\\dist-cjs\\submodules\\client";
+  var __dirname = "E:\\PPWL\\ppwl14-CapstoneThreads\\node_modules\\.bun\\@aws-sdk+core@3.974.13\\node_modules\\@aws-sdk\\core\\dist-cjs\\submodules\\client";
   var retry = require_retry();
   var protocols = require_protocols();
   var lambdaInvokeStore = require_invoke_store();
@@ -37183,346 +37183,588 @@ More information can be found at: https://a.co/c895JFp`);
   exports2.userAgentMiddleware = userAgentMiddleware;
 });
 
-// ../../node_modules/.bun/@smithy+signature-v4@5.4.4/node_modules/@smithy/signature-v4/dist-cjs/index.js
+// ../../node_modules/.bun/@aws-sdk+middleware-expect-continue@3.972.13/node_modules/@aws-sdk/middleware-expect-continue/dist-cjs/index.js
 var require_dist_cjs6 = __commonJS((exports2) => {
-  var serde = require_serde();
-  var client = require_client();
   var protocols = require_protocols();
-
-  class HeaderFormatter {
-    format(headers) {
-      const chunks = [];
-      for (const headerName of Object.keys(headers)) {
-        const bytes = serde.fromUtf8(headerName);
-        chunks.push(Uint8Array.from([bytes.byteLength]), bytes, this.formatHeaderValue(headers[headerName]));
+  function addExpectContinueMiddleware(options) {
+    return (next) => async (args) => {
+      const { request } = args;
+      if (options.expectContinueHeader !== false && protocols.HttpRequest.isInstance(request) && request.body && options.runtime === "node" && options.requestHandler?.constructor?.name !== "FetchHttpHandler") {
+        let sendHeader = true;
+        if (typeof options.expectContinueHeader === "number") {
+          try {
+            const bodyLength = Number(request.headers?.["content-length"]) ?? options.bodyLengthChecker?.(request.body) ?? Infinity;
+            sendHeader = bodyLength >= options.expectContinueHeader;
+          } catch (e) {}
+        } else {
+          sendHeader = !!options.expectContinueHeader;
+        }
+        if (sendHeader) {
+          request.headers.Expect = "100-continue";
+        }
       }
-      const out = new Uint8Array(chunks.reduce((carry, bytes) => carry + bytes.byteLength, 0));
-      let position = 0;
-      for (const chunk of chunks) {
-        out.set(chunk, position);
-        position += chunk.byteLength;
-      }
-      return out;
-    }
-    formatHeaderValue(header) {
-      switch (header.type) {
-        case "boolean":
-          return Uint8Array.from([header.value ? 0 : 1]);
-        case "byte":
-          return Uint8Array.from([2, header.value]);
-        case "short":
-          const shortView = new DataView(new ArrayBuffer(3));
-          shortView.setUint8(0, 3);
-          shortView.setInt16(1, header.value, false);
-          return new Uint8Array(shortView.buffer);
-        case "integer":
-          const intView = new DataView(new ArrayBuffer(5));
-          intView.setUint8(0, 4);
-          intView.setInt32(1, header.value, false);
-          return new Uint8Array(intView.buffer);
-        case "long":
-          const longBytes = new Uint8Array(9);
-          longBytes[0] = 5;
-          longBytes.set(header.value.bytes, 1);
-          return longBytes;
-        case "binary":
-          const binView = new DataView(new ArrayBuffer(3 + header.value.byteLength));
-          binView.setUint8(0, 6);
-          binView.setUint16(1, header.value.byteLength, false);
-          const binBytes = new Uint8Array(binView.buffer);
-          binBytes.set(header.value, 3);
-          return binBytes;
-        case "string":
-          const utf8Bytes = serde.fromUtf8(header.value);
-          const strView = new DataView(new ArrayBuffer(3 + utf8Bytes.byteLength));
-          strView.setUint8(0, 7);
-          strView.setUint16(1, utf8Bytes.byteLength, false);
-          const strBytes = new Uint8Array(strView.buffer);
-          strBytes.set(utf8Bytes, 3);
-          return strBytes;
-        case "timestamp":
-          const tsBytes = new Uint8Array(9);
-          tsBytes[0] = 8;
-          tsBytes.set(Int64.fromNumber(header.value.valueOf()).bytes, 1);
-          return tsBytes;
-        case "uuid":
-          if (!UUID_PATTERN.test(header.value)) {
-            throw new Error(`Invalid UUID received: ${header.value}`);
-          }
-          const uuidBytes = new Uint8Array(17);
-          uuidBytes[0] = 9;
-          uuidBytes.set(serde.fromHex(header.value.replace(/\-/g, "")), 1);
-          return uuidBytes;
-      }
-    }
+      return next({
+        ...args,
+        request
+      });
+    };
   }
-  var HEADER_VALUE_TYPE;
-  (function(HEADER_VALUE_TYPE2) {
-    HEADER_VALUE_TYPE2[HEADER_VALUE_TYPE2["boolTrue"] = 0] = "boolTrue";
-    HEADER_VALUE_TYPE2[HEADER_VALUE_TYPE2["boolFalse"] = 1] = "boolFalse";
-    HEADER_VALUE_TYPE2[HEADER_VALUE_TYPE2["byte"] = 2] = "byte";
-    HEADER_VALUE_TYPE2[HEADER_VALUE_TYPE2["short"] = 3] = "short";
-    HEADER_VALUE_TYPE2[HEADER_VALUE_TYPE2["integer"] = 4] = "integer";
-    HEADER_VALUE_TYPE2[HEADER_VALUE_TYPE2["long"] = 5] = "long";
-    HEADER_VALUE_TYPE2[HEADER_VALUE_TYPE2["byteArray"] = 6] = "byteArray";
-    HEADER_VALUE_TYPE2[HEADER_VALUE_TYPE2["string"] = 7] = "string";
-    HEADER_VALUE_TYPE2[HEADER_VALUE_TYPE2["timestamp"] = 8] = "timestamp";
-    HEADER_VALUE_TYPE2[HEADER_VALUE_TYPE2["uuid"] = 9] = "uuid";
-  })(HEADER_VALUE_TYPE || (HEADER_VALUE_TYPE = {}));
-  var UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
+  var addExpectContinueMiddlewareOptions = {
+    step: "build",
+    tags: ["SET_EXPECT_HEADER", "EXPECT_HEADER"],
+    name: "addExpectContinueMiddleware",
+    override: true
+  };
+  var getAddExpectContinuePlugin = (options) => ({
+    applyToStack: (clientStack) => {
+      clientStack.add(addExpectContinueMiddleware(options), addExpectContinueMiddlewareOptions);
+    }
+  });
+  exports2.addExpectContinueMiddleware = addExpectContinueMiddleware;
+  exports2.addExpectContinueMiddlewareOptions = addExpectContinueMiddlewareOptions;
+  exports2.getAddExpectContinuePlugin = getAddExpectContinuePlugin;
+});
 
-  class Int64 {
-    bytes;
-    constructor(bytes) {
-      this.bytes = bytes;
-      if (bytes.byteLength !== 8) {
-        throw new Error("Int64 buffers must be exactly 8 bytes");
-      }
+// ../../node_modules/.bun/@aws-crypto+crc32c@5.2.0/node_modules/@aws-crypto/crc32c/build/main/aws_crc32c.js
+var require_aws_crc32c = __commonJS((exports2) => {
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.AwsCrc32c = undefined;
+  var tslib_1 = require_tslib();
+  var util_1 = require_main();
+  var index_1 = require_main3();
+  var AwsCrc32c = function() {
+    function AwsCrc32c2() {
+      this.crc32c = new index_1.Crc32c;
     }
-    static fromNumber(number) {
-      if (number > 9223372036854776000 || number < -9223372036854776000) {
-        throw new Error(`${number} is too large (or, if negative, too small) to represent as an Int64`);
-      }
-      const bytes = new Uint8Array(8);
-      for (let i = 7, remaining = Math.abs(Math.round(number));i > -1 && remaining > 0; i--, remaining /= 256) {
-        bytes[i] = remaining;
-      }
-      if (number < 0) {
-        negate(bytes);
-      }
-      return new Int64(bytes);
-    }
-    valueOf() {
-      const bytes = this.bytes.slice(0);
-      const negative = bytes[0] & 128;
-      if (negative) {
-        negate(bytes);
-      }
-      return parseInt(serde.toHex(bytes), 16) * (negative ? -1 : 1);
-    }
-    toString() {
-      return String(this.valueOf());
-    }
+    AwsCrc32c2.prototype.update = function(toHash) {
+      if ((0, util_1.isEmptyData)(toHash))
+        return;
+      this.crc32c.update((0, util_1.convertToBuffer)(toHash));
+    };
+    AwsCrc32c2.prototype.digest = function() {
+      return tslib_1.__awaiter(this, undefined, undefined, function() {
+        return tslib_1.__generator(this, function(_a2) {
+          return [2, (0, util_1.numToUint8)(this.crc32c.digest())];
+        });
+      });
+    };
+    AwsCrc32c2.prototype.reset = function() {
+      this.crc32c = new index_1.Crc32c;
+    };
+    return AwsCrc32c2;
+  }();
+  exports2.AwsCrc32c = AwsCrc32c;
+});
+
+// ../../node_modules/.bun/@aws-crypto+crc32c@5.2.0/node_modules/@aws-crypto/crc32c/build/main/index.js
+var require_main3 = __commonJS((exports2) => {
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.AwsCrc32c = exports2.Crc32c = exports2.crc32c = undefined;
+  var tslib_1 = require_tslib();
+  var util_1 = require_main();
+  function crc32c(data) {
+    return new Crc32c().update(data).digest();
   }
-  function negate(bytes) {
-    for (let i = 0;i < 8; i++) {
-      bytes[i] ^= 255;
+  exports2.crc32c = crc32c;
+  var Crc32c = function() {
+    function Crc32c2() {
+      this.checksum = 4294967295;
     }
-    for (let i = 7;i > -1; i--) {
-      bytes[i]++;
-      if (bytes[i] !== 0)
-        break;
-    }
-  }
-  var ALGORITHM_QUERY_PARAM = "X-Amz-Algorithm";
-  var CREDENTIAL_QUERY_PARAM = "X-Amz-Credential";
-  var AMZ_DATE_QUERY_PARAM = "X-Amz-Date";
-  var SIGNED_HEADERS_QUERY_PARAM = "X-Amz-SignedHeaders";
-  var EXPIRES_QUERY_PARAM = "X-Amz-Expires";
-  var SIGNATURE_QUERY_PARAM = "X-Amz-Signature";
-  var TOKEN_QUERY_PARAM = "X-Amz-Security-Token";
-  var REGION_SET_PARAM = "X-Amz-Region-Set";
-  var AUTH_HEADER = "authorization";
-  var AMZ_DATE_HEADER = AMZ_DATE_QUERY_PARAM.toLowerCase();
-  var DATE_HEADER = "date";
-  var GENERATED_HEADERS = [AUTH_HEADER, AMZ_DATE_HEADER, DATE_HEADER];
-  var SIGNATURE_HEADER = SIGNATURE_QUERY_PARAM.toLowerCase();
-  var SHA256_HEADER = "x-amz-content-sha256";
-  var TOKEN_HEADER = TOKEN_QUERY_PARAM.toLowerCase();
-  var HOST_HEADER = "host";
-  var ALWAYS_UNSIGNABLE_HEADERS = {
-    authorization: true,
-    "cache-control": true,
-    connection: true,
-    expect: true,
-    from: true,
-    "keep-alive": true,
-    "max-forwards": true,
-    pragma: true,
-    referer: true,
-    te: true,
-    trailer: true,
-    "transfer-encoding": true,
-    upgrade: true,
-    "user-agent": true,
-    "x-amzn-trace-id": true
-  };
-  var PROXY_HEADER_PATTERN = /^proxy-/;
-  var SEC_HEADER_PATTERN = /^sec-/;
-  var UNSIGNABLE_PATTERNS = [/^proxy-/i, /^sec-/i];
-  var ALGORITHM_IDENTIFIER = "AWS4-HMAC-SHA256";
-  var ALGORITHM_IDENTIFIER_V4A = "AWS4-ECDSA-P256-SHA256";
-  var EVENT_ALGORITHM_IDENTIFIER = "AWS4-HMAC-SHA256-PAYLOAD";
-  var UNSIGNED_PAYLOAD = "UNSIGNED-PAYLOAD";
-  var MAX_CACHE_SIZE = 50;
-  var KEY_TYPE_IDENTIFIER = "aws4_request";
-  var MAX_PRESIGNED_TTL = 60 * 60 * 24 * 7;
-  var getCanonicalQuery = ({ query = {} }) => {
-    const keys = [];
-    const serialized = {};
-    for (const key of Object.keys(query)) {
-      if (key.toLowerCase() === SIGNATURE_HEADER) {
-        continue;
+    Crc32c2.prototype.update = function(data) {
+      var e_1, _a2;
+      try {
+        for (var data_1 = tslib_1.__values(data), data_1_1 = data_1.next();!data_1_1.done; data_1_1 = data_1.next()) {
+          var byte2 = data_1_1.value;
+          this.checksum = this.checksum >>> 8 ^ lookupTable[(this.checksum ^ byte2) & 255];
+        }
+      } catch (e_1_1) {
+        e_1 = { error: e_1_1 };
+      } finally {
+        try {
+          if (data_1_1 && !data_1_1.done && (_a2 = data_1.return))
+            _a2.call(data_1);
+        } finally {
+          if (e_1)
+            throw e_1.error;
+        }
       }
-      const encodedKey = protocols.escapeUri(key);
-      keys.push(encodedKey);
-      const value = query[key];
-      if (typeof value === "string") {
-        serialized[encodedKey] = `${encodedKey}=${protocols.escapeUri(value)}`;
-      } else if (Array.isArray(value)) {
-        serialized[encodedKey] = value.slice(0).reduce((encoded, value2) => encoded.concat([`${encodedKey}=${protocols.escapeUri(value2)}`]), []).sort().join("&");
-      }
-    }
-    return keys.sort().map((key) => serialized[key]).filter((serialized2) => serialized2).join("&");
-  };
-  var iso8601 = (time) => toDate(time).toISOString().replace(/\.\d{3}Z$/, "Z");
-  var toDate = (time) => {
-    if (typeof time === "number") {
-      return new Date(time * 1000);
-    }
-    if (typeof time === "string") {
-      if (Number(time)) {
-        return new Date(Number(time) * 1000);
-      }
-      return new Date(time);
-    }
-    return time;
-  };
+      return this;
+    };
+    Crc32c2.prototype.digest = function() {
+      return (this.checksum ^ 4294967295) >>> 0;
+    };
+    return Crc32c2;
+  }();
+  exports2.Crc32c = Crc32c;
+  var a_lookupTable = [
+    0,
+    4067132163,
+    3778769143,
+    324072436,
+    3348797215,
+    904991772,
+    648144872,
+    3570033899,
+    2329499855,
+    2024987596,
+    1809983544,
+    2575936315,
+    1296289744,
+    3207089363,
+    2893594407,
+    1578318884,
+    274646895,
+    3795141740,
+    4049975192,
+    51262619,
+    3619967088,
+    632279923,
+    922689671,
+    3298075524,
+    2592579488,
+    1760304291,
+    2075979607,
+    2312596564,
+    1562183871,
+    2943781820,
+    3156637768,
+    1313733451,
+    549293790,
+    3537243613,
+    3246849577,
+    871202090,
+    3878099393,
+    357341890,
+    102525238,
+    4101499445,
+    2858735121,
+    1477399826,
+    1264559846,
+    3107202533,
+    1845379342,
+    2677391885,
+    2361733625,
+    2125378298,
+    820201905,
+    3263744690,
+    3520608582,
+    598981189,
+    4151959214,
+    85089709,
+    373468761,
+    3827903834,
+    3124367742,
+    1213305469,
+    1526817161,
+    2842354314,
+    2107672161,
+    2412447074,
+    2627466902,
+    1861252501,
+    1098587580,
+    3004210879,
+    2688576843,
+    1378610760,
+    2262928035,
+    1955203488,
+    1742404180,
+    2511436119,
+    3416409459,
+    969524848,
+    714683780,
+    3639785095,
+    205050476,
+    4266873199,
+    3976438427,
+    526918040,
+    1361435347,
+    2739821008,
+    2954799652,
+    1114974503,
+    2529119692,
+    1691668175,
+    2005155131,
+    2247081528,
+    3690758684,
+    697762079,
+    986182379,
+    3366744552,
+    476452099,
+    3993867776,
+    4250756596,
+    255256311,
+    1640403810,
+    2477592673,
+    2164122517,
+    1922457750,
+    2791048317,
+    1412925310,
+    1197962378,
+    3037525897,
+    3944729517,
+    427051182,
+    170179418,
+    4165941337,
+    746937522,
+    3740196785,
+    3451792453,
+    1070968646,
+    1905808397,
+    2213795598,
+    2426610938,
+    1657317369,
+    3053634322,
+    1147748369,
+    1463399397,
+    2773627110,
+    4215344322,
+    153784257,
+    444234805,
+    3893493558,
+    1021025245,
+    3467647198,
+    3722505002,
+    797665321,
+    2197175160,
+    1889384571,
+    1674398607,
+    2443626636,
+    1164749927,
+    3070701412,
+    2757221520,
+    1446797203,
+    137323447,
+    4198817972,
+    3910406976,
+    461344835,
+    3484808360,
+    1037989803,
+    781091935,
+    3705997148,
+    2460548119,
+    1623424788,
+    1939049696,
+    2180517859,
+    1429367560,
+    2807687179,
+    3020495871,
+    1180866812,
+    410100952,
+    3927582683,
+    4182430767,
+    186734380,
+    3756733383,
+    763408580,
+    1053836080,
+    3434856499,
+    2722870694,
+    1344288421,
+    1131464017,
+    2971354706,
+    1708204729,
+    2545590714,
+    2229949006,
+    1988219213,
+    680717673,
+    3673779818,
+    3383336350,
+    1002577565,
+    4010310262,
+    493091189,
+    238226049,
+    4233660802,
+    2987750089,
+    1082061258,
+    1395524158,
+    2705686845,
+    1972364758,
+    2279892693,
+    2494862625,
+    1725896226,
+    952904198,
+    3399985413,
+    3656866545,
+    731699698,
+    4283874585,
+    222117402,
+    510512622,
+    3959836397,
+    3280807620,
+    837199303,
+    582374963,
+    3504198960,
+    68661723,
+    4135334616,
+    3844915500,
+    390545967,
+    1230274059,
+    3141532936,
+    2825850620,
+    1510247935,
+    2395924756,
+    2091215383,
+    1878366691,
+    2644384480,
+    3553878443,
+    565732008,
+    854102364,
+    3229815391,
+    340358836,
+    3861050807,
+    4117890627,
+    119113024,
+    1493875044,
+    2875275879,
+    3090270611,
+    1247431312,
+    2660249211,
+    1828433272,
+    2141937292,
+    2378227087,
+    3811616794,
+    291187481,
+    34330861,
+    4032846830,
+    615137029,
+    3603020806,
+    3314634738,
+    939183345,
+    1776939221,
+    2609017814,
+    2295496738,
+    2058945313,
+    2926798794,
+    1545135305,
+    1330124605,
+    3173225534,
+    4084100981,
+    17165430,
+    307568514,
+    3762199681,
+    888469610,
+    3332340585,
+    3587147933,
+    665062302,
+    2042050490,
+    2346497209,
+    2559330125,
+    1793573966,
+    3190661285,
+    1279665062,
+    1595330642,
+    2910671697
+  ];
+  var lookupTable = (0, util_1.uint32ArrayFrom)(a_lookupTable);
+  var aws_crc32c_1 = require_aws_crc32c();
+  Object.defineProperty(exports2, "AwsCrc32c", { enumerable: true, get: function() {
+    return aws_crc32c_1.AwsCrc32c;
+  } });
+});
 
-  class SignatureV4Base {
-    service;
-    regionProvider;
-    credentialProvider;
-    sha256;
-    uriEscapePath;
-    applyChecksum;
-    constructor({ applyChecksum, credentials, region, service, sha256, uriEscapePath = true }) {
-      this.service = service;
-      this.sha256 = sha256;
-      this.uriEscapePath = uriEscapePath;
-      this.applyChecksum = typeof applyChecksum === "boolean" ? applyChecksum : true;
-      this.regionProvider = client.normalizeProvider(region);
-      this.credentialProvider = client.normalizeProvider(credentials);
-    }
-    createCanonicalRequest(request, canonicalHeaders, payloadHash) {
-      const sortedHeaders = Object.keys(canonicalHeaders).sort();
-      return `${request.method}
-${this.getCanonicalPath(request)}
-${getCanonicalQuery(request)}
-${sortedHeaders.map((name) => `${name}:${canonicalHeaders[name]}`).join(`
-`)}
-
-${sortedHeaders.join(";")}
-${payloadHash}`;
-    }
-    async createStringToSign(longDate, credentialScope, canonicalRequest, algorithmIdentifier) {
-      const hash3 = new this.sha256;
-      hash3.update(serde.toUint8Array(canonicalRequest));
-      const hashedRequest = await hash3.digest();
-      return `${algorithmIdentifier}
-${longDate}
-${credentialScope}
-${serde.toHex(hashedRequest)}`;
-    }
-    getCanonicalPath({ path }) {
-      if (this.uriEscapePath) {
-        const normalizedPathSegments = [];
-        for (const pathSegment of path.split("/")) {
-          if (pathSegment?.length === 0)
-            continue;
-          if (pathSegment === ".")
-            continue;
-          if (pathSegment === "..") {
-            normalizedPathSegments.pop();
+// ../../node_modules/.bun/@aws-sdk+crc64-nvme@3.972.9/node_modules/@aws-sdk/crc64-nvme/dist-cjs/index.js
+var require_dist_cjs7 = __commonJS((exports2) => {
+  var generateCRC64NVMETable = () => {
+    const sliceLength = 8;
+    const tables = new Array(sliceLength);
+    for (let slice = 0;slice < sliceLength; slice++) {
+      const table = new Array(512);
+      for (let i = 0;i < 256; i++) {
+        let crc = BigInt(i);
+        for (let j = 0;j < 8 * (slice + 1); j++) {
+          if (crc & 1n) {
+            crc = crc >> 1n ^ 0x9a6c9329ac4bc9b5n;
           } else {
-            normalizedPathSegments.push(pathSegment);
+            crc = crc >> 1n;
           }
         }
-        const normalizedPath = `${path?.startsWith("/") ? "/" : ""}${normalizedPathSegments.join("/")}${normalizedPathSegments.length > 0 && path?.endsWith("/") ? "/" : ""}`;
-        const doubleEncoded = protocols.escapeUri(normalizedPath);
-        return doubleEncoded.replace(/%2F/g, "/");
+        table[i * 2] = Number(crc >> 32n & 0xffffffffn);
+        table[i * 2 + 1] = Number(crc & 0xffffffffn);
       }
-      return path;
+      tables[slice] = new Uint32Array(table);
     }
-    validateResolvedCredentials(credentials) {
-      if (typeof credentials !== "object" || typeof credentials.accessKeyId !== "string" || typeof credentials.secretAccessKey !== "string") {
-        throw new Error("Resolved credential object is not valid");
+    return tables;
+  };
+  var CRC64_NVME_REVERSED_TABLE;
+  var t0;
+  var t1;
+  var t22;
+  var t3;
+  var t4;
+  var t5;
+  var t6;
+  var t7;
+  var ensureTablesInitialized = () => {
+    if (!CRC64_NVME_REVERSED_TABLE) {
+      CRC64_NVME_REVERSED_TABLE = generateCRC64NVMETable();
+      [t0, t1, t22, t3, t4, t5, t6, t7] = CRC64_NVME_REVERSED_TABLE;
+    }
+  };
+
+  class Crc64Nvme {
+    c1 = 0;
+    c2 = 0;
+    constructor() {
+      ensureTablesInitialized();
+      this.reset();
+    }
+    update(data) {
+      const len = data.length;
+      let i = 0;
+      let crc1 = this.c1;
+      let crc2 = this.c2;
+      while (i + 8 <= len) {
+        const idx0 = ((crc2 ^ data[i++]) & 255) << 1;
+        const idx1 = ((crc2 >>> 8 ^ data[i++]) & 255) << 1;
+        const idx2 = ((crc2 >>> 16 ^ data[i++]) & 255) << 1;
+        const idx3 = ((crc2 >>> 24 ^ data[i++]) & 255) << 1;
+        const idx4 = ((crc1 ^ data[i++]) & 255) << 1;
+        const idx5 = ((crc1 >>> 8 ^ data[i++]) & 255) << 1;
+        const idx6 = ((crc1 >>> 16 ^ data[i++]) & 255) << 1;
+        const idx7 = ((crc1 >>> 24 ^ data[i++]) & 255) << 1;
+        crc1 = t7[idx0] ^ t6[idx1] ^ t5[idx2] ^ t4[idx3] ^ t3[idx4] ^ t22[idx5] ^ t1[idx6] ^ t0[idx7];
+        crc2 = t7[idx0 + 1] ^ t6[idx1 + 1] ^ t5[idx2 + 1] ^ t4[idx3 + 1] ^ t3[idx4 + 1] ^ t22[idx5 + 1] ^ t1[idx6 + 1] ^ t0[idx7 + 1];
       }
+      while (i < len) {
+        const idx = ((crc2 ^ data[i]) & 255) << 1;
+        crc2 = (crc2 >>> 8 | (crc1 & 255) << 24) >>> 0;
+        crc1 = crc1 >>> 8 ^ t0[idx];
+        crc2 ^= t0[idx + 1];
+        i++;
+      }
+      this.c1 = crc1;
+      this.c2 = crc2;
     }
-    formatDate(now) {
-      const longDate = iso8601(now).replace(/[\-:]/g, "");
-      return {
-        longDate,
-        shortDate: longDate.slice(0, 8)
-      };
+    async digest() {
+      const c1 = this.c1 ^ 4294967295;
+      const c2 = this.c2 ^ 4294967295;
+      return new Uint8Array([
+        c1 >>> 24,
+        c1 >>> 16 & 255,
+        c1 >>> 8 & 255,
+        c1 & 255,
+        c2 >>> 24,
+        c2 >>> 16 & 255,
+        c2 >>> 8 & 255,
+        c2 & 255
+      ]);
     }
-    getCanonicalHeaderList(headers) {
-      return Object.keys(headers).sort().join(";");
+    reset() {
+      this.c1 = 4294967295;
+      this.c2 = 4294967295;
     }
   }
-  var signingKeyCache = {};
-  var cacheQueue = [];
-  var createScope = (shortDate, region, service) => `${shortDate}/${region}/${service}/${KEY_TYPE_IDENTIFIER}`;
-  var getSigningKey = async (sha256Constructor, credentials, shortDate, region, service) => {
-    const credsHash = await hmac(sha256Constructor, credentials.secretAccessKey, credentials.accessKeyId);
-    const cacheKey = `${shortDate}:${region}:${service}:${serde.toHex(credsHash)}:${credentials.sessionToken}`;
-    if (cacheKey in signingKeyCache) {
-      return signingKeyCache[cacheKey];
-    }
-    cacheQueue.push(cacheKey);
-    while (cacheQueue.length > MAX_CACHE_SIZE) {
-      delete signingKeyCache[cacheQueue.shift()];
-    }
-    let key = `AWS4${credentials.secretAccessKey}`;
-    for (const signable of [shortDate, region, service, KEY_TYPE_IDENTIFIER]) {
-      key = await hmac(sha256Constructor, key, signable);
-    }
-    return signingKeyCache[cacheKey] = key;
+  var crc64NvmeCrtContainer = {
+    CrtCrc64Nvme: null
   };
-  var clearCredentialCache = () => {
-    cacheQueue.length = 0;
-    Object.keys(signingKeyCache).forEach((cacheKey) => {
-      delete signingKeyCache[cacheKey];
-    });
-  };
-  var hmac = (ctor, secret, data) => {
-    const hash3 = new ctor(secret);
-    hash3.update(serde.toUint8Array(data));
-    return hash3.digest();
-  };
-  var getCanonicalHeaders = ({ headers }, unsignableHeaders, signableHeaders) => {
-    const canonical = {};
-    for (const headerName of Object.keys(headers).sort()) {
-      if (headers[headerName] == undefined) {
-        continue;
-      }
-      const canonicalHeaderName = headerName.toLowerCase();
-      if (canonicalHeaderName in ALWAYS_UNSIGNABLE_HEADERS || unsignableHeaders?.has(canonicalHeaderName) || PROXY_HEADER_PATTERN.test(canonicalHeaderName) || SEC_HEADER_PATTERN.test(canonicalHeaderName)) {
-        if (!signableHeaders || signableHeaders && !signableHeaders.has(canonicalHeaderName)) {
-          continue;
-        }
-      }
-      canonical[canonicalHeaderName] = headers[headerName].trim().replace(/\s+/g, " ");
+  exports2.Crc64Nvme = Crc64Nvme;
+  exports2.crc64NvmeCrtContainer = crc64NvmeCrtContainer;
+});
+
+// ../../node_modules/.bun/@aws-sdk+middleware-flexible-checksums@3.974.21/node_modules/@aws-sdk/middleware-flexible-checksums/dist-cjs/getCrc32ChecksumAlgorithmFunction.js
+var require_getCrc32ChecksumAlgorithmFunction = __commonJS((exports2) => {
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.getCrc32ChecksumAlgorithmFunction = undefined;
+  var tslib_1 = require_tslib();
+  var crc32_1 = require_main2();
+  var util_1 = require_main();
+  var zlib = tslib_1.__importStar(require("node:zlib"));
+
+  class NodeCrc32 {
+    checksum = 0;
+    update(data) {
+      this.checksum = zlib.crc32(data, this.checksum);
     }
-    return canonical;
-  };
-  var getPayloadHash = async ({ headers, body }, hashConstructor) => {
-    for (const headerName of Object.keys(headers)) {
-      if (headerName.toLowerCase() === SHA256_HEADER) {
-        return headers[headerName];
-      }
+    async digest() {
+      return (0, util_1.numToUint8)(this.checksum);
     }
-    if (body == undefined) {
-      return "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-    } else if (typeof body === "string" || ArrayBuffer.isView(body) || serde.isArrayBuffer(body)) {
-      const hashCtor = new hashConstructor;
-      hashCtor.update(serde.toUint8Array(body));
-      return serde.toHex(await hashCtor.digest());
+    reset() {
+      this.checksum = 0;
     }
-    return UNSIGNED_PAYLOAD;
+  }
+  var getCrc32ChecksumAlgorithmFunction = () => {
+    if (typeof zlib.crc32 === "undefined") {
+      return crc32_1.AwsCrc32;
+    }
+    return NodeCrc32;
   };
-  var hasHeader = (soughtHeader, headers) => {
-    soughtHeader = soughtHeader.toLowerCase();
+  exports2.getCrc32ChecksumAlgorithmFunction = getCrc32ChecksumAlgorithmFunction;
+});
+
+// ../../node_modules/.bun/@aws-sdk+middleware-flexible-checksums@3.974.21/node_modules/@aws-sdk/middleware-flexible-checksums/dist-cjs/index.js
+var require_dist_cjs8 = __commonJS((exports2) => {
+  var client = require_client2();
+  var protocols = require_protocols();
+  var serde = require_serde();
+  var crc32c = require_main3();
+  var crc64Nvme = require_dist_cjs7();
+  var getCrc32ChecksumAlgorithmFunction = require_getCrc32ChecksumAlgorithmFunction();
+  var client$1 = require_client();
+  var RequestChecksumCalculation = {
+    WHEN_SUPPORTED: "WHEN_SUPPORTED",
+    WHEN_REQUIRED: "WHEN_REQUIRED"
+  };
+  var DEFAULT_REQUEST_CHECKSUM_CALCULATION = RequestChecksumCalculation.WHEN_SUPPORTED;
+  var ResponseChecksumValidation = {
+    WHEN_SUPPORTED: "WHEN_SUPPORTED",
+    WHEN_REQUIRED: "WHEN_REQUIRED"
+  };
+  var DEFAULT_RESPONSE_CHECKSUM_VALIDATION = RequestChecksumCalculation.WHEN_SUPPORTED;
+  exports2.ChecksumAlgorithm = undefined;
+  (function(ChecksumAlgorithm) {
+    ChecksumAlgorithm["MD5"] = "MD5";
+    ChecksumAlgorithm["CRC32"] = "CRC32";
+    ChecksumAlgorithm["CRC32C"] = "CRC32C";
+    ChecksumAlgorithm["CRC64NVME"] = "CRC64NVME";
+    ChecksumAlgorithm["SHA1"] = "SHA1";
+    ChecksumAlgorithm["SHA256"] = "SHA256";
+  })(exports2.ChecksumAlgorithm || (exports2.ChecksumAlgorithm = {}));
+  exports2.ChecksumLocation = undefined;
+  (function(ChecksumLocation) {
+    ChecksumLocation["HEADER"] = "header";
+    ChecksumLocation["TRAILER"] = "trailer";
+  })(exports2.ChecksumLocation || (exports2.ChecksumLocation = {}));
+  var DEFAULT_CHECKSUM_ALGORITHM = exports2.ChecksumAlgorithm.CRC32;
+  var SelectorType;
+  (function(SelectorType2) {
+    SelectorType2["ENV"] = "env";
+    SelectorType2["CONFIG"] = "shared config entry";
+  })(SelectorType || (SelectorType = {}));
+  var stringUnionSelector = (obj, key, union, type) => {
+    if (!(key in obj))
+      return;
+    const value = obj[key].toUpperCase();
+    if (!Object.values(union).includes(value)) {
+      throw new TypeError(`Cannot load ${type} '${key}'. Expected one of ${Object.values(union)}, got '${obj[key]}'.`);
+    }
+    return value;
+  };
+  var ENV_REQUEST_CHECKSUM_CALCULATION = "AWS_REQUEST_CHECKSUM_CALCULATION";
+  var CONFIG_REQUEST_CHECKSUM_CALCULATION = "request_checksum_calculation";
+  var NODE_REQUEST_CHECKSUM_CALCULATION_CONFIG_OPTIONS = {
+    environmentVariableSelector: (env4) => stringUnionSelector(env4, ENV_REQUEST_CHECKSUM_CALCULATION, RequestChecksumCalculation, SelectorType.ENV),
+    configFileSelector: (profile) => stringUnionSelector(profile, CONFIG_REQUEST_CHECKSUM_CALCULATION, RequestChecksumCalculation, SelectorType.CONFIG),
+    default: DEFAULT_REQUEST_CHECKSUM_CALCULATION
+  };
+  var ENV_RESPONSE_CHECKSUM_VALIDATION = "AWS_RESPONSE_CHECKSUM_VALIDATION";
+  var CONFIG_RESPONSE_CHECKSUM_VALIDATION = "response_checksum_validation";
+  var NODE_RESPONSE_CHECKSUM_VALIDATION_CONFIG_OPTIONS = {
+    environmentVariableSelector: (env4) => stringUnionSelector(env4, ENV_RESPONSE_CHECKSUM_VALIDATION, ResponseChecksumValidation, SelectorType.ENV),
+    configFileSelector: (profile) => stringUnionSelector(profile, CONFIG_RESPONSE_CHECKSUM_VALIDATION, ResponseChecksumValidation, SelectorType.CONFIG),
+    default: DEFAULT_RESPONSE_CHECKSUM_VALIDATION
+  };
+  var getChecksumAlgorithmForRequest = (input, { requestChecksumRequired, requestAlgorithmMember, requestChecksumCalculation }) => {
+    if (!requestAlgorithmMember) {
+      return requestChecksumCalculation === RequestChecksumCalculation.WHEN_SUPPORTED || requestChecksumRequired ? DEFAULT_CHECKSUM_ALGORITHM : undefined;
+    }
+    if (!input[requestAlgorithmMember]) {
+      return;
+    }
+    const checksumAlgorithm = input[requestAlgorithmMember];
+    return checksumAlgorithm;
+  };
+  var getChecksumLocationName = (algorithm) => algorithm === exports2.ChecksumAlgorithm.MD5 ? "content-md5" : `x-amz-checksum-${algorithm.toLowerCase()}`;
+  var hasHeader = (header, headers) => {
+    const soughtHeader = header.toLowerCase();
     for (const headerName of Object.keys(headers)) {
       if (soughtHeader === headerName.toLowerCase()) {
         return true;
@@ -37530,2034 +37772,401 @@ ${serde.toHex(hashedRequest)}`;
     }
     return false;
   };
-  var moveHeadersToQuery = (request, options = {}) => {
-    const { headers, query = {} } = protocols.HttpRequest.clone(request);
-    for (const name of Object.keys(headers)) {
-      const lname = name.toLowerCase();
-      if (lname.slice(0, 6) === "x-amz-" && !options.unhoistableHeaders?.has(lname) || options.hoistableHeaders?.has(lname)) {
-        query[name] = headers[name];
-        delete headers[name];
+  var hasHeaderWithPrefix = (headerPrefix, headers) => {
+    const soughtHeaderPrefix = headerPrefix.toLowerCase();
+    for (const headerName of Object.keys(headers)) {
+      if (headerName.toLowerCase().startsWith(soughtHeaderPrefix)) {
+        return true;
       }
     }
-    return {
-      ...request,
-      headers,
-      query
-    };
+    return false;
   };
-  var prepareRequest = (request) => {
-    request = protocols.HttpRequest.clone(request);
-    for (const headerName of Object.keys(request.headers)) {
-      if (GENERATED_HEADERS.indexOf(headerName.toLowerCase()) > -1) {
-        delete request.headers[headerName];
-      }
-    }
-    return request;
-  };
-
-  class SignatureV4 extends SignatureV4Base {
-    headerFormatter = new HeaderFormatter;
-    constructor({ applyChecksum, credentials, region, service, sha256, uriEscapePath = true }) {
-      super({
-        applyChecksum,
-        credentials,
-        region,
-        service,
-        sha256,
-        uriEscapePath
-      });
-    }
-    async presign(originalRequest, options = {}) {
-      const { signingDate = new Date, expiresIn = 3600, unsignableHeaders, unhoistableHeaders, signableHeaders, hoistableHeaders, signingRegion, signingService } = options;
-      const credentials = await this.credentialProvider();
-      this.validateResolvedCredentials(credentials);
-      const region = signingRegion ?? await this.regionProvider();
-      const { longDate, shortDate } = this.formatDate(signingDate);
-      if (expiresIn > MAX_PRESIGNED_TTL) {
-        return Promise.reject("Signature version 4 presigned URLs" + " must have an expiration date less than one week in" + " the future");
-      }
-      const scope = createScope(shortDate, region, signingService ?? this.service);
-      const request = moveHeadersToQuery(prepareRequest(originalRequest), { unhoistableHeaders, hoistableHeaders });
-      if (credentials.sessionToken) {
-        request.query[TOKEN_QUERY_PARAM] = credentials.sessionToken;
-      }
-      request.query[ALGORITHM_QUERY_PARAM] = ALGORITHM_IDENTIFIER;
-      request.query[CREDENTIAL_QUERY_PARAM] = `${credentials.accessKeyId}/${scope}`;
-      request.query[AMZ_DATE_QUERY_PARAM] = longDate;
-      request.query[EXPIRES_QUERY_PARAM] = expiresIn.toString(10);
-      const canonicalHeaders = getCanonicalHeaders(request, unsignableHeaders, signableHeaders);
-      request.query[SIGNED_HEADERS_QUERY_PARAM] = this.getCanonicalHeaderList(canonicalHeaders);
-      request.query[SIGNATURE_QUERY_PARAM] = await this.getSignature(longDate, scope, this.getSigningKey(credentials, region, shortDate, signingService), this.createCanonicalRequest(request, canonicalHeaders, await getPayloadHash(originalRequest, this.sha256)));
-      return request;
-    }
-    async sign(toSign, options) {
-      if (typeof toSign === "string") {
-        return this.signString(toSign, options);
-      } else if (toSign.headers && toSign.payload) {
-        return this.signEvent(toSign, options);
-      } else if (toSign.message) {
-        return this.signMessage(toSign, options);
-      } else {
-        return this.signRequest(toSign, options);
-      }
-    }
-    async signEvent({ headers, payload }, { signingDate = new Date, priorSignature, signingRegion, signingService, eventStreamCredentials }) {
-      const region = signingRegion ?? await this.regionProvider();
-      const { shortDate, longDate } = this.formatDate(signingDate);
-      const scope = createScope(shortDate, region, signingService ?? this.service);
-      const hashedPayload = await getPayloadHash({ headers: {}, body: payload }, this.sha256);
-      const hash3 = new this.sha256;
-      hash3.update(headers);
-      const hashedHeaders = serde.toHex(await hash3.digest());
-      const stringToSign = [
-        EVENT_ALGORITHM_IDENTIFIER,
-        longDate,
-        scope,
-        priorSignature,
-        hashedHeaders,
-        hashedPayload
-      ].join(`
-`);
-      return this.signString(stringToSign, {
-        signingDate,
-        signingRegion: region,
-        signingService,
-        eventStreamCredentials
-      });
-    }
-    async signMessage(signableMessage, { signingDate = new Date, signingRegion, signingService, eventStreamCredentials }) {
-      const promise = this.signEvent({
-        headers: this.headerFormatter.format(signableMessage.message.headers),
-        payload: signableMessage.message.body
-      }, {
-        signingDate,
-        signingRegion,
-        signingService,
-        priorSignature: signableMessage.priorSignature,
-        eventStreamCredentials
-      });
-      return promise.then((signature) => {
-        return { message: signableMessage.message, signature };
-      });
-    }
-    async signString(stringToSign, { signingDate = new Date, signingRegion, signingService, eventStreamCredentials } = {}) {
-      const credentials = eventStreamCredentials ?? await this.credentialProvider();
-      this.validateResolvedCredentials(credentials);
-      const region = signingRegion ?? await this.regionProvider();
-      const { shortDate } = this.formatDate(signingDate);
-      const hash3 = new this.sha256(await this.getSigningKey(credentials, region, shortDate, signingService));
-      hash3.update(serde.toUint8Array(stringToSign));
-      return serde.toHex(await hash3.digest());
-    }
-    async signRequest(requestToSign, { signingDate = new Date, signableHeaders, unsignableHeaders, signingRegion, signingService } = {}) {
-      const credentials = await this.credentialProvider();
-      this.validateResolvedCredentials(credentials);
-      const region = signingRegion ?? await this.regionProvider();
-      const request = prepareRequest(requestToSign);
-      const { longDate, shortDate } = this.formatDate(signingDate);
-      const scope = createScope(shortDate, region, signingService ?? this.service);
-      request.headers[AMZ_DATE_HEADER] = longDate;
-      if (credentials.sessionToken) {
-        request.headers[TOKEN_HEADER] = credentials.sessionToken;
-      }
-      const payloadHash = await getPayloadHash(request, this.sha256);
-      if (!hasHeader(SHA256_HEADER, request.headers) && this.applyChecksum) {
-        request.headers[SHA256_HEADER] = payloadHash;
-      }
-      const canonicalHeaders = getCanonicalHeaders(request, unsignableHeaders, signableHeaders);
-      const signature = await this.getSignature(longDate, scope, this.getSigningKey(credentials, region, shortDate, signingService), this.createCanonicalRequest(request, canonicalHeaders, payloadHash));
-      request.headers[AUTH_HEADER] = `${ALGORITHM_IDENTIFIER} ` + `Credential=${credentials.accessKeyId}/${scope}, ` + `SignedHeaders=${this.getCanonicalHeaderList(canonicalHeaders)}, ` + `Signature=${signature}`;
-      return request;
-    }
-    async getSignature(longDate, credentialScope, keyPromise, canonicalRequest) {
-      const stringToSign = await this.createStringToSign(longDate, credentialScope, canonicalRequest, ALGORITHM_IDENTIFIER);
-      const hash3 = new this.sha256(await keyPromise);
-      hash3.update(serde.toUint8Array(stringToSign));
-      return serde.toHex(await hash3.digest());
-    }
-    getSigningKey(credentials, region, shortDate, service) {
-      return getSigningKey(this.sha256, credentials, shortDate, region, service || this.service);
-    }
-  }
-  var signatureV4aContainer = {
-    SignatureV4a: null
-  };
-  exports2.ALGORITHM_IDENTIFIER = ALGORITHM_IDENTIFIER;
-  exports2.ALGORITHM_IDENTIFIER_V4A = ALGORITHM_IDENTIFIER_V4A;
-  exports2.ALGORITHM_QUERY_PARAM = ALGORITHM_QUERY_PARAM;
-  exports2.ALWAYS_UNSIGNABLE_HEADERS = ALWAYS_UNSIGNABLE_HEADERS;
-  exports2.AMZ_DATE_HEADER = AMZ_DATE_HEADER;
-  exports2.AMZ_DATE_QUERY_PARAM = AMZ_DATE_QUERY_PARAM;
-  exports2.AUTH_HEADER = AUTH_HEADER;
-  exports2.CREDENTIAL_QUERY_PARAM = CREDENTIAL_QUERY_PARAM;
-  exports2.DATE_HEADER = DATE_HEADER;
-  exports2.EVENT_ALGORITHM_IDENTIFIER = EVENT_ALGORITHM_IDENTIFIER;
-  exports2.EXPIRES_QUERY_PARAM = EXPIRES_QUERY_PARAM;
-  exports2.GENERATED_HEADERS = GENERATED_HEADERS;
-  exports2.HOST_HEADER = HOST_HEADER;
-  exports2.KEY_TYPE_IDENTIFIER = KEY_TYPE_IDENTIFIER;
-  exports2.MAX_CACHE_SIZE = MAX_CACHE_SIZE;
-  exports2.MAX_PRESIGNED_TTL = MAX_PRESIGNED_TTL;
-  exports2.PROXY_HEADER_PATTERN = PROXY_HEADER_PATTERN;
-  exports2.REGION_SET_PARAM = REGION_SET_PARAM;
-  exports2.SEC_HEADER_PATTERN = SEC_HEADER_PATTERN;
-  exports2.SHA256_HEADER = SHA256_HEADER;
-  exports2.SIGNATURE_HEADER = SIGNATURE_HEADER;
-  exports2.SIGNATURE_QUERY_PARAM = SIGNATURE_QUERY_PARAM;
-  exports2.SIGNED_HEADERS_QUERY_PARAM = SIGNED_HEADERS_QUERY_PARAM;
-  exports2.SignatureV4 = SignatureV4;
-  exports2.SignatureV4Base = SignatureV4Base;
-  exports2.TOKEN_HEADER = TOKEN_HEADER;
-  exports2.TOKEN_QUERY_PARAM = TOKEN_QUERY_PARAM;
-  exports2.UNSIGNABLE_PATTERNS = UNSIGNABLE_PATTERNS;
-  exports2.UNSIGNED_PAYLOAD = UNSIGNED_PAYLOAD;
-  exports2.clearCredentialCache = clearCredentialCache;
-  exports2.createScope = createScope;
-  exports2.getCanonicalHeaders = getCanonicalHeaders;
-  exports2.getCanonicalQuery = getCanonicalQuery;
-  exports2.getPayloadHash = getPayloadHash;
-  exports2.getSigningKey = getSigningKey;
-  exports2.hasHeader = hasHeader;
-  exports2.moveHeadersToQuery = moveHeadersToQuery;
-  exports2.prepareRequest = prepareRequest;
-  exports2.signatureV4aContainer = signatureV4aContainer;
-});
-
-// ../../node_modules/.bun/@aws-sdk+core@3.974.14/node_modules/@aws-sdk/core/dist-cjs/submodules/httpAuthSchemes/index.js
-var require_httpAuthSchemes = __commonJS((exports2) => {
-  var protocols = require_protocols();
-  var core = require_dist_cjs5();
-  var config = require_config();
-  var client = require_client2();
-  var signatureV4 = require_dist_cjs6();
-  var getDateHeader = (response) => protocols.HttpResponse.isInstance(response) ? response.headers?.date ?? response.headers?.Date : undefined;
-  var getSkewCorrectedDate = (systemClockOffset) => new Date(Date.now() + systemClockOffset);
-  var isClockSkewed = (clockTime, systemClockOffset) => Math.abs(getSkewCorrectedDate(systemClockOffset).getTime() - clockTime) >= 300000;
-  var getUpdatedSystemClockOffset = (clockTime, currentSystemClockOffset) => {
-    const clockTimeInMs = Date.parse(clockTime);
-    if (isClockSkewed(clockTimeInMs, currentSystemClockOffset)) {
-      return clockTimeInMs - Date.now();
-    }
-    return currentSystemClockOffset;
-  };
-  var throwSigningPropertyError = (name, property) => {
-    if (!property) {
-      throw new Error(`Property \`${name}\` is not resolved for AWS SDK SigV4Auth`);
-    }
-    return property;
-  };
-  var validateSigningProperties = async (signingProperties) => {
-    const context = throwSigningPropertyError("context", signingProperties.context);
-    const config2 = throwSigningPropertyError("config", signingProperties.config);
-    const authScheme = context.endpointV2?.properties?.authSchemes?.[0];
-    const signerFunction = throwSigningPropertyError("signer", config2.signer);
-    const signer = await signerFunction(authScheme);
-    const signingRegion = signingProperties?.signingRegion;
-    const signingRegionSet = signingProperties?.signingRegionSet;
-    const signingName = signingProperties?.signingName;
-    return {
-      config: config2,
-      signer,
-      signingRegion,
-      signingRegionSet,
-      signingName
-    };
-  };
-
-  class AwsSdkSigV4Signer {
-    async sign(httpRequest, identity, signingProperties) {
-      if (!protocols.HttpRequest.isInstance(httpRequest)) {
-        throw new Error("The request is not an instance of `HttpRequest` and cannot be signed");
-      }
-      const validatedProps = await validateSigningProperties(signingProperties);
-      const { config: config2, signer } = validatedProps;
-      let { signingRegion, signingName } = validatedProps;
-      const handlerExecutionContext = signingProperties.context;
-      if (handlerExecutionContext?.authSchemes?.length ?? 0 > 1) {
-        const [first, second] = handlerExecutionContext.authSchemes;
-        if (first?.name === "sigv4a" && second?.name === "sigv4") {
-          signingRegion = second?.signingRegion ?? signingRegion;
-          signingName = second?.signingName ?? signingName;
+  var isStreaming = (body) => body !== undefined && typeof body !== "string" && !ArrayBuffer.isView(body) && !serde.isArrayBuffer(body);
+  var CLIENT_SUPPORTED_ALGORITHMS = [
+    exports2.ChecksumAlgorithm.CRC32,
+    exports2.ChecksumAlgorithm.CRC32C,
+    exports2.ChecksumAlgorithm.CRC64NVME,
+    exports2.ChecksumAlgorithm.SHA1,
+    exports2.ChecksumAlgorithm.SHA256
+  ];
+  var PRIORITY_ORDER_ALGORITHMS = [
+    exports2.ChecksumAlgorithm.SHA256,
+    exports2.ChecksumAlgorithm.SHA1,
+    exports2.ChecksumAlgorithm.CRC32,
+    exports2.ChecksumAlgorithm.CRC32C,
+    exports2.ChecksumAlgorithm.CRC64NVME
+  ];
+  var selectChecksumAlgorithmFunction = (checksumAlgorithm, config) => {
+    const { checksumAlgorithms = {} } = config;
+    switch (checksumAlgorithm) {
+      case exports2.ChecksumAlgorithm.MD5:
+        return checksumAlgorithms?.MD5 ?? config.md5;
+      case exports2.ChecksumAlgorithm.CRC32:
+        return checksumAlgorithms?.CRC32 ?? getCrc32ChecksumAlgorithmFunction.getCrc32ChecksumAlgorithmFunction();
+      case exports2.ChecksumAlgorithm.CRC32C:
+        return checksumAlgorithms?.CRC32C ?? crc32c.AwsCrc32c;
+      case exports2.ChecksumAlgorithm.CRC64NVME:
+        if (typeof crc64Nvme.crc64NvmeCrtContainer.CrtCrc64Nvme !== "function") {
+          return checksumAlgorithms?.CRC64NVME ?? crc64Nvme.Crc64Nvme;
         }
-      }
-      const signedRequest = await signer.sign(httpRequest, {
-        signingDate: getSkewCorrectedDate(config2.systemClockOffset),
-        signingRegion,
-        signingService: signingName
-      });
-      return signedRequest;
-    }
-    errorHandler(signingProperties) {
-      return (error) => {
-        const serverTime = error.ServerTime ?? getDateHeader(error.$response);
-        if (serverTime) {
-          const config2 = throwSigningPropertyError("config", signingProperties.config);
-          const initialSystemClockOffset = config2.systemClockOffset;
-          config2.systemClockOffset = getUpdatedSystemClockOffset(serverTime, config2.systemClockOffset);
-          const clockSkewCorrected = config2.systemClockOffset !== initialSystemClockOffset;
-          if (clockSkewCorrected && error.$metadata) {
-            error.$metadata.clockSkewCorrected = true;
-          }
-        }
-        throw error;
-      };
-    }
-    successHandler(httpResponse, signingProperties) {
-      const dateHeader = getDateHeader(httpResponse);
-      if (dateHeader) {
-        const config2 = throwSigningPropertyError("config", signingProperties.config);
-        config2.systemClockOffset = getUpdatedSystemClockOffset(dateHeader, config2.systemClockOffset);
-      }
-    }
-  }
-  var AWSSDKSigV4Signer = AwsSdkSigV4Signer;
-
-  class AwsSdkSigV4ASigner extends AwsSdkSigV4Signer {
-    async sign(httpRequest, identity, signingProperties) {
-      if (!protocols.HttpRequest.isInstance(httpRequest)) {
-        throw new Error("The request is not an instance of `HttpRequest` and cannot be signed");
-      }
-      const { config: config2, signer, signingRegion, signingRegionSet, signingName } = await validateSigningProperties(signingProperties);
-      const configResolvedSigningRegionSet = await config2.sigv4aSigningRegionSet?.();
-      const multiRegionOverride = (configResolvedSigningRegionSet ?? signingRegionSet ?? [signingRegion]).join(",");
-      const signedRequest = await signer.sign(httpRequest, {
-        signingDate: getSkewCorrectedDate(config2.systemClockOffset),
-        signingRegion: multiRegionOverride,
-        signingService: signingName
-      });
-      return signedRequest;
-    }
-  }
-  var getArrayForCommaSeparatedString = (str) => typeof str === "string" && str.length > 0 ? str.split(",").map((item) => item.trim()) : [];
-  var getBearerTokenEnvKey = (signingName) => `AWS_BEARER_TOKEN_${signingName.replace(/[\s-]/g, "_").toUpperCase()}`;
-  var NODE_AUTH_SCHEME_PREFERENCE_ENV_KEY = "AWS_AUTH_SCHEME_PREFERENCE";
-  var NODE_AUTH_SCHEME_PREFERENCE_CONFIG_KEY = "auth_scheme_preference";
-  var NODE_AUTH_SCHEME_PREFERENCE_OPTIONS = {
-    environmentVariableSelector: (env4, options) => {
-      if (options?.signingName) {
-        const bearerTokenKey = getBearerTokenEnvKey(options.signingName);
-        if (bearerTokenKey in env4)
-          return ["httpBearerAuth"];
-      }
-      if (!(NODE_AUTH_SCHEME_PREFERENCE_ENV_KEY in env4))
-        return;
-      return getArrayForCommaSeparatedString(env4[NODE_AUTH_SCHEME_PREFERENCE_ENV_KEY]);
-    },
-    configFileSelector: (profile) => {
-      if (!(NODE_AUTH_SCHEME_PREFERENCE_CONFIG_KEY in profile))
-        return;
-      return getArrayForCommaSeparatedString(profile[NODE_AUTH_SCHEME_PREFERENCE_CONFIG_KEY]);
-    },
-    default: []
-  };
-  var resolveAwsSdkSigV4AConfig = (config2) => {
-    config2.sigv4aSigningRegionSet = core.normalizeProvider(config2.sigv4aSigningRegionSet);
-    return config2;
-  };
-  var NODE_SIGV4A_CONFIG_OPTIONS = {
-    environmentVariableSelector(env4) {
-      if (env4.AWS_SIGV4A_SIGNING_REGION_SET) {
-        return env4.AWS_SIGV4A_SIGNING_REGION_SET.split(",").map((_) => _.trim());
-      }
-      throw new config.ProviderError("AWS_SIGV4A_SIGNING_REGION_SET not set in env.", {
-        tryNextLink: true
-      });
-    },
-    configFileSelector(profile) {
-      if (profile.sigv4a_signing_region_set) {
-        return (profile.sigv4a_signing_region_set ?? "").split(",").map((_) => _.trim());
-      }
-      throw new config.ProviderError("sigv4a_signing_region_set not set in profile.", {
-        tryNextLink: true
-      });
-    },
-    default: undefined
-  };
-  var resolveAwsSdkSigV4Config = (config2) => {
-    let inputCredentials = config2.credentials;
-    let isUserSupplied = !!config2.credentials;
-    let resolvedCredentials = undefined;
-    Object.defineProperty(config2, "credentials", {
-      set(credentials) {
-        if (credentials && credentials !== inputCredentials && credentials !== resolvedCredentials) {
-          isUserSupplied = true;
-        }
-        inputCredentials = credentials;
-        const memoizedProvider = normalizeCredentialProvider(config2, {
-          credentials: inputCredentials,
-          credentialDefaultProvider: config2.credentialDefaultProvider
-        });
-        const boundProvider = bindCallerConfig(config2, memoizedProvider);
-        if (isUserSupplied && !boundProvider.attributed) {
-          const isCredentialObject = typeof inputCredentials === "object" && inputCredentials !== null;
-          resolvedCredentials = async (options) => {
-            const creds = await boundProvider(options);
-            const attributedCreds = creds;
-            if (isCredentialObject && (!attributedCreds.$source || Object.keys(attributedCreds.$source).length === 0)) {
-              return client.setCredentialFeature(attributedCreds, "CREDENTIALS_CODE", "e");
-            }
-            return attributedCreds;
-          };
-          resolvedCredentials.memoized = boundProvider.memoized;
-          resolvedCredentials.configBound = boundProvider.configBound;
-          resolvedCredentials.attributed = true;
-        } else {
-          resolvedCredentials = boundProvider;
-        }
-      },
-      get() {
-        return resolvedCredentials;
-      },
-      enumerable: true,
-      configurable: true
-    });
-    config2.credentials = inputCredentials;
-    const { signingEscapePath = true, systemClockOffset = config2.systemClockOffset || 0, sha256 } = config2;
-    let signer;
-    if (config2.signer) {
-      signer = core.normalizeProvider(config2.signer);
-    } else if (config2.regionInfoProvider) {
-      signer = () => core.normalizeProvider(config2.region)().then(async (region) => [
-        await config2.regionInfoProvider(region, {
-          useFipsEndpoint: await config2.useFipsEndpoint(),
-          useDualstackEndpoint: await config2.useDualstackEndpoint()
-        }) || {},
-        region
-      ]).then(([regionInfo, region]) => {
-        const { signingRegion, signingService } = regionInfo;
-        config2.signingRegion = config2.signingRegion || signingRegion || region;
-        config2.signingName = config2.signingName || signingService || config2.serviceId;
-        const params = {
-          ...config2,
-          credentials: config2.credentials,
-          region: config2.signingRegion,
-          service: config2.signingName,
-          sha256,
-          uriEscapePath: signingEscapePath
-        };
-        const SignerCtor = config2.signerConstructor || signatureV4.SignatureV4;
-        return new SignerCtor(params);
-      });
-    } else {
-      signer = async (authScheme) => {
-        authScheme = Object.assign({}, {
-          name: "sigv4",
-          signingName: config2.signingName || config2.defaultSigningName,
-          signingRegion: await core.normalizeProvider(config2.region)(),
-          properties: {}
-        }, authScheme);
-        const signingRegion = authScheme.signingRegion;
-        const signingService = authScheme.signingName;
-        config2.signingRegion = config2.signingRegion || signingRegion;
-        config2.signingName = config2.signingName || signingService || config2.serviceId;
-        const params = {
-          ...config2,
-          credentials: config2.credentials,
-          region: config2.signingRegion,
-          service: config2.signingName,
-          sha256,
-          uriEscapePath: signingEscapePath
-        };
-        const SignerCtor = config2.signerConstructor || signatureV4.SignatureV4;
-        return new SignerCtor(params);
-      };
-    }
-    const resolvedConfig = Object.assign(config2, {
-      systemClockOffset,
-      signingEscapePath,
-      signer
-    });
-    return resolvedConfig;
-  };
-  var resolveAWSSDKSigV4Config = resolveAwsSdkSigV4Config;
-  function normalizeCredentialProvider(config2, { credentials, credentialDefaultProvider }) {
-    let credentialsProvider;
-    if (credentials) {
-      if (!credentials?.memoized) {
-        credentialsProvider = core.memoizeIdentityProvider(credentials, core.isIdentityExpired, core.doesIdentityRequireRefresh);
-      } else {
-        credentialsProvider = credentials;
-      }
-    } else {
-      if (credentialDefaultProvider) {
-        credentialsProvider = core.normalizeProvider(credentialDefaultProvider(Object.assign({}, config2, {
-          parentClientConfig: config2
-        })));
-      } else {
-        credentialsProvider = async () => {
-          throw new Error("@aws-sdk/core::resolveAwsSdkSigV4Config - `credentials` not provided and no credentialDefaultProvider was configured.");
-        };
-      }
-    }
-    credentialsProvider.memoized = true;
-    return credentialsProvider;
-  }
-  function bindCallerConfig(config2, credentialsProvider) {
-    if (credentialsProvider.configBound) {
-      return credentialsProvider;
-    }
-    const fn = async (options) => credentialsProvider({ ...options, callerClientConfig: config2 });
-    fn.memoized = credentialsProvider.memoized;
-    fn.configBound = true;
-    return fn;
-  }
-  exports2.AWSSDKSigV4Signer = AWSSDKSigV4Signer;
-  exports2.AwsSdkSigV4ASigner = AwsSdkSigV4ASigner;
-  exports2.AwsSdkSigV4Signer = AwsSdkSigV4Signer;
-  exports2.NODE_AUTH_SCHEME_PREFERENCE_OPTIONS = NODE_AUTH_SCHEME_PREFERENCE_OPTIONS;
-  exports2.NODE_SIGV4A_CONFIG_OPTIONS = NODE_SIGV4A_CONFIG_OPTIONS;
-  exports2.getBearerTokenEnvKey = getBearerTokenEnvKey;
-  exports2.resolveAWSSDKSigV4Config = resolveAWSSDKSigV4Config;
-  exports2.resolveAwsSdkSigV4AConfig = resolveAwsSdkSigV4AConfig;
-  exports2.resolveAwsSdkSigV4Config = resolveAwsSdkSigV4Config;
-  exports2.validateSigningProperties = validateSigningProperties;
-});
-
-// ../../node_modules/.bun/@aws-sdk+client-ssm@3.1054.0/node_modules/@aws-sdk/client-ssm/dist-cjs/auth/httpAuthSchemeProvider.js
-var require_httpAuthSchemeProvider = __commonJS((exports2) => {
-  Object.defineProperty(exports2, "__esModule", { value: true });
-  exports2.resolveHttpAuthSchemeConfig = exports2.defaultSSMHttpAuthSchemeProvider = exports2.defaultSSMHttpAuthSchemeParametersProvider = undefined;
-  var httpAuthSchemes_1 = require_httpAuthSchemes();
-  var client_1 = require_client();
-  var defaultSSMHttpAuthSchemeParametersProvider = async (config, context, input) => {
-    return {
-      operation: (0, client_1.getSmithyContext)(context).operation,
-      region: await (0, client_1.normalizeProvider)(config.region)() || (() => {
-        throw new Error("expected `region` to be configured for `aws.auth#sigv4`");
-      })()
-    };
-  };
-  exports2.defaultSSMHttpAuthSchemeParametersProvider = defaultSSMHttpAuthSchemeParametersProvider;
-  function createAwsAuthSigv4HttpAuthOption(authParameters) {
-    return {
-      schemeId: "aws.auth#sigv4",
-      signingProperties: {
-        name: "ssm",
-        region: authParameters.region
-      },
-      propertiesExtractor: (config, context) => ({
-        signingProperties: {
-          config,
-          context
-        }
-      })
-    };
-  }
-  var defaultSSMHttpAuthSchemeProvider = (authParameters) => {
-    const options = [];
-    switch (authParameters.operation) {
-      default: {
-        options.push(createAwsAuthSigv4HttpAuthOption(authParameters));
-      }
-    }
-    return options;
-  };
-  exports2.defaultSSMHttpAuthSchemeProvider = defaultSSMHttpAuthSchemeProvider;
-  var resolveHttpAuthSchemeConfig = (config) => {
-    const config_0 = (0, httpAuthSchemes_1.resolveAwsSdkSigV4Config)(config);
-    return Object.assign(config_0, {
-      authSchemePreference: (0, client_1.normalizeProvider)(config.authSchemePreference ?? [])
-    });
-  };
-  exports2.resolveHttpAuthSchemeConfig = resolveHttpAuthSchemeConfig;
-});
-
-// ../../node_modules/.bun/@aws-sdk+client-ssm@3.1054.0/node_modules/@aws-sdk/client-ssm/package.json
-var require_package = __commonJS((exports2, module2) => {
-  module2.exports = {
-    name: "@aws-sdk/client-ssm",
-    description: "AWS SDK for JavaScript Ssm Client for Node.js, Browser and React Native",
-    version: "3.1054.0",
-    scripts: {
-      build: "concurrently 'yarn:build:types' 'yarn:build:es' && yarn build:cjs",
-      "build:cjs": "node ../../scripts/compilation/inline client-ssm",
-      "build:es": "tsc -p tsconfig.es.json",
-      "build:include:deps": 'yarn g:turbo run build -F="$npm_package_name"',
-      "build:types": "tsc -p tsconfig.types.json",
-      "build:types:downlevel": "downlevel-dts dist-types dist-types/ts3.4",
-      clean: "premove dist-cjs dist-es dist-types tsconfig.cjs.tsbuildinfo tsconfig.es.tsbuildinfo tsconfig.types.tsbuildinfo",
-      "extract:docs": "api-extractor run --local",
-      "generate:client": "node ../../scripts/generate-clients/single-service --solo ssm",
-      "test:e2e": "yarn g:vitest run -c vitest.config.e2e.mts --mode development",
-      "test:e2e:watch": "yarn g:vitest watch -c vitest.config.e2e.mts",
-      "test:index": "tsc --noEmit ./test/index-types.ts && node ./test/index-objects.spec.mjs"
-    },
-    main: "./dist-cjs/index.js",
-    types: "./dist-types/index.d.ts",
-    module: "./dist-es/index.js",
-    sideEffects: false,
-    dependencies: {
-      "@aws-crypto/sha256-browser": "5.2.0",
-      "@aws-crypto/sha256-js": "5.2.0",
-      "@aws-sdk/core": "^3.974.14",
-      "@aws-sdk/credential-provider-node": "^3.972.45",
-      "@aws-sdk/types": "^3.973.9",
-      "@smithy/core": "^3.24.3",
-      "@smithy/fetch-http-handler": "^5.4.3",
-      "@smithy/node-http-handler": "^4.7.3",
-      "@smithy/types": "^4.14.2",
-      tslib: "^2.6.2"
-    },
-    devDependencies: {
-      "@tsconfig/node20": "20.1.8",
-      "@types/node": "^20.14.8",
-      concurrently: "7.0.0",
-      "downlevel-dts": "0.10.1",
-      premove: "4.0.0",
-      typescript: "~5.8.3"
-    },
-    engines: {
-      node: ">=20.0.0"
-    },
-    typesVersions: {
-      "<4.5": {
-        "dist-types/*": [
-          "dist-types/ts3.4/*"
-        ]
-      }
-    },
-    files: [
-      "dist-*/**"
-    ],
-    author: {
-      name: "AWS SDK for JavaScript Team",
-      url: "https://aws.amazon.com/javascript/"
-    },
-    license: "Apache-2.0",
-    browser: {
-      "./dist-es/runtimeConfig": "./dist-es/runtimeConfig.browser"
-    },
-    "react-native": {
-      "./dist-es/runtimeConfig": "./dist-es/runtimeConfig.native"
-    },
-    homepage: "https://github.com/aws/aws-sdk-js-v3/tree/main/clients/client-ssm",
-    repository: {
-      type: "git",
-      url: "https://github.com/aws/aws-sdk-js-v3.git",
-      directory: "clients/client-ssm"
-    }
-  };
-});
-
-// ../../node_modules/.bun/@aws-sdk+credential-provider-env@3.972.40/node_modules/@aws-sdk/credential-provider-env/dist-cjs/index.js
-var require_dist_cjs7 = __commonJS((exports2) => {
-  var client = require_client2();
-  var config = require_config();
-  var ENV_KEY = "AWS_ACCESS_KEY_ID";
-  var ENV_SECRET = "AWS_SECRET_ACCESS_KEY";
-  var ENV_SESSION = "AWS_SESSION_TOKEN";
-  var ENV_EXPIRATION = "AWS_CREDENTIAL_EXPIRATION";
-  var ENV_CREDENTIAL_SCOPE = "AWS_CREDENTIAL_SCOPE";
-  var ENV_ACCOUNT_ID = "AWS_ACCOUNT_ID";
-  var fromEnv = (init) => async () => {
-    init?.logger?.debug("@aws-sdk/credential-provider-env - fromEnv");
-    const accessKeyId = process.env[ENV_KEY];
-    const secretAccessKey = process.env[ENV_SECRET];
-    const sessionToken = process.env[ENV_SESSION];
-    const expiry = process.env[ENV_EXPIRATION];
-    const credentialScope = process.env[ENV_CREDENTIAL_SCOPE];
-    const accountId = process.env[ENV_ACCOUNT_ID];
-    if (accessKeyId && secretAccessKey) {
-      const credentials = {
-        accessKeyId,
-        secretAccessKey,
-        ...sessionToken && { sessionToken },
-        ...expiry && { expiration: new Date(expiry) },
-        ...credentialScope && { credentialScope },
-        ...accountId && { accountId }
-      };
-      client.setCredentialFeature(credentials, "CREDENTIALS_ENV_VARS", "g");
-      return credentials;
-    }
-    throw new config.CredentialsProviderError("Unable to find environment variable credentials.", { logger: init?.logger });
-  };
-  exports2.ENV_ACCOUNT_ID = ENV_ACCOUNT_ID;
-  exports2.ENV_CREDENTIAL_SCOPE = ENV_CREDENTIAL_SCOPE;
-  exports2.ENV_EXPIRATION = ENV_EXPIRATION;
-  exports2.ENV_KEY = ENV_KEY;
-  exports2.ENV_SECRET = ENV_SECRET;
-  exports2.ENV_SESSION = ENV_SESSION;
-  exports2.fromEnv = fromEnv;
-});
-
-// ../../node_modules/.bun/@smithy+credential-provider-imds@4.3.4/node_modules/@smithy/credential-provider-imds/dist-cjs/index.js
-var require_dist_cjs8 = __commonJS((exports2) => {
-  var node_url = require("node:url");
-  var config = require_config();
-  var node_http = require("node:http");
-  var protocols = require_protocols();
-  var isImdsCredentials = (arg) => Boolean(arg) && typeof arg === "object" && typeof arg.AccessKeyId === "string" && typeof arg.SecretAccessKey === "string" && typeof arg.Token === "string" && typeof arg.Expiration === "string";
-  var fromImdsCredentials = (creds) => ({
-    accessKeyId: creds.AccessKeyId,
-    secretAccessKey: creds.SecretAccessKey,
-    sessionToken: creds.Token,
-    expiration: new Date(creds.Expiration),
-    ...creds.AccountId && { accountId: creds.AccountId }
-  });
-  var DEFAULT_TIMEOUT = 1000;
-  var DEFAULT_MAX_RETRIES = 0;
-  var providerConfigFromInit = ({ maxRetries = DEFAULT_MAX_RETRIES, timeout = DEFAULT_TIMEOUT }) => ({ maxRetries, timeout });
-  function httpRequest(options) {
-    return new Promise((resolve, reject) => {
-      const req = node_http.request({
-        method: "GET",
-        ...options,
-        hostname: options.hostname?.replace(/^\[(.+)\]$/, "$1")
-      });
-      req.on("error", (err) => {
-        reject(Object.assign(new config.ProviderError("Unable to connect to instance metadata service"), err));
-        req.destroy();
-      });
-      req.on("timeout", () => {
-        reject(new config.ProviderError("TimeoutError from instance metadata service"));
-        req.destroy();
-      });
-      req.on("response", (res) => {
-        const { statusCode = 400 } = res;
-        if (statusCode < 200 || 300 <= statusCode) {
-          reject(Object.assign(new config.ProviderError("Error response received from instance metadata service"), { statusCode }));
-          req.destroy();
-        }
-        const chunks = [];
-        res.on("data", (chunk) => {
-          chunks.push(chunk);
-        });
-        res.on("end", () => {
-          resolve(Buffer.concat(chunks));
-          req.destroy();
-        });
-      });
-      req.end();
-    });
-  }
-  var retry = (toRetry, maxRetries) => {
-    let promise = toRetry();
-    for (let i = 0;i < maxRetries; i++) {
-      promise = promise.catch(toRetry);
-    }
-    return promise;
-  };
-  var ENV_CMDS_FULL_URI = "AWS_CONTAINER_CREDENTIALS_FULL_URI";
-  var ENV_CMDS_RELATIVE_URI = "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI";
-  var ENV_CMDS_AUTH_TOKEN = "AWS_CONTAINER_AUTHORIZATION_TOKEN";
-  var fromContainerMetadata = (init = {}) => {
-    const { timeout, maxRetries } = providerConfigFromInit(init);
-    return () => retry(async () => {
-      const requestOptions = await getCmdsUri({ logger: init.logger });
-      const credsResponse = JSON.parse(await requestFromEcsImds(timeout, requestOptions));
-      if (!isImdsCredentials(credsResponse)) {
-        throw new config.CredentialsProviderError("Invalid response received from instance metadata service.", {
-          logger: init.logger
-        });
-      }
-      return fromImdsCredentials(credsResponse);
-    }, maxRetries);
-  };
-  var requestFromEcsImds = async (timeout, options) => {
-    if (process.env[ENV_CMDS_AUTH_TOKEN]) {
-      options.headers = {
-        ...options.headers,
-        Authorization: process.env[ENV_CMDS_AUTH_TOKEN]
-      };
-    }
-    const buffer = await httpRequest({
-      ...options,
-      timeout
-    });
-    return buffer.toString();
-  };
-  var CMDS_IP = "169.254.170.2";
-  var GREENGRASS_HOSTS = {
-    localhost: true,
-    "127.0.0.1": true
-  };
-  var GREENGRASS_PROTOCOLS = {
-    "http:": true,
-    "https:": true
-  };
-  var getCmdsUri = async ({ logger }) => {
-    if (process.env[ENV_CMDS_RELATIVE_URI]) {
-      return {
-        hostname: CMDS_IP,
-        path: process.env[ENV_CMDS_RELATIVE_URI]
-      };
-    }
-    if (process.env[ENV_CMDS_FULL_URI]) {
-      const parsed = node_url.parse(process.env[ENV_CMDS_FULL_URI]);
-      if (!parsed.hostname || !(parsed.hostname in GREENGRASS_HOSTS)) {
-        throw new config.CredentialsProviderError(`${parsed.hostname} is not a valid container metadata service hostname`, {
-          tryNextLink: false,
-          logger
-        });
-      }
-      if (!parsed.protocol || !(parsed.protocol in GREENGRASS_PROTOCOLS)) {
-        throw new config.CredentialsProviderError(`${parsed.protocol} is not a valid container metadata service protocol`, {
-          tryNextLink: false,
-          logger
-        });
-      }
-      return {
-        ...parsed,
-        port: parsed.port ? parseInt(parsed.port, 10) : undefined
-      };
-    }
-    throw new config.CredentialsProviderError("The container metadata credential provider cannot be used unless" + ` the ${ENV_CMDS_RELATIVE_URI} or ${ENV_CMDS_FULL_URI} environment` + " variable is set", {
-      tryNextLink: false,
-      logger
-    });
-  };
-
-  class InstanceMetadataV1FallbackError extends config.CredentialsProviderError {
-    tryNextLink;
-    name = "InstanceMetadataV1FallbackError";
-    constructor(message2, tryNextLink = true) {
-      super(message2, tryNextLink);
-      this.tryNextLink = tryNextLink;
-      Object.setPrototypeOf(this, InstanceMetadataV1FallbackError.prototype);
-    }
-  }
-  exports2.Endpoint = undefined;
-  (function(Endpoint) {
-    Endpoint["IPv4"] = "http://169.254.169.254";
-    Endpoint["IPv6"] = "http://[fd00:ec2::254]";
-  })(exports2.Endpoint || (exports2.Endpoint = {}));
-  var ENV_ENDPOINT_NAME = "AWS_EC2_METADATA_SERVICE_ENDPOINT";
-  var CONFIG_ENDPOINT_NAME = "ec2_metadata_service_endpoint";
-  var ENDPOINT_CONFIG_OPTIONS = {
-    environmentVariableSelector: (env4) => env4[ENV_ENDPOINT_NAME],
-    configFileSelector: (profile) => profile[CONFIG_ENDPOINT_NAME],
-    default: undefined
-  };
-  var EndpointMode;
-  (function(EndpointMode2) {
-    EndpointMode2["IPv4"] = "IPv4";
-    EndpointMode2["IPv6"] = "IPv6";
-  })(EndpointMode || (EndpointMode = {}));
-  var ENV_ENDPOINT_MODE_NAME = "AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE";
-  var CONFIG_ENDPOINT_MODE_NAME = "ec2_metadata_service_endpoint_mode";
-  var ENDPOINT_MODE_CONFIG_OPTIONS = {
-    environmentVariableSelector: (env4) => env4[ENV_ENDPOINT_MODE_NAME],
-    configFileSelector: (profile) => profile[CONFIG_ENDPOINT_MODE_NAME],
-    default: EndpointMode.IPv4
-  };
-  var getInstanceMetadataEndpoint = async () => protocols.parseUrl(await getFromEndpointConfig() || await getFromEndpointModeConfig());
-  var getFromEndpointConfig = async () => config.loadConfig(ENDPOINT_CONFIG_OPTIONS)();
-  var getFromEndpointModeConfig = async () => {
-    const endpointMode = await config.loadConfig(ENDPOINT_MODE_CONFIG_OPTIONS)();
-    switch (endpointMode) {
-      case EndpointMode.IPv4:
-        return exports2.Endpoint.IPv4;
-      case EndpointMode.IPv6:
-        return exports2.Endpoint.IPv6;
+        return checksumAlgorithms?.CRC64NVME ?? crc64Nvme.crc64NvmeCrtContainer.CrtCrc64Nvme;
+      case exports2.ChecksumAlgorithm.SHA1:
+        return checksumAlgorithms?.SHA1 ?? config.sha1;
+      case exports2.ChecksumAlgorithm.SHA256:
+        return checksumAlgorithms?.SHA256 ?? config.sha256;
       default:
-        throw new Error(`Unsupported endpoint mode: ${endpointMode}.` + ` Select from ${Object.values(EndpointMode)}`);
+        if (checksumAlgorithms?.[checksumAlgorithm]) {
+          return checksumAlgorithms[checksumAlgorithm];
+        }
+        throw new Error(`The checksum algorithm "${checksumAlgorithm}" is not supported by the client.` + ` Select one of ${CLIENT_SUPPORTED_ALGORITHMS}, or provide an implementation to ` + ` the client constructor checksums field.`);
     }
   };
-  var STATIC_STABILITY_REFRESH_INTERVAL_SECONDS = 5 * 60;
-  var STATIC_STABILITY_REFRESH_INTERVAL_JITTER_WINDOW_SECONDS = 5 * 60;
-  var STATIC_STABILITY_DOC_URL = "https://docs.aws.amazon.com/sdkref/latest/guide/feature-static-credentials.html";
-  var getExtendedInstanceMetadataCredentials = (credentials, logger) => {
-    const refreshInterval = STATIC_STABILITY_REFRESH_INTERVAL_SECONDS + Math.floor(Math.random() * STATIC_STABILITY_REFRESH_INTERVAL_JITTER_WINDOW_SECONDS);
-    const newExpiration = new Date(Date.now() + refreshInterval * 1000);
-    logger.warn("Attempting credential expiration extension due to a credential service availability issue. A refresh of these " + `credentials will be attempted after ${new Date(newExpiration)}.
-For more information, please visit: ` + STATIC_STABILITY_DOC_URL);
-    const originalExpiration = credentials.originalExpiration ?? credentials.expiration;
-    return {
-      ...credentials,
-      ...originalExpiration ? { originalExpiration } : {},
-      expiration: newExpiration
-    };
+  var stringHasher = (checksumAlgorithmFn, body) => {
+    const hash3 = new checksumAlgorithmFn;
+    hash3.update(serde.toUint8Array(body || ""));
+    return hash3.digest();
   };
-  var staticStabilityProvider = (provider, options = {}) => {
-    const logger = options?.logger || console;
-    let pastCredentials;
-    return async () => {
-      let credentials;
-      try {
-        credentials = await provider();
-        if (credentials.expiration && credentials.expiration.getTime() < Date.now()) {
-          credentials = getExtendedInstanceMetadataCredentials(credentials, logger);
-        }
-      } catch (e) {
-        if (pastCredentials) {
-          logger.warn("Credential renew failed: ", e);
-          credentials = getExtendedInstanceMetadataCredentials(pastCredentials, logger);
-        } else {
-          throw e;
+  var flexibleChecksumsMiddlewareOptions = {
+    name: "flexibleChecksumsMiddleware",
+    step: "build",
+    tags: ["BODY_CHECKSUM"],
+    override: true
+  };
+  var flexibleChecksumsMiddleware = (config, middlewareConfig) => (next, context) => async (args) => {
+    if (!protocols.HttpRequest.isInstance(args.request)) {
+      return next(args);
+    }
+    if (hasHeaderWithPrefix("x-amz-checksum-", args.request.headers)) {
+      return next(args);
+    }
+    const { request, input } = args;
+    const { body: requestBody, headers } = request;
+    const { base64Encoder, streamHasher } = config;
+    const { requestChecksumRequired, requestAlgorithmMember } = middlewareConfig;
+    const requestChecksumCalculation = await config.requestChecksumCalculation();
+    const requestAlgorithmMemberName = requestAlgorithmMember?.name;
+    const requestAlgorithmMemberHttpHeader = requestAlgorithmMember?.httpHeader;
+    if (requestAlgorithmMemberName && !input[requestAlgorithmMemberName]) {
+      if (requestChecksumCalculation === RequestChecksumCalculation.WHEN_SUPPORTED || requestChecksumRequired) {
+        input[requestAlgorithmMemberName] = DEFAULT_CHECKSUM_ALGORITHM;
+        if (requestAlgorithmMemberHttpHeader) {
+          headers[requestAlgorithmMemberHttpHeader] = DEFAULT_CHECKSUM_ALGORITHM;
         }
       }
-      pastCredentials = credentials;
-      return credentials;
-    };
-  };
-  var IMDS_PATH = "/latest/meta-data/iam/security-credentials/";
-  var IMDS_TOKEN_PATH = "/latest/api/token";
-  var AWS_EC2_METADATA_V1_DISABLED = "AWS_EC2_METADATA_V1_DISABLED";
-  var PROFILE_AWS_EC2_METADATA_V1_DISABLED = "ec2_metadata_v1_disabled";
-  var X_AWS_EC2_METADATA_TOKEN = "x-aws-ec2-metadata-token";
-  var fromInstanceMetadata = (init = {}) => staticStabilityProvider(getInstanceMetadataProvider(init), { logger: init.logger });
-  var getInstanceMetadataProvider = (init = {}) => {
-    let disableFetchToken = false;
-    const { logger, profile } = init;
-    const { timeout, maxRetries } = providerConfigFromInit(init);
-    const getCredentials = async (maxRetries2, options) => {
-      const isImdsV1Fallback = disableFetchToken || options.headers?.[X_AWS_EC2_METADATA_TOKEN] == null;
-      if (isImdsV1Fallback) {
-        let fallbackBlockedFromProfile = false;
-        let fallbackBlockedFromProcessEnv = false;
-        const configValue = await config.loadConfig({
-          environmentVariableSelector: (env4) => {
-            const envValue = env4[AWS_EC2_METADATA_V1_DISABLED];
-            fallbackBlockedFromProcessEnv = !!envValue && envValue !== "false";
-            if (envValue === undefined) {
-              throw new config.CredentialsProviderError(`${AWS_EC2_METADATA_V1_DISABLED} not set in env, checking config file next.`, { logger: init.logger });
-            }
-            return fallbackBlockedFromProcessEnv;
-          },
-          configFileSelector: (profile2) => {
-            const profileValue = profile2[PROFILE_AWS_EC2_METADATA_V1_DISABLED];
-            fallbackBlockedFromProfile = !!profileValue && profileValue !== "false";
-            return fallbackBlockedFromProfile;
-          },
-          default: false
-        }, {
-          profile
-        })();
-        if (init.ec2MetadataV1Disabled || configValue) {
-          const causes = [];
-          if (init.ec2MetadataV1Disabled)
-            causes.push("credential provider initialization (runtime option ec2MetadataV1Disabled)");
-          if (fallbackBlockedFromProfile)
-            causes.push(`config file profile (${PROFILE_AWS_EC2_METADATA_V1_DISABLED})`);
-          if (fallbackBlockedFromProcessEnv)
-            causes.push(`process environment variable (${AWS_EC2_METADATA_V1_DISABLED})`);
-          throw new InstanceMetadataV1FallbackError(`AWS EC2 Metadata v1 fallback has been blocked by AWS SDK configuration in the following: [${causes.join(", ")}].`);
-        }
+    }
+    const checksumAlgorithm = getChecksumAlgorithmForRequest(input, {
+      requestChecksumRequired,
+      requestAlgorithmMember: requestAlgorithmMember?.name,
+      requestChecksumCalculation
+    });
+    let updatedBody = requestBody;
+    let updatedHeaders = headers;
+    if (checksumAlgorithm) {
+      switch (checksumAlgorithm) {
+        case exports2.ChecksumAlgorithm.CRC32:
+          client.setFeature(context, "FLEXIBLE_CHECKSUMS_REQ_CRC32", "U");
+          break;
+        case exports2.ChecksumAlgorithm.CRC32C:
+          client.setFeature(context, "FLEXIBLE_CHECKSUMS_REQ_CRC32C", "V");
+          break;
+        case exports2.ChecksumAlgorithm.CRC64NVME:
+          client.setFeature(context, "FLEXIBLE_CHECKSUMS_REQ_CRC64", "W");
+          break;
+        case exports2.ChecksumAlgorithm.SHA1:
+          client.setFeature(context, "FLEXIBLE_CHECKSUMS_REQ_SHA1", "X");
+          break;
+        case exports2.ChecksumAlgorithm.SHA256:
+          client.setFeature(context, "FLEXIBLE_CHECKSUMS_REQ_SHA256", "Y");
+          break;
       }
-      const imdsProfile = (await retry(async () => {
-        let profile2;
-        try {
-          profile2 = await getProfile(options);
-        } catch (err) {
-          if (err.statusCode === 401) {
-            disableFetchToken = false;
-          }
-          throw err;
-        }
-        return profile2;
-      }, maxRetries2)).trim();
-      return retry(async () => {
-        let creds;
-        try {
-          creds = await getCredentialsFromProfile(imdsProfile, options, init);
-        } catch (err) {
-          if (err.statusCode === 401) {
-            disableFetchToken = false;
-          }
-          throw err;
-        }
-        return creds;
-      }, maxRetries2);
-    };
-    return async () => {
-      const endpoint = await getInstanceMetadataEndpoint();
-      if (disableFetchToken) {
-        logger?.debug("AWS SDK Instance Metadata", "using v1 fallback (no token fetch)");
-        return getCredentials(maxRetries, { ...endpoint, timeout });
-      } else {
-        let token;
-        try {
-          token = (await getMetadataToken({ ...endpoint, timeout })).toString();
-        } catch (error) {
-          if (error?.statusCode === 400) {
-            throw Object.assign(error, {
-              message: "EC2 Metadata token request returned error"
-            });
-          } else if (error.message === "TimeoutError" || [403, 404, 405].includes(error.statusCode)) {
-            disableFetchToken = true;
-          }
-          logger?.debug("AWS SDK Instance Metadata", "using v1 fallback (initial)");
-          return getCredentials(maxRetries, { ...endpoint, timeout });
-        }
-        return getCredentials(maxRetries, {
-          ...endpoint,
-          headers: {
-            [X_AWS_EC2_METADATA_TOKEN]: token
-          },
-          timeout
+      const checksumLocationName = getChecksumLocationName(checksumAlgorithm);
+      const checksumAlgorithmFn = selectChecksumAlgorithmFunction(checksumAlgorithm, config);
+      if (isStreaming(requestBody)) {
+        const { getAwsChunkedEncodingStream, bodyLengthChecker } = config;
+        updatedBody = getAwsChunkedEncodingStream(typeof config.requestStreamBufferSize === "number" && config.requestStreamBufferSize >= 8 * 1024 ? serde.createBufferedReadable(requestBody, config.requestStreamBufferSize, context.logger) : requestBody, {
+          base64Encoder,
+          bodyLengthChecker,
+          checksumLocationName,
+          checksumAlgorithmFn,
+          streamHasher
         });
+        updatedHeaders = {
+          ...headers,
+          "content-encoding": headers["content-encoding"] ? `${headers["content-encoding"]},aws-chunked` : "aws-chunked",
+          "transfer-encoding": "chunked",
+          "x-amz-decoded-content-length": headers["content-length"],
+          "x-amz-content-sha256": "STREAMING-UNSIGNED-PAYLOAD-TRAILER",
+          "x-amz-trailer": checksumLocationName
+        };
+        delete updatedHeaders["content-length"];
+      } else if (!hasHeader(checksumLocationName, headers)) {
+        const rawChecksum = await stringHasher(checksumAlgorithmFn, requestBody);
+        updatedHeaders = {
+          ...headers,
+          [checksumLocationName]: base64Encoder(rawChecksum)
+        };
       }
-    };
+    }
+    try {
+      const result = await next({
+        ...args,
+        request: {
+          ...request,
+          headers: updatedHeaders,
+          body: updatedBody
+        }
+      });
+      return result;
+    } catch (e) {
+      if (e instanceof Error && e.name === "InvalidChunkSizeError") {
+        try {
+          if (!e.message.endsWith(".")) {
+            e.message += ".";
+          }
+          e.message += " Set [requestStreamBufferSize=number e.g. 65_536] in client constructor to instruct AWS SDK to buffer your input stream.";
+        } catch (ignored) {}
+      }
+      throw e;
+    }
   };
-  var getMetadataToken = async (options) => httpRequest({
-    ...options,
-    path: IMDS_TOKEN_PATH,
-    method: "PUT",
-    headers: {
-      "x-aws-ec2-metadata-token-ttl-seconds": "21600"
+  var flexibleChecksumsInputMiddlewareOptions = {
+    name: "flexibleChecksumsInputMiddleware",
+    toMiddleware: "serializerMiddleware",
+    relation: "before",
+    tags: ["BODY_CHECKSUM"],
+    override: true
+  };
+  var flexibleChecksumsInputMiddleware = (config, middlewareConfig) => (next, context) => async (args) => {
+    const input = args.input;
+    const { requestValidationModeMember } = middlewareConfig;
+    const requestChecksumCalculation = await config.requestChecksumCalculation();
+    const responseChecksumValidation = await config.responseChecksumValidation();
+    switch (requestChecksumCalculation) {
+      case RequestChecksumCalculation.WHEN_REQUIRED:
+        client.setFeature(context, "FLEXIBLE_CHECKSUMS_REQ_WHEN_REQUIRED", "a");
+        break;
+      case RequestChecksumCalculation.WHEN_SUPPORTED:
+        client.setFeature(context, "FLEXIBLE_CHECKSUMS_REQ_WHEN_SUPPORTED", "Z");
+        break;
+    }
+    switch (responseChecksumValidation) {
+      case ResponseChecksumValidation.WHEN_REQUIRED:
+        client.setFeature(context, "FLEXIBLE_CHECKSUMS_RES_WHEN_REQUIRED", "c");
+        break;
+      case ResponseChecksumValidation.WHEN_SUPPORTED:
+        client.setFeature(context, "FLEXIBLE_CHECKSUMS_RES_WHEN_SUPPORTED", "b");
+        break;
+    }
+    if (requestValidationModeMember && !input[requestValidationModeMember]) {
+      if (responseChecksumValidation === ResponseChecksumValidation.WHEN_SUPPORTED) {
+        input[requestValidationModeMember] = "ENABLED";
+      }
+    }
+    return next(args);
+  };
+  var getChecksumAlgorithmListForResponse = (responseAlgorithms = []) => {
+    const validChecksumAlgorithms = [];
+    let i = PRIORITY_ORDER_ALGORITHMS.length;
+    for (const algorithm of responseAlgorithms) {
+      const priority = PRIORITY_ORDER_ALGORITHMS.indexOf(algorithm);
+      if (priority !== -1) {
+        validChecksumAlgorithms[priority] = algorithm;
+      } else {
+        validChecksumAlgorithms[i++] = algorithm;
+      }
+    }
+    return validChecksumAlgorithms.filter(Boolean);
+  };
+  var isChecksumWithPartNumber = (checksum3) => {
+    const lastHyphenIndex = checksum3.lastIndexOf("-");
+    if (lastHyphenIndex !== -1) {
+      const numberPart = checksum3.slice(lastHyphenIndex + 1);
+      if (!numberPart.startsWith("0")) {
+        const number = parseInt(numberPart, 10);
+        if (!isNaN(number) && number >= 1 && number <= 1e4) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+  var getChecksum = async (body, { checksumAlgorithmFn, base64Encoder }) => base64Encoder(await stringHasher(checksumAlgorithmFn, body));
+  var validateChecksumFromResponse = async (response, { config, responseAlgorithms, logger }) => {
+    const checksumAlgorithms = getChecksumAlgorithmListForResponse(responseAlgorithms);
+    const { body: responseBody, headers: responseHeaders } = response;
+    for (const algorithm of checksumAlgorithms) {
+      const responseHeader = getChecksumLocationName(algorithm);
+      const checksumFromResponse = responseHeaders[responseHeader];
+      if (checksumFromResponse) {
+        let checksumAlgorithmFn;
+        try {
+          checksumAlgorithmFn = selectChecksumAlgorithmFunction(algorithm, config);
+        } catch (error) {
+          if (algorithm === exports2.ChecksumAlgorithm.CRC64NVME) {
+            logger?.warn(`Skipping ${exports2.ChecksumAlgorithm.CRC64NVME} checksum validation: ${error.message}`);
+            continue;
+          }
+          throw error;
+        }
+        const { base64Encoder } = config;
+        if (isStreaming(responseBody)) {
+          response.body = serde.createChecksumStream({
+            expectedChecksum: checksumFromResponse,
+            checksumSourceLocation: responseHeader,
+            checksum: new checksumAlgorithmFn,
+            source: responseBody,
+            base64Encoder
+          });
+          return;
+        }
+        const checksum3 = await getChecksum(responseBody, { checksumAlgorithmFn, base64Encoder });
+        if (checksum3 === checksumFromResponse) {
+          break;
+        }
+        throw new Error(`Checksum mismatch: expected "${checksum3}" but received "${checksumFromResponse}"` + ` in response header "${responseHeader}".`);
+      }
+    }
+  };
+  var flexibleChecksumsResponseMiddlewareOptions = {
+    name: "flexibleChecksumsResponseMiddleware",
+    toMiddleware: "deserializerMiddleware",
+    relation: "after",
+    tags: ["BODY_CHECKSUM"],
+    override: true
+  };
+  var flexibleChecksumsResponseMiddleware = (config, middlewareConfig) => (next, context) => async (args) => {
+    if (!protocols.HttpRequest.isInstance(args.request)) {
+      return next(args);
+    }
+    const input = args.input;
+    const result = await next(args);
+    const response = result.response;
+    const { requestValidationModeMember, responseAlgorithms } = middlewareConfig;
+    if (requestValidationModeMember && input[requestValidationModeMember] === "ENABLED") {
+      const { clientName, commandName } = context;
+      const customChecksumAlgorithms = Object.keys(config.checksumAlgorithms ?? {}).filter((algorithm) => {
+        const responseHeader = getChecksumLocationName(algorithm);
+        return response.headers[responseHeader] !== undefined;
+      });
+      const algoList = getChecksumAlgorithmListForResponse([
+        ...responseAlgorithms ?? [],
+        ...customChecksumAlgorithms
+      ]);
+      const isS3WholeObjectMultipartGetResponseChecksum = clientName === "S3Client" && commandName === "GetObjectCommand" && algoList.every((algorithm) => {
+        const responseHeader = getChecksumLocationName(algorithm);
+        const checksumFromResponse = response.headers[responseHeader];
+        return !checksumFromResponse || isChecksumWithPartNumber(checksumFromResponse);
+      });
+      if (isS3WholeObjectMultipartGetResponseChecksum) {
+        return result;
+      }
+      await validateChecksumFromResponse(response, {
+        config,
+        responseAlgorithms: algoList,
+        logger: context.logger
+      });
+    }
+    return result;
+  };
+  var getFlexibleChecksumsPlugin = (config, middlewareConfig) => ({
+    applyToStack: (clientStack) => {
+      clientStack.add(flexibleChecksumsMiddleware(config, middlewareConfig), flexibleChecksumsMiddlewareOptions);
+      clientStack.addRelativeTo(flexibleChecksumsInputMiddleware(config, middlewareConfig), flexibleChecksumsInputMiddlewareOptions);
+      clientStack.addRelativeTo(flexibleChecksumsResponseMiddleware(config, middlewareConfig), flexibleChecksumsResponseMiddlewareOptions);
     }
   });
-  var getProfile = async (options) => (await httpRequest({ ...options, path: IMDS_PATH })).toString();
-  var getCredentialsFromProfile = async (profile, options, init) => {
-    const credentialsResponse = JSON.parse((await httpRequest({
-      ...options,
-      path: IMDS_PATH + profile
-    })).toString());
-    if (!isImdsCredentials(credentialsResponse)) {
-      throw new config.CredentialsProviderError("Invalid response received from instance metadata service.", {
-        logger: init.logger
-      });
-    }
-    return fromImdsCredentials(credentialsResponse);
+  var resolveFlexibleChecksumsConfig = (input) => {
+    const { requestChecksumCalculation, responseChecksumValidation, requestStreamBufferSize } = input;
+    return Object.assign(input, {
+      requestChecksumCalculation: client$1.normalizeProvider(requestChecksumCalculation ?? DEFAULT_REQUEST_CHECKSUM_CALCULATION),
+      responseChecksumValidation: client$1.normalizeProvider(responseChecksumValidation ?? DEFAULT_RESPONSE_CHECKSUM_VALIDATION),
+      requestStreamBufferSize: Number(requestStreamBufferSize ?? 0),
+      checksumAlgorithms: input.checksumAlgorithms ?? {}
+    });
   };
-  exports2.DEFAULT_MAX_RETRIES = DEFAULT_MAX_RETRIES;
-  exports2.DEFAULT_TIMEOUT = DEFAULT_TIMEOUT;
-  exports2.ENV_CMDS_AUTH_TOKEN = ENV_CMDS_AUTH_TOKEN;
-  exports2.ENV_CMDS_FULL_URI = ENV_CMDS_FULL_URI;
-  exports2.ENV_CMDS_RELATIVE_URI = ENV_CMDS_RELATIVE_URI;
-  exports2.fromContainerMetadata = fromContainerMetadata;
-  exports2.fromInstanceMetadata = fromInstanceMetadata;
-  exports2.getInstanceMetadataEndpoint = getInstanceMetadataEndpoint;
-  exports2.httpRequest = httpRequest;
-  exports2.providerConfigFromInit = providerConfigFromInit;
+  exports2.CONFIG_REQUEST_CHECKSUM_CALCULATION = CONFIG_REQUEST_CHECKSUM_CALCULATION;
+  exports2.CONFIG_RESPONSE_CHECKSUM_VALIDATION = CONFIG_RESPONSE_CHECKSUM_VALIDATION;
+  exports2.DEFAULT_CHECKSUM_ALGORITHM = DEFAULT_CHECKSUM_ALGORITHM;
+  exports2.DEFAULT_REQUEST_CHECKSUM_CALCULATION = DEFAULT_REQUEST_CHECKSUM_CALCULATION;
+  exports2.DEFAULT_RESPONSE_CHECKSUM_VALIDATION = DEFAULT_RESPONSE_CHECKSUM_VALIDATION;
+  exports2.ENV_REQUEST_CHECKSUM_CALCULATION = ENV_REQUEST_CHECKSUM_CALCULATION;
+  exports2.ENV_RESPONSE_CHECKSUM_VALIDATION = ENV_RESPONSE_CHECKSUM_VALIDATION;
+  exports2.NODE_REQUEST_CHECKSUM_CALCULATION_CONFIG_OPTIONS = NODE_REQUEST_CHECKSUM_CALCULATION_CONFIG_OPTIONS;
+  exports2.NODE_RESPONSE_CHECKSUM_VALIDATION_CONFIG_OPTIONS = NODE_RESPONSE_CHECKSUM_VALIDATION_CONFIG_OPTIONS;
+  exports2.RequestChecksumCalculation = RequestChecksumCalculation;
+  exports2.ResponseChecksumValidation = ResponseChecksumValidation;
+  exports2.flexibleChecksumsMiddleware = flexibleChecksumsMiddleware;
+  exports2.flexibleChecksumsMiddlewareOptions = flexibleChecksumsMiddlewareOptions;
+  exports2.getFlexibleChecksumsPlugin = getFlexibleChecksumsPlugin;
+  exports2.resolveFlexibleChecksumsConfig = resolveFlexibleChecksumsConfig;
 });
 
-// ../../node_modules/.bun/@smithy+node-http-handler@4.7.4/node_modules/@smithy/node-http-handler/dist-cjs/index.js
-var require_dist_cjs9 = __commonJS((exports2) => {
-  var node_https = require("node:https");
+// ../../node_modules/.bun/@aws-sdk+middleware-sdk-s3@3.972.42/node_modules/@aws-sdk/middleware-sdk-s3/dist-cjs/toStream.js
+var require_toStream = __commonJS((exports2) => {
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.toStream = toStream;
+  var node_stream_1 = require("node:stream");
+  function toStream(bytes) {
+    return node_stream_1.Readable.from(Buffer.from(bytes));
+  }
+});
+
+// ../../node_modules/.bun/@aws-sdk+core@3.974.13/node_modules/@aws-sdk/core/dist-cjs/submodules/util/index.js
+var require_util = __commonJS((exports2) => {
   var protocols = require_protocols();
-  var node_stream = require("node:stream");
-  var http2 = require("node:http2");
-  function buildAbortError(abortSignal) {
-    const reason = abortSignal && typeof abortSignal === "object" && "reason" in abortSignal ? abortSignal.reason : undefined;
-    if (reason) {
-      if (reason instanceof Error) {
-        const abortError3 = new Error("Request aborted");
-        abortError3.name = "AbortError";
-        abortError3.cause = reason;
-        return abortError3;
-      }
-      const abortError2 = new Error(String(reason));
-      abortError2.name = "AbortError";
-      return abortError2;
-    }
-    const abortError = new Error("Request aborted");
-    abortError.name = "AbortError";
-    return abortError;
-  }
-  var NODEJS_TIMEOUT_ERROR_CODES = ["ECONNRESET", "EPIPE", "ETIMEDOUT"];
-  var getTransformedHeaders = (headers) => {
-    const transformedHeaders = {};
-    for (const name in headers) {
-      const headerValues = headers[name];
-      transformedHeaders[name] = Array.isArray(headerValues) ? headerValues.join(",") : headerValues;
-    }
-    return transformedHeaders;
-  };
-  var timing = {
-    setTimeout: (cb, ms) => setTimeout(cb, ms),
-    clearTimeout: (timeoutId) => clearTimeout(timeoutId)
-  };
-  var DEFER_EVENT_LISTENER_TIME$2 = 1000;
-  var setConnectionTimeout = (request, reject, timeoutInMs = 0) => {
-    if (!timeoutInMs) {
-      return -1;
-    }
-    const registerTimeout = (offset) => {
-      const timeoutId = timing.setTimeout(() => {
-        request.destroy();
-        reject(Object.assign(new Error(`@smithy/node-http-handler - the request socket did not establish a connection with the server within the configured timeout of ${timeoutInMs} ms.`), {
-          name: "TimeoutError"
-        }));
-      }, timeoutInMs - offset);
-      const doWithSocket = (socket) => {
-        if (socket?.connecting) {
-          socket.on("connect", () => {
-            timing.clearTimeout(timeoutId);
-          });
-        } else {
-          timing.clearTimeout(timeoutId);
-        }
-      };
-      if (request.socket) {
-        doWithSocket(request.socket);
-      } else {
-        request.on("socket", doWithSocket);
-      }
-    };
-    if (timeoutInMs < 2000) {
-      registerTimeout(0);
-      return 0;
-    }
-    return timing.setTimeout(registerTimeout.bind(null, DEFER_EVENT_LISTENER_TIME$2), DEFER_EVENT_LISTENER_TIME$2);
-  };
-  var setRequestTimeout = (req, reject, timeoutInMs = 0, throwOnRequestTimeout, logger) => {
-    if (timeoutInMs) {
-      return timing.setTimeout(() => {
-        let msg = `@smithy/node-http-handler - [${throwOnRequestTimeout ? "ERROR" : "WARN"}] a request has exceeded the configured ${timeoutInMs} ms requestTimeout.`;
-        if (throwOnRequestTimeout) {
-          const error = Object.assign(new Error(msg), {
-            name: "TimeoutError",
-            code: "ETIMEDOUT"
-          });
-          req.destroy(error);
-          reject(error);
-        } else {
-          msg += ` Init client requestHandler with throwOnRequestTimeout=true to turn this into an error.`;
-          logger?.warn?.(msg);
-        }
-      }, timeoutInMs);
-    }
-    return -1;
-  };
-  var DEFER_EVENT_LISTENER_TIME$1 = 3000;
-  var setSocketKeepAlive = (request, { keepAlive, keepAliveMsecs }, deferTimeMs = DEFER_EVENT_LISTENER_TIME$1) => {
-    if (keepAlive !== true) {
-      return -1;
-    }
-    const registerListener = () => {
-      if (request.socket) {
-        request.socket.setKeepAlive(keepAlive, keepAliveMsecs || 0);
-      } else {
-        request.on("socket", (socket) => {
-          socket.setKeepAlive(keepAlive, keepAliveMsecs || 0);
-        });
-      }
-    };
-    if (deferTimeMs === 0) {
-      registerListener();
-      return 0;
-    }
-    return timing.setTimeout(registerListener, deferTimeMs);
-  };
-  var DEFER_EVENT_LISTENER_TIME = 3000;
-  var setSocketTimeout = (request, reject, timeoutInMs = 0) => {
-    const registerTimeout = (offset) => {
-      const timeout = timeoutInMs - offset;
-      const onTimeout = () => {
-        request.destroy();
-        reject(Object.assign(new Error(`@smithy/node-http-handler - the request socket timed out after ${timeoutInMs} ms of inactivity (configured by client requestHandler).`), { name: "TimeoutError" }));
-      };
-      if (request.socket) {
-        request.socket.setTimeout(timeout, onTimeout);
-        request.on("close", () => request.socket?.removeListener("timeout", onTimeout));
-      } else {
-        request.setTimeout(timeout, onTimeout);
-      }
-    };
-    if (0 < timeoutInMs && timeoutInMs < 6000) {
-      registerTimeout(0);
-      return 0;
-    }
-    return timing.setTimeout(registerTimeout.bind(null, timeoutInMs === 0 ? 0 : DEFER_EVENT_LISTENER_TIME), DEFER_EVENT_LISTENER_TIME);
-  };
-  var MIN_WAIT_TIME = 6000;
-  async function writeRequestBody(httpRequest, request, maxContinueTimeoutMs = MIN_WAIT_TIME, externalAgent = false) {
-    const headers = request.headers;
-    const expect = headers ? headers.Expect || headers.expect : undefined;
-    let timeoutId = -1;
-    let sendBody = true;
-    if (!externalAgent && expect === "100-continue") {
-      sendBody = await Promise.race([
-        new Promise((resolve) => {
-          timeoutId = Number(timing.setTimeout(() => resolve(true), Math.max(MIN_WAIT_TIME, maxContinueTimeoutMs)));
-        }),
-        new Promise((resolve) => {
-          httpRequest.on("continue", () => {
-            timing.clearTimeout(timeoutId);
-            resolve(true);
-          });
-          httpRequest.on("response", () => {
-            timing.clearTimeout(timeoutId);
-            resolve(false);
-          });
-          httpRequest.on("error", () => {
-            timing.clearTimeout(timeoutId);
-            resolve(false);
-          });
-        })
-      ]);
-    }
-    if (sendBody) {
-      writeBody(httpRequest, request.body);
-    }
-  }
-  function writeBody(httpRequest, body) {
-    if (body instanceof node_stream.Readable) {
-      body.pipe(httpRequest);
-      return;
-    }
-    if (body) {
-      const isBuffer = Buffer.isBuffer(body);
-      const isString = typeof body === "string";
-      if (isBuffer || isString) {
-        if (isBuffer && body.byteLength === 0) {
-          httpRequest.end();
-        } else {
-          httpRequest.end(body);
-        }
-        return;
-      }
-      const uint8 = body;
-      if (typeof uint8 === "object" && uint8.buffer && typeof uint8.byteOffset === "number" && typeof uint8.byteLength === "number") {
-        httpRequest.end(Buffer.from(uint8.buffer, uint8.byteOffset, uint8.byteLength));
-        return;
-      }
-      httpRequest.end(Buffer.from(body));
-      return;
-    }
-    httpRequest.end();
-  }
-  var DEFAULT_REQUEST_TIMEOUT = 0;
-  var hAgent = undefined;
-  var hRequest = undefined;
-
-  class NodeHttpHandler {
-    config;
-    configProvider;
-    socketWarningTimestamp = 0;
-    externalAgent = false;
-    metadata = { handlerProtocol: "http/1.1" };
-    static create(instanceOrOptions) {
-      if (typeof instanceOrOptions?.handle === "function") {
-        return instanceOrOptions;
-      }
-      return new NodeHttpHandler(instanceOrOptions);
-    }
-    static checkSocketUsage(agent, socketWarningTimestamp, logger = console) {
-      const { sockets, requests, maxSockets } = agent;
-      if (typeof maxSockets !== "number" || maxSockets === Infinity) {
-        return socketWarningTimestamp;
-      }
-      const interval = 15000;
-      if (Date.now() - interval < socketWarningTimestamp) {
-        return socketWarningTimestamp;
-      }
-      if (sockets && requests) {
-        for (const origin in sockets) {
-          const socketsInUse = sockets[origin]?.length ?? 0;
-          const requestsEnqueued = requests[origin]?.length ?? 0;
-          if (socketsInUse >= maxSockets && requestsEnqueued >= 2 * maxSockets) {
-            logger?.warn?.(`@smithy/node-http-handler:WARN - socket usage at capacity=${socketsInUse} and ${requestsEnqueued} additional requests are enqueued.
-See https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/node-configuring-maxsockets.html
-or increase socketAcquisitionWarningTimeout=(millis) in the NodeHttpHandler config.`);
-            return Date.now();
-          }
-        }
-      }
-      return socketWarningTimestamp;
-    }
-    constructor(options) {
-      this.configProvider = new Promise((resolve, reject) => {
-        if (typeof options === "function") {
-          options().then((_options) => {
-            resolve(this.resolveDefaultConfig(_options));
-          }).catch(reject);
-        } else {
-          resolve(this.resolveDefaultConfig(options));
-        }
-      });
-    }
-    destroy() {
-      this.config?.httpAgent?.destroy();
-      this.config?.httpsAgent?.destroy();
-    }
-    async handle(request, { abortSignal, requestTimeout } = {}) {
-      if (!this.config) {
-        this.config = await this.configProvider;
-      }
-      const config = this.config;
-      const isSSL = request.protocol === "https:";
-      if (!isSSL && !this.config.httpAgent) {
-        this.config.httpAgent = await this.config.httpAgentProvider();
-      }
-      return new Promise((_resolve, _reject) => {
-        let writeRequestBodyPromise = undefined;
-        let socketWarningTimeoutId = -1;
-        let connectionTimeoutId = -1;
-        let requestTimeoutId = -1;
-        let socketTimeoutId = -1;
-        let keepAliveTimeoutId = -1;
-        const clearTimeouts = () => {
-          timing.clearTimeout(socketWarningTimeoutId);
-          timing.clearTimeout(connectionTimeoutId);
-          timing.clearTimeout(requestTimeoutId);
-          timing.clearTimeout(socketTimeoutId);
-          timing.clearTimeout(keepAliveTimeoutId);
-        };
-        const resolve = async (arg) => {
-          await writeRequestBodyPromise;
-          clearTimeouts();
-          _resolve(arg);
-        };
-        const reject = async (arg) => {
-          await writeRequestBodyPromise;
-          clearTimeouts();
-          _reject(arg);
-        };
-        if (abortSignal?.aborted) {
-          const abortError = buildAbortError(abortSignal);
-          reject(abortError);
-          return;
-        }
-        const headers = request.headers;
-        const expectContinue = headers ? (headers.Expect ?? headers.expect) === "100-continue" : false;
-        let agent = isSSL ? config.httpsAgent : config.httpAgent;
-        if (expectContinue && !this.externalAgent) {
-          agent = new (isSSL ? node_https.Agent : hAgent)({
-            keepAlive: false,
-            maxSockets: Infinity
-          });
-        }
-        socketWarningTimeoutId = timing.setTimeout(() => {
-          this.socketWarningTimestamp = NodeHttpHandler.checkSocketUsage(agent, this.socketWarningTimestamp, config.logger);
-        }, config.socketAcquisitionWarningTimeout ?? (config.requestTimeout ?? 2000) + (config.connectionTimeout ?? 1000));
-        const queryString = request.query ? protocols.buildQueryString(request.query) : "";
-        let auth = undefined;
-        if (request.username != null || request.password != null) {
-          const username = request.username ?? "";
-          const password = request.password ?? "";
-          auth = `${username}:${password}`;
-        }
-        let path = request.path;
-        if (queryString) {
-          path += `?${queryString}`;
-        }
-        if (request.fragment) {
-          path += `#${request.fragment}`;
-        }
-        let hostname = request.hostname ?? "";
-        if (hostname[0] === "[" && hostname.endsWith("]")) {
-          hostname = request.hostname.slice(1, -1);
-        } else {
-          hostname = request.hostname;
-        }
-        const nodeHttpsOptions = {
-          headers: request.headers,
-          host: hostname,
-          method: request.method,
-          path,
-          port: request.port,
-          agent,
-          auth
-        };
-        const requestFunc = isSSL ? node_https.request : hRequest;
-        const req = requestFunc(nodeHttpsOptions, (res) => {
-          const httpResponse = new protocols.HttpResponse({
-            statusCode: res.statusCode || -1,
-            reason: res.statusMessage,
-            headers: getTransformedHeaders(res.headers),
-            body: res
-          });
-          resolve({ response: httpResponse });
-        });
-        req.on("error", (err) => {
-          if (NODEJS_TIMEOUT_ERROR_CODES.includes(err.code)) {
-            reject(Object.assign(err, { name: "TimeoutError" }));
-          } else {
-            reject(err);
-          }
-        });
-        if (abortSignal) {
-          const onAbort = () => {
-            req.destroy();
-            const abortError = buildAbortError(abortSignal);
-            reject(abortError);
-          };
-          if (typeof abortSignal.addEventListener === "function") {
-            const signal = abortSignal;
-            signal.addEventListener("abort", onAbort, { once: true });
-            req.once("close", () => signal.removeEventListener("abort", onAbort));
-          } else {
-            abortSignal.onabort = onAbort;
-          }
-        }
-        const effectiveRequestTimeout = requestTimeout ?? config.requestTimeout;
-        connectionTimeoutId = setConnectionTimeout(req, reject, config.connectionTimeout);
-        requestTimeoutId = setRequestTimeout(req, reject, effectiveRequestTimeout, config.throwOnRequestTimeout, config.logger ?? console);
-        socketTimeoutId = setSocketTimeout(req, reject, config.socketTimeout);
-        const httpAgent = nodeHttpsOptions.agent;
-        if (typeof httpAgent === "object" && "keepAlive" in httpAgent) {
-          keepAliveTimeoutId = setSocketKeepAlive(req, {
-            keepAlive: httpAgent.keepAlive,
-            keepAliveMsecs: httpAgent.keepAliveMsecs
-          });
-        }
-        writeRequestBodyPromise = writeRequestBody(req, request, effectiveRequestTimeout, this.externalAgent).catch((e) => {
-          clearTimeouts();
-          return _reject(e);
-        });
-      });
-    }
-    updateHttpClientConfig(key, value) {
-      this.config = undefined;
-      this.configProvider = this.configProvider.then((config) => {
-        return {
-          ...config,
-          [key]: value
-        };
-      });
-    }
-    httpHandlerConfigs() {
-      return this.config ?? {};
-    }
-    resolveDefaultConfig(options) {
-      const { requestTimeout, connectionTimeout, socketTimeout, socketAcquisitionWarningTimeout, httpAgent, httpsAgent, throwOnRequestTimeout, logger } = options || {};
-      const keepAlive = true;
-      const maxSockets = 50;
-      return {
-        connectionTimeout,
-        requestTimeout,
-        socketTimeout,
-        socketAcquisitionWarningTimeout,
-        throwOnRequestTimeout,
-        httpAgentProvider: async () => {
-          const { Agent, request } = await import("node:http");
-          hRequest = request;
-          hAgent = Agent;
-          if (httpAgent instanceof hAgent || typeof httpAgent?.destroy === "function") {
-            this.externalAgent = true;
-            return httpAgent;
-          }
-          return new hAgent({ keepAlive, maxSockets, ...httpAgent });
-        },
-        httpsAgent: (() => {
-          if (httpsAgent instanceof node_https.Agent || typeof httpsAgent?.destroy === "function") {
-            this.externalAgent = true;
-            return httpsAgent;
-          }
-          return new node_https.Agent({ keepAlive, maxSockets, ...httpsAgent });
-        })(),
-        logger
-      };
-    }
-  }
-  var ids = new Uint16Array(1);
-
-  class ClientHttp2SessionRef {
-    id = ids[0]++;
-    total = 0;
-    max = 0;
-    session;
-    refs = 0;
-    constructor(session) {
-      session.unref();
-      this.session = session;
-    }
-    retain() {
-      if (this.session.destroyed) {
-        throw new Error("@smithy/node-http-handler - cannot acquire reference to destroyed session.");
-      }
-      this.refs += 1;
-      this.total += 1;
-      this.max = Math.max(this.refs, this.max);
-      this.session.ref();
-    }
-    free() {
-      if (this.session.destroyed) {
-        return;
-      }
-      this.refs -= 1;
-      if (this.refs === 0) {
-        this.session.unref();
-      }
-      if (this.refs < 0) {
-        throw new Error("@smithy/node-http-handler - ClientHttp2Session refcount at zero, cannot decrement.");
-      }
-    }
-    deref() {
-      return this.session;
-    }
-    close() {
-      if (!this.session.closed) {
-        this.session.close();
-      }
-    }
-    destroy() {
-      this.refs = 0;
-      if (!this.session.destroyed) {
-        this.session.destroy();
-      }
-    }
-    useCount() {
-      return this.refs;
-    }
-  }
-
-  class NodeHttp2ConnectionPool {
-    sessions = [];
-    maxConcurrency = 0;
-    constructor(sessions) {
-      this.sessions = (sessions ?? []).map((session) => new ClientHttp2SessionRef(session));
-    }
-    poll() {
-      let cleanup = false;
-      for (const session of this.sessions) {
-        if (session.deref().destroyed) {
-          cleanup = true;
-          continue;
-        }
-        if (!this.maxConcurrency || session.useCount() < this.maxConcurrency) {
-          return session;
-        }
-      }
-      if (cleanup) {
-        for (const session of this.sessions) {
-          if (session.deref().destroyed) {
-            this.remove(session);
-          }
-        }
-      }
-    }
-    offerLast(ref) {
-      this.sessions.push(ref);
-    }
-    remove(ref) {
-      const ix = this.sessions.indexOf(ref);
-      if (ix > -1) {
-        this.sessions.splice(ix, 1);
-      }
-    }
-    [Symbol.iterator]() {
-      return this.sessions[Symbol.iterator]();
-    }
-    setMaxConcurrency(maxConcurrency) {
-      this.maxConcurrency = maxConcurrency;
-    }
-    destroy(ref) {
-      this.remove(ref);
-      ref.destroy();
-    }
-  }
-
-  class NodeHttp2ConnectionManager {
-    config;
-    connectOptions;
-    connectionPools = new Map;
-    constructor(config) {
-      this.config = config;
-      if (this.config.maxConcurrency && this.config.maxConcurrency <= 0) {
-        throw new RangeError("maxConcurrency must be greater than zero.");
-      }
-    }
-    lease(requestContext, connectionConfiguration) {
-      const url = this.getUrlString(requestContext);
-      const pool = this.getPool(url);
-      if (!this.config.disableConcurrency && !connectionConfiguration.isEventStream) {
-        const available = pool.poll();
-        if (available) {
-          available.retain();
-          return available;
-        }
-      }
-      const ref = new ClientHttp2SessionRef(this.connect(url));
-      const session = ref.deref();
-      if (this.config.maxConcurrency) {
-        session.settings({ maxConcurrentStreams: this.config.maxConcurrency }, (err) => {
-          if (err) {
-            throw new Error("Fail to set maxConcurrentStreams to " + this.config.maxConcurrency + "when creating new session for " + requestContext.destination.toString());
-          }
-        });
-      }
-      const graceful = () => {
-        this.removeFromPoolAndClose(url, ref);
-      };
-      const ensureDestroyed = () => {
-        this.removeFromPoolAndCheckedDestroy(url, ref);
-      };
-      session.on("goaway", graceful);
-      session.on("error", ensureDestroyed);
-      session.on("frameError", ensureDestroyed);
-      session.on("close", ensureDestroyed);
-      if (connectionConfiguration.requestTimeout) {
-        session.setTimeout(connectionConfiguration.requestTimeout, ensureDestroyed);
-      }
-      pool.offerLast(ref);
-      ref.retain();
-      return ref;
-    }
-    release(_requestContext, ref) {
-      ref.free();
-    }
-    createIsolatedSession(requestContext, connectionConfiguration) {
-      const url = this.getUrlString(requestContext);
-      const ref = new ClientHttp2SessionRef(this.connect(url));
-      const session = ref.deref();
-      session.settings({ maxConcurrentStreams: 1 });
-      const ensureDestroyed = () => {
-        ref.destroy();
-      };
-      session.on("error", ensureDestroyed);
-      session.on("frameError", ensureDestroyed);
-      session.on("close", ensureDestroyed);
-      if (connectionConfiguration.requestTimeout) {
-        session.setTimeout(connectionConfiguration.requestTimeout, ensureDestroyed);
-      }
-      ref.retain();
-      return ref;
-    }
-    destroy() {
-      for (const [url, connectionPool] of this.connectionPools) {
-        for (const session of [...connectionPool]) {
-          session.destroy();
-        }
-        this.connectionPools.delete(url);
-      }
-    }
-    setMaxConcurrentStreams(maxConcurrentStreams) {
-      if (maxConcurrentStreams && maxConcurrentStreams <= 0) {
-        throw new RangeError("maxConcurrentStreams must be greater than zero.");
-      }
-      this.config.maxConcurrency = maxConcurrentStreams;
-      for (const pool of this.connectionPools.values()) {
-        pool.setMaxConcurrency(maxConcurrentStreams);
-      }
-    }
-    setDisableConcurrentStreams(disableConcurrentStreams) {
-      this.config.disableConcurrency = disableConcurrentStreams;
-    }
-    setNodeHttp2ConnectOptions(nodeHttp2ConnectOptions) {
-      this.connectOptions = nodeHttp2ConnectOptions;
-    }
-    debug() {
-      const pools = {};
-      for (const [url, pool] of this.connectionPools) {
-        const sessions = [];
-        for (const ref of pool) {
-          sessions.push({
-            id: ref.id,
-            active: ref.useCount(),
-            maxConcurrent: ref.max,
-            totalRequests: ref.total
-          });
-        }
-        pools[url] = { sessions };
-      }
-      return pools;
-    }
-    removeFromPoolAndClose(authority, ref) {
-      this.connectionPools.get(authority)?.remove(ref);
-      ref.close();
-    }
-    removeFromPoolAndCheckedDestroy(authority, ref) {
-      this.connectionPools.get(authority)?.remove(ref);
-      ref.destroy();
-    }
-    getPool(url) {
-      if (!this.connectionPools.has(url)) {
-        const pool = new NodeHttp2ConnectionPool;
-        if (this.config.maxConcurrency) {
-          pool.setMaxConcurrency(this.config.maxConcurrency);
-        }
-        this.connectionPools.set(url, pool);
-      }
-      return this.connectionPools.get(url);
-    }
-    getUrlString(request) {
-      return request.destination.toString();
-    }
-    connect(url) {
-      return this.connectOptions === undefined ? http2.connect(url) : http2.connect(url, this.connectOptions);
-    }
-  }
-
-  class NodeHttp2Handler {
-    config;
-    configProvider;
-    metadata = { handlerProtocol: "h2" };
-    connectionManager = new NodeHttp2ConnectionManager({});
-    static create(instanceOrOptions) {
-      if (typeof instanceOrOptions?.handle === "function") {
-        return instanceOrOptions;
-      }
-      return new NodeHttp2Handler(instanceOrOptions);
-    }
-    constructor(options) {
-      this.configProvider = new Promise((resolve, reject) => {
-        if (typeof options === "function") {
-          options().then((opts) => {
-            resolve(opts || {});
-          }).catch(reject);
-        } else {
-          resolve(options || {});
-        }
-      });
-    }
-    destroy() {
-      this.connectionManager.destroy();
-    }
-    async handle(request, { abortSignal, requestTimeout, isEventStream } = {}) {
-      if (!this.config) {
-        this.config = await this.configProvider;
-        const { disableConcurrentStreams: disableConcurrentStreams2, maxConcurrentStreams, nodeHttp2ConnectOptions } = this.config;
-        this.connectionManager.setDisableConcurrentStreams(disableConcurrentStreams2 ?? false);
-        if (maxConcurrentStreams) {
-          this.connectionManager.setMaxConcurrentStreams(maxConcurrentStreams);
-        }
-        if (nodeHttp2ConnectOptions) {
-          this.connectionManager.setNodeHttp2ConnectOptions(nodeHttp2ConnectOptions);
-        }
-      }
-      const { requestTimeout: configRequestTimeout, disableConcurrentStreams } = this.config;
-      const useIsolatedSession = disableConcurrentStreams || isEventStream;
-      const effectiveRequestTimeout = requestTimeout ?? configRequestTimeout;
-      return new Promise((_resolve, _reject) => {
-        let fulfilled = false;
-        let writeRequestBodyPromise = undefined;
-        const resolve = async (arg) => {
-          await writeRequestBodyPromise;
-          _resolve(arg);
-        };
-        const reject = async (arg) => {
-          await writeRequestBodyPromise;
-          _reject(arg);
-        };
-        if (abortSignal?.aborted) {
-          fulfilled = true;
-          const abortError = buildAbortError(abortSignal);
-          reject(abortError);
-          return;
-        }
-        const { hostname, method, port, protocol, query } = request;
-        let auth = "";
-        if (request.username != null || request.password != null) {
-          const username = request.username ?? "";
-          const password = request.password ?? "";
-          auth = `${username}:${password}@`;
-        }
-        const authority = `${protocol}//${auth}${hostname}${port ? `:${port}` : ""}`;
-        const requestContext = { destination: new URL(authority) };
-        const connectConfig = {
-          requestTimeout: this.config?.sessionTimeout,
-          isEventStream
-        };
-        const ref = useIsolatedSession ? this.connectionManager.createIsolatedSession(requestContext, connectConfig) : this.connectionManager.lease(requestContext, connectConfig);
-        const session = ref.deref();
-        const rejectWithDestroy = (err) => {
-          if (useIsolatedSession) {
-            ref.destroy();
-          }
-          fulfilled = true;
-          reject(err);
-        };
-        const queryString = query ? protocols.buildQueryString(query) : "";
-        let path = request.path;
-        if (queryString) {
-          path += `?${queryString}`;
-        }
-        if (request.fragment) {
-          path += `#${request.fragment}`;
-        }
-        const clientHttp2Stream = session.request({
-          ...request.headers,
-          [http2.constants.HTTP2_HEADER_PATH]: path,
-          [http2.constants.HTTP2_HEADER_METHOD]: method
-        });
-        if (effectiveRequestTimeout) {
-          clientHttp2Stream.setTimeout(effectiveRequestTimeout, () => {
-            clientHttp2Stream.close();
-            const timeoutError = new Error(`Stream timed out because of no activity for ${effectiveRequestTimeout} ms`);
-            timeoutError.name = "TimeoutError";
-            rejectWithDestroy(timeoutError);
-          });
-        }
-        if (abortSignal) {
-          const onAbort = () => {
-            clientHttp2Stream.close();
-            const abortError = buildAbortError(abortSignal);
-            rejectWithDestroy(abortError);
-          };
-          if (typeof abortSignal.addEventListener === "function") {
-            const signal = abortSignal;
-            signal.addEventListener("abort", onAbort, { once: true });
-            clientHttp2Stream.once("close", () => signal.removeEventListener("abort", onAbort));
-          } else {
-            abortSignal.onabort = onAbort;
-          }
-        }
-        clientHttp2Stream.on("frameError", (type, code, id) => {
-          rejectWithDestroy(new Error(`Frame type id ${type} in stream id ${id} has failed with code ${code}.`));
-        });
-        clientHttp2Stream.on("error", rejectWithDestroy);
-        clientHttp2Stream.on("aborted", () => {
-          rejectWithDestroy(new Error(`HTTP/2 stream is abnormally aborted in mid-communication with result code ${clientHttp2Stream.rstCode}.`));
-        });
-        clientHttp2Stream.on("response", (headers) => {
-          const httpResponse = new protocols.HttpResponse({
-            statusCode: headers[":status"] ?? -1,
-            headers: getTransformedHeaders(headers),
-            body: clientHttp2Stream
-          });
-          fulfilled = true;
-          resolve({ response: httpResponse });
-          if (useIsolatedSession) {
-            session.close();
-          }
-        });
-        clientHttp2Stream.on("close", () => {
-          if (useIsolatedSession) {
-            ref.destroy();
-          } else {
-            this.connectionManager.release(requestContext, ref);
-          }
-          if (!fulfilled) {
-            rejectWithDestroy(new Error("Unexpected error: http2 request did not get a response"));
-          }
-        });
-        writeRequestBodyPromise = writeRequestBody(clientHttp2Stream, request, effectiveRequestTimeout);
-      });
-    }
-    updateHttpClientConfig(key, value) {
-      this.config = undefined;
-      this.configProvider = this.configProvider.then((config) => {
-        return {
-          ...config,
-          [key]: value
-        };
-      });
-    }
-    httpHandlerConfigs() {
-      return this.config ?? {};
-    }
-  }
-
-  class Collector extends node_stream.Writable {
-    bufferedBytes = [];
-    _write(chunk, encoding, callback) {
-      this.bufferedBytes.push(chunk);
-      callback();
-    }
-  }
-  var streamCollector = (stream) => {
-    if (isReadableStreamInstance(stream)) {
-      return collectReadableStream(stream);
-    }
-    return new Promise((resolve, reject) => {
-      const collector = new Collector;
-      stream.pipe(collector);
-      stream.on("error", (err) => {
-        collector.end();
-        reject(err);
-      });
-      collector.on("error", reject);
-      collector.on("finish", function() {
-        const bytes = new Uint8Array(Buffer.concat(this.bufferedBytes));
-        resolve(bytes);
-      });
-    });
-  };
-  var isReadableStreamInstance = (stream) => typeof ReadableStream === "function" && stream instanceof ReadableStream;
-  async function collectReadableStream(stream) {
-    const chunks = [];
-    const reader = stream.getReader();
-    let isDone = false;
-    let length = 0;
-    while (!isDone) {
-      const { done, value } = await reader.read();
-      if (value) {
-        chunks.push(value);
-        length += value.length;
-      }
-      isDone = done;
-    }
-    const collected = new Uint8Array(length);
-    let offset = 0;
-    for (const chunk of chunks) {
-      collected.set(chunk, offset);
-      offset += chunk.length;
-    }
-    return collected;
-  }
-  exports2.DEFAULT_REQUEST_TIMEOUT = DEFAULT_REQUEST_TIMEOUT;
-  exports2.NodeHttp2Handler = NodeHttp2Handler;
-  exports2.NodeHttpHandler = NodeHttpHandler;
-  exports2.streamCollector = streamCollector;
-});
-
-// ../../node_modules/.bun/@aws-sdk+credential-provider-http@3.972.42/node_modules/@aws-sdk/credential-provider-http/dist-cjs/fromHttp/checkUrl.js
-var require_checkUrl = __commonJS((exports2) => {
-  Object.defineProperty(exports2, "__esModule", { value: true });
-  exports2.checkUrl = undefined;
-  var config_1 = require_config();
-  var ECS_CONTAINER_HOST = "169.254.170.2";
-  var EKS_CONTAINER_HOST_IPv4 = "169.254.170.23";
-  var EKS_CONTAINER_HOST_IPv6 = "[fd00:ec2::23]";
-  var checkUrl = (url, logger) => {
-    if (url.protocol === "https:") {
-      return;
-    }
-    if (url.hostname === ECS_CONTAINER_HOST || url.hostname === EKS_CONTAINER_HOST_IPv4 || url.hostname === EKS_CONTAINER_HOST_IPv6) {
-      return;
-    }
-    if (url.hostname.includes("[")) {
-      if (url.hostname === "[::1]" || url.hostname === "[0000:0000:0000:0000:0000:0000:0000:0001]") {
-        return;
-      }
-    } else {
-      if (url.hostname === "localhost") {
-        return;
-      }
-      const ipComponents = url.hostname.split(".");
-      const inRange = (component) => {
-        const num = parseInt(component, 10);
-        return 0 <= num && num <= 255;
-      };
-      if (ipComponents[0] === "127" && inRange(ipComponents[1]) && inRange(ipComponents[2]) && inRange(ipComponents[3]) && ipComponents.length === 4) {
-        return;
-      }
-    }
-    throw new config_1.CredentialsProviderError(`URL not accepted. It must either be HTTPS or match one of the following:
-  - loopback CIDR 127.0.0.0/8 or [::1/128]
-  - ECS container host 169.254.170.2
-  - EKS container host 169.254.170.23 or [fd00:ec2::23]`, { logger });
-  };
-  exports2.checkUrl = checkUrl;
-});
-
-// ../../node_modules/.bun/@aws-sdk+credential-provider-http@3.972.42/node_modules/@aws-sdk/credential-provider-http/dist-cjs/fromHttp/requestHelpers.js
-var require_requestHelpers = __commonJS((exports2) => {
-  Object.defineProperty(exports2, "__esModule", { value: true });
-  exports2.createGetRequest = createGetRequest;
-  exports2.getCredentials = getCredentials;
-  var config_1 = require_config();
-  var protocols_1 = require_protocols();
-  var serde_1 = require_serde();
-  var serde_2 = require_serde();
-  function createGetRequest(url) {
-    return new protocols_1.HttpRequest({
-      protocol: url.protocol,
-      hostname: url.hostname,
-      port: Number(url.port),
-      path: url.pathname,
-      query: Array.from(url.searchParams.entries()).reduce((acc, [k, v]) => {
-        acc[k] = v;
-        return acc;
-      }, {}),
-      fragment: url.hash
-    });
-  }
-  async function getCredentials(response, logger) {
-    const stream = (0, serde_2.sdkStreamMixin)(response.body);
-    const str = await stream.transformToString();
-    if (response.statusCode === 200) {
-      const parsed = JSON.parse(str);
-      if (typeof parsed.AccessKeyId !== "string" || typeof parsed.SecretAccessKey !== "string" || typeof parsed.Token !== "string" || typeof parsed.Expiration !== "string") {
-        throw new config_1.CredentialsProviderError("HTTP credential provider response not of the required format, an object matching: " + "{ AccessKeyId: string, SecretAccessKey: string, Token: string, Expiration: string(rfc3339) }", { logger });
-      }
-      return {
-        accessKeyId: parsed.AccessKeyId,
-        secretAccessKey: parsed.SecretAccessKey,
-        sessionToken: parsed.Token,
-        expiration: (0, serde_1.parseRfc3339DateTime)(parsed.Expiration)
-      };
-    }
-    if (response.statusCode >= 400 && response.statusCode < 500) {
-      let parsedBody = {};
-      try {
-        parsedBody = JSON.parse(str);
-      } catch (e) {}
-      throw Object.assign(new config_1.CredentialsProviderError(`Server responded with status: ${response.statusCode}`, { logger }), {
-        Code: parsedBody.Code,
-        Message: parsedBody.Message
-      });
-    }
-    throw new config_1.CredentialsProviderError(`Server responded with status: ${response.statusCode}`, { logger });
-  }
-});
-
-// ../../node_modules/.bun/@aws-sdk+credential-provider-http@3.972.42/node_modules/@aws-sdk/credential-provider-http/dist-cjs/fromHttp/retry-wrapper.js
-var require_retry_wrapper = __commonJS((exports2) => {
-  Object.defineProperty(exports2, "__esModule", { value: true });
-  exports2.retryWrapper = undefined;
-  var retryWrapper = (toRetry, maxRetries, delayMs) => {
-    return async () => {
-      for (let i = 0;i < maxRetries; ++i) {
-        try {
-          return await toRetry();
-        } catch (e) {
-          await new Promise((resolve) => setTimeout(resolve, delayMs));
-        }
-      }
-      return await toRetry();
+  var validate = (str) => typeof str === "string" && str.indexOf("arn:") === 0 && str.split(":").length >= 6;
+  var parse3 = (arn) => {
+    const segments = arn.split(":");
+    if (segments.length < 6 || segments[0] !== "arn")
+      throw new Error("Malformed ARN");
+    const [, partition, service, region, accountId, ...resource] = segments;
+    return {
+      partition,
+      service,
+      region,
+      accountId,
+      resource: resource.join(":")
     };
   };
-  exports2.retryWrapper = retryWrapper;
-});
-
-// ../../node_modules/.bun/@aws-sdk+credential-provider-http@3.972.42/node_modules/@aws-sdk/credential-provider-http/dist-cjs/fromHttp/fromHttp.js
-var require_fromHttp = __commonJS((exports2) => {
-  Object.defineProperty(exports2, "__esModule", { value: true });
-  exports2.fromHttp = undefined;
-  var tslib_1 = require_tslib();
-  var client_1 = require_client2();
-  var config_1 = require_config();
-  var node_http_handler_1 = require_dist_cjs9();
-  var promises_1 = tslib_1.__importDefault(require("node:fs/promises"));
-  var checkUrl_1 = require_checkUrl();
-  var requestHelpers_1 = require_requestHelpers();
-  var retry_wrapper_1 = require_retry_wrapper();
-  var AWS_CONTAINER_CREDENTIALS_RELATIVE_URI = "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI";
-  var DEFAULT_LINK_LOCAL_HOST = "http://169.254.170.2";
-  var AWS_CONTAINER_CREDENTIALS_FULL_URI = "AWS_CONTAINER_CREDENTIALS_FULL_URI";
-  var AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE = "AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE";
-  var AWS_CONTAINER_AUTHORIZATION_TOKEN = "AWS_CONTAINER_AUTHORIZATION_TOKEN";
-  var fromHttp = (options = {}) => {
-    options.logger?.debug("@aws-sdk/credential-provider-http - fromHttp");
-    let host;
-    const relative = options.awsContainerCredentialsRelativeUri ?? process.env[AWS_CONTAINER_CREDENTIALS_RELATIVE_URI];
-    const full = options.awsContainerCredentialsFullUri ?? process.env[AWS_CONTAINER_CREDENTIALS_FULL_URI];
-    const token = options.awsContainerAuthorizationToken ?? process.env[AWS_CONTAINER_AUTHORIZATION_TOKEN];
-    const tokenFile = options.awsContainerAuthorizationTokenFile ?? process.env[AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE];
-    const warn = options.logger?.constructor?.name === "NoOpLogger" || !options.logger?.warn ? console.warn : options.logger.warn.bind(options.logger);
-    if (relative && full) {
-      warn("@aws-sdk/credential-provider-http: " + "you have set both awsContainerCredentialsRelativeUri and awsContainerCredentialsFullUri.");
-      warn("awsContainerCredentialsFullUri will take precedence.");
+  var build = (arnObject) => {
+    const { partition = "aws", service, region, accountId, resource } = arnObject;
+    if ([service, region, accountId, resource].some((segment) => typeof segment !== "string")) {
+      throw new Error("Input ARN object is invalid");
     }
-    if (token && tokenFile) {
-      warn("@aws-sdk/credential-provider-http: " + "you have set both awsContainerAuthorizationToken and awsContainerAuthorizationTokenFile.");
-      warn("awsContainerAuthorizationToken will take precedence.");
-    }
-    if (full) {
-      host = full;
-    } else if (relative) {
-      host = `${DEFAULT_LINK_LOCAL_HOST}${relative}`;
-    } else {
-      throw new config_1.CredentialsProviderError(`No HTTP credential provider host provided.
-Set AWS_CONTAINER_CREDENTIALS_FULL_URI or AWS_CONTAINER_CREDENTIALS_RELATIVE_URI.`, { logger: options.logger });
-    }
-    const url = new URL(host);
-    (0, checkUrl_1.checkUrl)(url, options.logger);
-    const requestHandler = node_http_handler_1.NodeHttpHandler.create({ connectionTimeout: options.timeout ?? 1000 });
-    const requestTimeout = options.timeout ?? 1000;
-    const provider = (0, retry_wrapper_1.retryWrapper)(async () => {
-      const request = (0, requestHelpers_1.createGetRequest)(url);
-      if (token) {
-        request.headers.Authorization = token;
-      } else if (tokenFile) {
-        request.headers.Authorization = (await promises_1.default.readFile(tokenFile)).toString();
-      }
-      try {
-        const result = await requestHandler.handle(request, { requestTimeout });
-        return (0, requestHelpers_1.getCredentials)(result.response).then((creds) => (0, client_1.setCredentialFeature)(creds, "CREDENTIALS_HTTP", "z"));
-      } catch (e) {
-        throw new config_1.CredentialsProviderError(String(e), { logger: options.logger });
-      }
-    }, options.maxRetries ?? 3, options.timeout ?? 1000);
-    return async () => {
-      try {
-        return await provider();
-      } finally {
-        requestHandler.destroy?.();
-      }
-    };
+    return `arn:${partition}:${service}:${region}:${accountId}:${resource}`;
   };
-  exports2.fromHttp = fromHttp;
-});
-
-// ../../node_modules/.bun/@aws-sdk+credential-provider-http@3.972.42/node_modules/@aws-sdk/credential-provider-http/dist-cjs/index.js
-var require_dist_cjs10 = __commonJS((exports2) => {
-  var fromHttp = require_fromHttp();
-  exports2.fromHttp = fromHttp.fromHttp;
+  function formatUrl(request) {
+    const { port, query } = request;
+    let { protocol, path, hostname } = request;
+    if (protocol && protocol.slice(-1) !== ":") {
+      protocol += ":";
+    }
+    if (port) {
+      hostname += `:${port}`;
+    }
+    if (path && path.charAt(0) !== "/") {
+      path = `/${path}`;
+    }
+    let queryString = query ? protocols.buildQueryString(query) : "";
+    if (queryString && queryString[0] !== "?") {
+      queryString = `?${queryString}`;
+    }
+    let auth = "";
+    if (request.username != null || request.password != null) {
+      const username = request.username ?? "";
+      const password = request.password ?? "";
+      auth = `${username}:${password}@`;
+    }
+    let fragment = "";
+    if (request.fragment) {
+      fragment = `#${request.fragment}`;
+    }
+    return `${protocol}//${auth}${hostname}${path}${queryString}${fragment}`;
+  }
+  exports2.build = build;
+  exports2.formatUrl = formatUrl;
+  exports2.parse = parse3;
+  exports2.validate = validate;
 });
 
 // ../../node_modules/.bun/@smithy+core@3.24.4/node_modules/@smithy/core/dist-cjs/submodules/cbor/index.js
@@ -42401,7 +41010,7 @@ var require_fxp = __commonJS((exports2, module2) => {
   })();
 });
 
-// ../../node_modules/.bun/@aws-sdk+xml-builder@3.972.26/node_modules/@aws-sdk/xml-builder/dist-cjs/xml-external/nodable_entities.js
+// ../../node_modules/.bun/@aws-sdk+xml-builder@3.972.25/node_modules/@aws-sdk/xml-builder/dist-cjs/xml-external/nodable_entities.js
 var require_nodable_entities = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.EntityDecoderImpl = exports2.CURRENCY = exports2.COMMON_HTML = exports2.XML = undefined;
@@ -42732,7 +41341,7 @@ var require_nodable_entities = __commonJS((exports2) => {
   exports2.EntityDecoderImpl = EntityDecoderImpl;
 });
 
-// ../../node_modules/.bun/@aws-sdk+xml-builder@3.972.26/node_modules/@aws-sdk/xml-builder/dist-cjs/xml-parser.js
+// ../../node_modules/.bun/@aws-sdk+xml-builder@3.972.25/node_modules/@aws-sdk/xml-builder/dist-cjs/xml-parser.js
 var require_xml_parser = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.parseXML = parseXML;
@@ -42785,8 +41394,8 @@ var require_xml_parser = __commonJS((exports2) => {
   }
 });
 
-// ../../node_modules/.bun/@aws-sdk+xml-builder@3.972.26/node_modules/@aws-sdk/xml-builder/dist-cjs/index.js
-var require_dist_cjs11 = __commonJS((exports2) => {
+// ../../node_modules/.bun/@aws-sdk+xml-builder@3.972.25/node_modules/@aws-sdk/xml-builder/dist-cjs/index.js
+var require_dist_cjs9 = __commonJS((exports2) => {
   var xmlParser = require_xml_parser();
   var ATTR_ESCAPE_RE = /[&<>"]/g;
   var ATTR_ESCAPE_MAP = {
@@ -42915,14 +41524,21212 @@ var require_dist_cjs11 = __commonJS((exports2) => {
   exports2.XmlText = XmlText;
 });
 
-// ../../node_modules/.bun/@aws-sdk+core@3.974.14/node_modules/@aws-sdk/core/dist-cjs/submodules/protocols/index.js
+// ../../node_modules/.bun/@aws-sdk+core@3.974.13/node_modules/@aws-sdk/core/dist-cjs/submodules/protocols/index.js
 var require_protocols2 = __commonJS((exports2) => {
   var cbor = require_cbor();
   var schema = require_schema4();
   var client = require_client();
   var protocols = require_protocols();
   var serde = require_serde();
-  var xmlBuilder = require_dist_cjs11();
+  var xmlBuilder = require_dist_cjs9();
+
+  class ProtocolLib {
+    queryCompat;
+    errorRegistry;
+    constructor(queryCompat = false) {
+      this.queryCompat = queryCompat;
+    }
+    resolveRestContentType(defaultContentType, inputSchema) {
+      const members = inputSchema.getMemberSchemas();
+      const httpPayloadMember = Object.values(members).find((m) => {
+        return !!m.getMergedTraits().httpPayload;
+      });
+      if (httpPayloadMember) {
+        const mediaType = httpPayloadMember.getMergedTraits().mediaType;
+        if (mediaType) {
+          return mediaType;
+        } else if (httpPayloadMember.isStringSchema()) {
+          return "text/plain";
+        } else if (httpPayloadMember.isBlobSchema()) {
+          return "application/octet-stream";
+        } else {
+          return defaultContentType;
+        }
+      } else if (!inputSchema.isUnitSchema()) {
+        const hasBody = Object.values(members).find((m) => {
+          const { httpQuery, httpQueryParams, httpHeader, httpLabel, httpPrefixHeaders } = m.getMergedTraits();
+          const noPrefixHeaders = httpPrefixHeaders === undefined;
+          return !httpQuery && !httpQueryParams && !httpHeader && !httpLabel && noPrefixHeaders;
+        });
+        if (hasBody) {
+          return defaultContentType;
+        }
+      }
+    }
+    async getErrorSchemaOrThrowBaseException(errorIdentifier, defaultNamespace, response, dataObject, metadata, getErrorSchema) {
+      let errorName = errorIdentifier;
+      if (errorIdentifier.includes("#")) {
+        [, errorName] = errorIdentifier.split("#");
+      }
+      const errorMetadata = {
+        $metadata: metadata,
+        $fault: response.statusCode < 500 ? "client" : "server"
+      };
+      if (!this.errorRegistry) {
+        throw new Error("@aws-sdk/core/protocols - error handler not initialized.");
+      }
+      try {
+        const errorSchema = getErrorSchema?.(this.errorRegistry, errorName) ?? this.errorRegistry.getSchema(errorIdentifier);
+        return { errorSchema, errorMetadata };
+      } catch (e) {
+        dataObject.message = dataObject.message ?? dataObject.Message ?? "UnknownError";
+        const synthetic = this.errorRegistry;
+        const baseExceptionSchema = synthetic.getBaseException();
+        if (baseExceptionSchema) {
+          const ErrorCtor = synthetic.getErrorCtor(baseExceptionSchema) ?? Error;
+          throw this.decorateServiceException(Object.assign(new ErrorCtor({ name: errorName }), errorMetadata), dataObject);
+        }
+        const d = dataObject;
+        const message2 = d?.message ?? d?.Message ?? d?.Error?.Message ?? d?.Error?.message;
+        throw this.decorateServiceException(Object.assign(new Error(message2), {
+          name: errorName
+        }, errorMetadata), dataObject);
+      }
+    }
+    compose(composite, errorIdentifier, defaultNamespace) {
+      let namespace = defaultNamespace;
+      if (errorIdentifier.includes("#")) {
+        [namespace] = errorIdentifier.split("#");
+      }
+      const staticRegistry = schema.TypeRegistry.for(namespace);
+      const defaultSyntheticRegistry = schema.TypeRegistry.for("smithy.ts.sdk.synthetic." + defaultNamespace);
+      composite.copyFrom(staticRegistry);
+      composite.copyFrom(defaultSyntheticRegistry);
+      this.errorRegistry = composite;
+    }
+    decorateServiceException(exception, additions = {}) {
+      if (this.queryCompat) {
+        const msg = exception.Message ?? additions.Message;
+        const error = client.decorateServiceException(exception, additions);
+        if (msg) {
+          error.message = msg;
+        }
+        const errorObj = error.Error ?? {};
+        errorObj.Type = error.Error?.Type;
+        errorObj.Code = error.Error?.Code;
+        errorObj.Message = error.Error?.message ?? error.Error?.Message ?? msg;
+        error.Error = errorObj;
+        const reqId = error.$metadata.requestId;
+        if (reqId) {
+          error.RequestId = reqId;
+        }
+        return error;
+      }
+      return client.decorateServiceException(exception, additions);
+    }
+    setQueryCompatError(output, response) {
+      const queryErrorHeader = response.headers?.["x-amzn-query-error"];
+      if (output !== undefined && queryErrorHeader != null) {
+        const [Code, Type2] = queryErrorHeader.split(";");
+        const keys = Object.keys(output);
+        const Error2 = {
+          Code,
+          Type: Type2
+        };
+        output.Code = Code;
+        output.Type = Type2;
+        for (let i = 0;i < keys.length; i++) {
+          const k = keys[i];
+          Error2[k === "message" ? "Message" : k] = output[k];
+        }
+        delete Error2.__type;
+        output.Error = Error2;
+      }
+    }
+    queryCompatOutput(queryCompatErrorData, errorData) {
+      if (queryCompatErrorData.Error) {
+        errorData.Error = queryCompatErrorData.Error;
+      }
+      if (queryCompatErrorData.Type) {
+        errorData.Type = queryCompatErrorData.Type;
+      }
+      if (queryCompatErrorData.Code) {
+        errorData.Code = queryCompatErrorData.Code;
+      }
+    }
+    findQueryCompatibleError(registry, errorName) {
+      try {
+        return registry.getSchema(errorName);
+      } catch (e) {
+        return registry.find((schema$1) => schema.NormalizedSchema.of(schema$1).getMergedTraits().awsQueryError?.[0] === errorName);
+      }
+    }
+  }
+
+  class AwsSmithyRpcV2CborProtocol extends cbor.SmithyRpcV2CborProtocol {
+    awsQueryCompatible;
+    mixin;
+    constructor({ defaultNamespace, errorTypeRegistries, awsQueryCompatible }) {
+      super({ defaultNamespace, errorTypeRegistries });
+      this.awsQueryCompatible = !!awsQueryCompatible;
+      this.mixin = new ProtocolLib(this.awsQueryCompatible);
+    }
+    async serializeRequest(operationSchema, input, context) {
+      const request = await super.serializeRequest(operationSchema, input, context);
+      if (this.awsQueryCompatible) {
+        request.headers["x-amzn-query-mode"] = "true";
+      }
+      return request;
+    }
+    async handleError(operationSchema, context, response, dataObject, metadata) {
+      if (this.awsQueryCompatible) {
+        this.mixin.setQueryCompatError(dataObject, response);
+      }
+      const errorName = (() => {
+        const compatHeader = response.headers["x-amzn-query-error"];
+        if (compatHeader && this.awsQueryCompatible) {
+          return compatHeader.split(";")[0];
+        }
+        return cbor.loadSmithyRpcV2CborErrorCode(response, dataObject) ?? "Unknown";
+      })();
+      this.mixin.compose(this.compositeErrorRegistry, errorName, this.options.defaultNamespace);
+      const { errorSchema, errorMetadata } = await this.mixin.getErrorSchemaOrThrowBaseException(errorName, this.options.defaultNamespace, response, dataObject, metadata, this.awsQueryCompatible ? this.mixin.findQueryCompatibleError : undefined);
+      const ns = schema.NormalizedSchema.of(errorSchema);
+      const message2 = dataObject.message ?? dataObject.Message ?? "UnknownError";
+      const ErrorCtor = this.compositeErrorRegistry.getErrorCtor(errorSchema) ?? Error;
+      const exception = new ErrorCtor({});
+      const output = {};
+      for (const [name, member] of ns.structIterator()) {
+        if (dataObject[name] != null) {
+          output[name] = this.deserializer.readValue(member, dataObject[name]);
+        }
+      }
+      if (this.awsQueryCompatible) {
+        this.mixin.queryCompatOutput(dataObject, output);
+      }
+      throw this.mixin.decorateServiceException(Object.assign(exception, errorMetadata, {
+        $fault: ns.getMergedTraits().error,
+        message: message2
+      }, output), dataObject);
+    }
+  }
+  var _toStr = (val) => {
+    if (val == null) {
+      return val;
+    }
+    if (typeof val === "number" || typeof val === "bigint") {
+      const warning = new Error(`Received number ${val} where a string was expected.`);
+      warning.name = "Warning";
+      console.warn(warning);
+      return String(val);
+    }
+    if (typeof val === "boolean") {
+      const warning = new Error(`Received boolean ${val} where a string was expected.`);
+      warning.name = "Warning";
+      console.warn(warning);
+      return String(val);
+    }
+    return val;
+  };
+  var _toBool = (val) => {
+    if (val == null) {
+      return val;
+    }
+    if (typeof val === "string") {
+      const lowercase = val.toLowerCase();
+      if (val !== "" && lowercase !== "false" && lowercase !== "true") {
+        const warning = new Error(`Received string "${val}" where a boolean was expected.`);
+        warning.name = "Warning";
+        console.warn(warning);
+      }
+      return val !== "" && lowercase !== "false";
+    }
+    return val;
+  };
+  var _toNum = (val) => {
+    if (val == null) {
+      return val;
+    }
+    if (typeof val === "string") {
+      const num = Number(val);
+      if (num.toString() !== val) {
+        const warning = new Error(`Received string "${val}" where a number was expected.`);
+        warning.name = "Warning";
+        console.warn(warning);
+        return val;
+      }
+      return num;
+    }
+    return val;
+  };
+
+  class SerdeContextConfig {
+    serdeContext;
+    setSerdeContext(serdeContext) {
+      this.serdeContext = serdeContext;
+    }
+  }
+
+  class UnionSerde {
+    from;
+    to;
+    keys;
+    constructor(from, to) {
+      this.from = from;
+      this.to = to;
+      const keys = Object.keys(this.from);
+      const set = new Set(keys);
+      set.delete("__type");
+      this.keys = set;
+    }
+    mark(key) {
+      this.keys.delete(key);
+    }
+    hasUnknown() {
+      return this.keys.size === 1 && Object.keys(this.to).length === 0;
+    }
+    writeUnknown() {
+      if (this.hasUnknown()) {
+        const k = this.keys.values().next().value;
+        const v = this.from[k];
+        this.to.$unknown = [k, v];
+      }
+    }
+  }
+  function jsonReviver(key, value, context) {
+    if (context?.source) {
+      const numericString = context.source;
+      if (typeof value === "number") {
+        if (value > Number.MAX_SAFE_INTEGER || value < Number.MIN_SAFE_INTEGER || numericString !== String(value)) {
+          const isFractional = numericString.includes(".");
+          if (isFractional) {
+            return new serde.NumericValue(numericString, "bigDecimal");
+          } else {
+            return BigInt(numericString);
+          }
+        }
+      }
+    }
+    return value;
+  }
+  var collectBodyString = (streamBody, context) => protocols.collectBody(streamBody, context).then((body) => (context?.utf8Encoder ?? serde.toUtf8)(body));
+  var parseJsonBody = (streamBody, context) => collectBodyString(streamBody, context).then((encoded) => {
+    if (encoded.length) {
+      try {
+        return JSON.parse(encoded);
+      } catch (e) {
+        if (e?.name === "SyntaxError") {
+          Object.defineProperty(e, "$responseBodyText", {
+            value: encoded
+          });
+        }
+        throw e;
+      }
+    }
+    return {};
+  });
+  var parseJsonErrorBody = async (errorBody, context) => {
+    const value = await parseJsonBody(errorBody, context);
+    value.message = value.message ?? value.Message;
+    return value;
+  };
+  var findKey = (object, key) => Object.keys(object).find((k) => k.toLowerCase() === key.toLowerCase());
+  var sanitizeErrorCode = (rawValue) => {
+    let cleanValue = rawValue;
+    if (typeof cleanValue === "number") {
+      cleanValue = cleanValue.toString();
+    }
+    if (cleanValue.indexOf(",") >= 0) {
+      cleanValue = cleanValue.split(",")[0];
+    }
+    if (cleanValue.indexOf(":") >= 0) {
+      cleanValue = cleanValue.split(":")[0];
+    }
+    if (cleanValue.indexOf("#") >= 0) {
+      cleanValue = cleanValue.split("#")[1];
+    }
+    return cleanValue;
+  };
+  var loadRestJsonErrorCode = (output, data) => {
+    return loadErrorCode(output, data, ["header", "code", "type"]);
+  };
+  var loadJsonRpcErrorCode = (output, data, queryCompat = false) => {
+    return loadErrorCode(output, data, queryCompat ? ["code", "header", "type"] : ["type", "code", "header"]);
+  };
+  var loadErrorCode = ({ headers }, data, order) => {
+    while (order.length > 0) {
+      const location = order.shift();
+      switch (location) {
+        case "header":
+          const headerKey = findKey(headers ?? {}, "x-amzn-errortype");
+          if (headerKey !== undefined) {
+            return sanitizeErrorCode(headers[headerKey]);
+          }
+          break;
+        case "code":
+          const codeKey = findKey(data ?? {}, "code");
+          if (codeKey && data[codeKey] !== undefined) {
+            return sanitizeErrorCode(data[codeKey]);
+          }
+          break;
+        case "type":
+          if (data?.__type !== undefined) {
+            return sanitizeErrorCode(data.__type);
+          }
+          break;
+      }
+    }
+  };
+
+  class JsonShapeDeserializer extends SerdeContextConfig {
+    settings;
+    constructor(settings) {
+      super();
+      this.settings = settings;
+    }
+    async read(schema2, data) {
+      return this._read(schema2, typeof data === "string" ? JSON.parse(data, jsonReviver) : await parseJsonBody(data, this.serdeContext));
+    }
+    readObject(schema2, data) {
+      return this._read(schema2, data);
+    }
+    _read(schema$1, value) {
+      const isObject3 = value !== null && typeof value === "object";
+      const ns = schema.NormalizedSchema.of(schema$1);
+      if (isObject3) {
+        if (ns.isStructSchema()) {
+          const record = value;
+          const union = ns.isUnionSchema();
+          const out = {};
+          let nameMap = undefined;
+          const { jsonName } = this.settings;
+          if (jsonName) {
+            nameMap = {};
+          }
+          let unionSerde;
+          if (union) {
+            unionSerde = new UnionSerde(record, out);
+          }
+          for (const [memberName, memberSchema] of ns.structIterator()) {
+            let fromKey = memberName;
+            if (jsonName) {
+              fromKey = memberSchema.getMergedTraits().jsonName ?? fromKey;
+              nameMap[fromKey] = memberName;
+            }
+            if (union) {
+              unionSerde.mark(fromKey);
+            }
+            if (record[fromKey] != null) {
+              out[memberName] = this._read(memberSchema, record[fromKey]);
+            }
+          }
+          if (union) {
+            unionSerde.writeUnknown();
+          } else if (typeof record.__type === "string") {
+            for (const k in record) {
+              const v = record[k];
+              const t3 = jsonName ? nameMap[k] ?? k : k;
+              if (!(t3 in out)) {
+                out[t3] = v;
+              }
+            }
+          }
+          return out;
+        }
+        if (Array.isArray(value) && ns.isListSchema()) {
+          const listMember = ns.getValueSchema();
+          const out = [];
+          for (const item of value) {
+            out.push(this._read(listMember, item));
+          }
+          return out;
+        }
+        if (ns.isMapSchema()) {
+          const mapMember = ns.getValueSchema();
+          const out = {};
+          for (const _k in value) {
+            out[_k] = this._read(mapMember, value[_k]);
+          }
+          return out;
+        }
+      }
+      if (ns.isBlobSchema() && typeof value === "string") {
+        return serde.fromBase64(value);
+      }
+      const mediaType = ns.getMergedTraits().mediaType;
+      if (ns.isStringSchema() && typeof value === "string" && mediaType) {
+        const isJson = mediaType === "application/json" || mediaType.endsWith("+json");
+        if (isJson) {
+          return serde.LazyJsonString.from(value);
+        }
+        return value;
+      }
+      if (ns.isTimestampSchema() && value != null) {
+        const format = protocols.determineTimestampFormat(ns, this.settings);
+        switch (format) {
+          case 5:
+            return serde.parseRfc3339DateTimeWithOffset(value);
+          case 6:
+            return serde.parseRfc7231DateTime(value);
+          case 7:
+            return serde.parseEpochTimestamp(value);
+          default:
+            console.warn("Missing timestamp format, parsing value with Date constructor:", value);
+            return new Date(value);
+        }
+      }
+      if (ns.isBigIntegerSchema() && (typeof value === "number" || typeof value === "string")) {
+        return BigInt(value);
+      }
+      if (ns.isBigDecimalSchema() && value != null) {
+        if (value instanceof serde.NumericValue) {
+          return value;
+        }
+        const untyped = value;
+        if (untyped.type === "bigDecimal" && "string" in untyped) {
+          return new serde.NumericValue(untyped.string, untyped.type);
+        }
+        return new serde.NumericValue(String(value), "bigDecimal");
+      }
+      if (ns.isNumericSchema() && typeof value === "string") {
+        switch (value) {
+          case "Infinity":
+            return Infinity;
+          case "-Infinity":
+            return -Infinity;
+          case "NaN":
+            return NaN;
+        }
+        return value;
+      }
+      if (ns.isDocumentSchema()) {
+        if (isObject3) {
+          const out = Array.isArray(value) ? [] : {};
+          for (const k in value) {
+            const v = value[k];
+            if (v instanceof serde.NumericValue) {
+              out[k] = v;
+            } else {
+              out[k] = this._read(ns, v);
+            }
+          }
+          return out;
+        } else {
+          return structuredClone(value);
+        }
+      }
+      return value;
+    }
+  }
+  var NUMERIC_CONTROL_CHAR = String.fromCharCode(925);
+
+  class JsonReplacer {
+    values = new Map;
+    counter = 0;
+    stage = 0;
+    createReplacer() {
+      if (this.stage === 1) {
+        throw new Error("@aws-sdk/core/protocols - JsonReplacer already created.");
+      }
+      if (this.stage === 2) {
+        throw new Error("@aws-sdk/core/protocols - JsonReplacer exhausted.");
+      }
+      this.stage = 1;
+      return (key, value) => {
+        if (value instanceof serde.NumericValue) {
+          const v = `${NUMERIC_CONTROL_CHAR + "nv" + this.counter++}_` + value.string;
+          this.values.set(`"${v}"`, value.string);
+          return v;
+        }
+        if (typeof value === "bigint") {
+          const s = value.toString();
+          const v = `${NUMERIC_CONTROL_CHAR + "b" + this.counter++}_` + s;
+          this.values.set(`"${v}"`, s);
+          return v;
+        }
+        return value;
+      };
+    }
+    replaceInJson(json) {
+      if (this.stage === 0) {
+        throw new Error("@aws-sdk/core/protocols - JsonReplacer not created yet.");
+      }
+      if (this.stage === 2) {
+        throw new Error("@aws-sdk/core/protocols - JsonReplacer exhausted.");
+      }
+      this.stage = 2;
+      if (this.counter === 0) {
+        return json;
+      }
+      for (const [key, value] of this.values) {
+        json = json.replace(key, value);
+      }
+      return json;
+    }
+  }
+
+  class JsonShapeSerializer extends SerdeContextConfig {
+    settings;
+    buffer;
+    useReplacer = false;
+    rootSchema;
+    constructor(settings) {
+      super();
+      this.settings = settings;
+    }
+    write(schema$1, value) {
+      this.rootSchema = schema.NormalizedSchema.of(schema$1);
+      this.buffer = this._write(this.rootSchema, value);
+    }
+    flush() {
+      const { rootSchema, useReplacer } = this;
+      this.rootSchema = undefined;
+      this.useReplacer = false;
+      if (rootSchema?.isStructSchema() || rootSchema?.isDocumentSchema()) {
+        if (!useReplacer) {
+          return JSON.stringify(this.buffer);
+        }
+        const replacer = new JsonReplacer;
+        return replacer.replaceInJson(JSON.stringify(this.buffer, replacer.createReplacer(), 0));
+      }
+      return this.buffer;
+    }
+    writeDiscriminatedDocument(schema$1, value) {
+      this.write(schema$1, value);
+      if (typeof this.buffer === "object") {
+        this.buffer.__type = schema.NormalizedSchema.of(schema$1).getName(true);
+      }
+    }
+    _write(schema$1, value, container) {
+      const isObject3 = value !== null && typeof value === "object";
+      const ns = schema.NormalizedSchema.of(schema$1);
+      if (isObject3) {
+        if (ns.isStructSchema()) {
+          const record = value;
+          const out = {};
+          const { jsonName } = this.settings;
+          let nameMap = undefined;
+          if (jsonName) {
+            nameMap = {};
+          }
+          let outCount = 0;
+          for (const [memberName, memberSchema] of ns.structIterator()) {
+            const serializableValue = this._write(memberSchema, record[memberName], ns);
+            if (serializableValue !== undefined) {
+              let targetKey = memberName;
+              if (jsonName) {
+                targetKey = memberSchema.getMergedTraits().jsonName ?? memberName;
+                nameMap[memberName] = targetKey;
+              }
+              out[targetKey] = serializableValue;
+              outCount++;
+            }
+          }
+          if (ns.isUnionSchema() && outCount === 0) {
+            const { $unknown } = record;
+            if (Array.isArray($unknown)) {
+              const [k, v] = $unknown;
+              out[k] = this._write(15, v);
+            }
+          } else if (typeof record.__type === "string") {
+            for (const k in record) {
+              const v = record[k];
+              const targetKey = jsonName ? nameMap[k] ?? k : k;
+              if (!(targetKey in out)) {
+                out[targetKey] = this._write(15, v);
+              }
+            }
+          }
+          return out;
+        }
+        if (Array.isArray(value) && ns.isListSchema()) {
+          const listMember = ns.getValueSchema();
+          const out = [];
+          const sparse = !!ns.getMergedTraits().sparse;
+          for (const item of value) {
+            if (sparse || item != null) {
+              out.push(this._write(listMember, item));
+            }
+          }
+          return out;
+        }
+        if (ns.isMapSchema()) {
+          const mapMember = ns.getValueSchema();
+          const out = {};
+          const sparse = !!ns.getMergedTraits().sparse;
+          for (const _k in value) {
+            const _v = value[_k];
+            if (sparse || _v != null) {
+              out[_k] = this._write(mapMember, _v);
+            }
+          }
+          return out;
+        }
+        if (value instanceof Uint8Array && (ns.isBlobSchema() || ns.isDocumentSchema())) {
+          if (ns === this.rootSchema) {
+            return value;
+          }
+          return (this.serdeContext?.base64Encoder ?? serde.toBase64)(value);
+        }
+        if (value instanceof Date && (ns.isTimestampSchema() || ns.isDocumentSchema())) {
+          const format = protocols.determineTimestampFormat(ns, this.settings);
+          switch (format) {
+            case 5:
+              return value.toISOString().replace(".000Z", "Z");
+            case 6:
+              return serde.dateToUtcString(value);
+            case 7:
+              return value.getTime() / 1000;
+            default:
+              console.warn("Missing timestamp format, using epoch seconds", value);
+              return value.getTime() / 1000;
+          }
+        }
+        if (value instanceof serde.NumericValue) {
+          this.useReplacer = true;
+        }
+      }
+      if (value === null && container?.isStructSchema()) {
+        return;
+      }
+      if (ns.isStringSchema()) {
+        if (typeof value === "undefined" && ns.isIdempotencyToken()) {
+          return serde.generateIdempotencyToken();
+        }
+        const mediaType = ns.getMergedTraits().mediaType;
+        if (value != null && mediaType) {
+          const isJson = mediaType === "application/json" || mediaType.endsWith("+json");
+          if (isJson) {
+            return serde.LazyJsonString.from(value);
+          }
+        }
+        return value;
+      }
+      if (typeof value === "number" && ns.isNumericSchema()) {
+        if (Math.abs(value) === Infinity || isNaN(value)) {
+          return String(value);
+        }
+        return value;
+      }
+      if (typeof value === "string" && ns.isBlobSchema()) {
+        if (ns === this.rootSchema) {
+          return value;
+        }
+        return (this.serdeContext?.base64Encoder ?? serde.toBase64)(value);
+      }
+      if (typeof value === "bigint") {
+        this.useReplacer = true;
+      }
+      if (ns.isDocumentSchema()) {
+        if (isObject3) {
+          const out = Array.isArray(value) ? [] : {};
+          for (const k in value) {
+            const v = value[k];
+            if (v instanceof serde.NumericValue) {
+              this.useReplacer = true;
+              out[k] = v;
+            } else {
+              out[k] = this._write(ns, v);
+            }
+          }
+          return out;
+        } else {
+          return structuredClone(value);
+        }
+      }
+      return value;
+    }
+  }
+
+  class JsonCodec extends SerdeContextConfig {
+    settings;
+    constructor(settings) {
+      super();
+      this.settings = settings;
+    }
+    createSerializer() {
+      const serializer = new JsonShapeSerializer(this.settings);
+      serializer.setSerdeContext(this.serdeContext);
+      return serializer;
+    }
+    createDeserializer() {
+      const deserializer = new JsonShapeDeserializer(this.settings);
+      deserializer.setSerdeContext(this.serdeContext);
+      return deserializer;
+    }
+  }
+
+  class AwsJsonRpcProtocol extends protocols.RpcProtocol {
+    serializer;
+    deserializer;
+    serviceTarget;
+    codec;
+    mixin;
+    awsQueryCompatible;
+    constructor({ defaultNamespace, errorTypeRegistries, serviceTarget, awsQueryCompatible, jsonCodec }) {
+      super({
+        defaultNamespace,
+        errorTypeRegistries
+      });
+      this.serviceTarget = serviceTarget;
+      this.codec = jsonCodec ?? new JsonCodec({
+        timestampFormat: {
+          useTrait: true,
+          default: 7
+        },
+        jsonName: false
+      });
+      this.serializer = this.codec.createSerializer();
+      this.deserializer = this.codec.createDeserializer();
+      this.awsQueryCompatible = !!awsQueryCompatible;
+      this.mixin = new ProtocolLib(this.awsQueryCompatible);
+    }
+    async serializeRequest(operationSchema, input, context) {
+      const request = await super.serializeRequest(operationSchema, input, context);
+      if (!request.path.endsWith("/")) {
+        request.path += "/";
+      }
+      request.headers["content-type"] = `application/x-amz-json-${this.getJsonRpcVersion()}`;
+      request.headers["x-amz-target"] = `${this.serviceTarget}.${operationSchema.name}`;
+      if (this.awsQueryCompatible) {
+        request.headers["x-amzn-query-mode"] = "true";
+      }
+      if (schema.deref(operationSchema.input) === "unit" || !request.body) {
+        request.body = "{}";
+      }
+      return request;
+    }
+    getPayloadCodec() {
+      return this.codec;
+    }
+    async handleError(operationSchema, context, response, dataObject, metadata) {
+      const { awsQueryCompatible } = this;
+      if (awsQueryCompatible) {
+        this.mixin.setQueryCompatError(dataObject, response);
+      }
+      const errorIdentifier = loadJsonRpcErrorCode(response, dataObject, awsQueryCompatible) ?? "Unknown";
+      this.mixin.compose(this.compositeErrorRegistry, errorIdentifier, this.options.defaultNamespace);
+      const { errorSchema, errorMetadata } = await this.mixin.getErrorSchemaOrThrowBaseException(errorIdentifier, this.options.defaultNamespace, response, dataObject, metadata, awsQueryCompatible ? this.mixin.findQueryCompatibleError : undefined);
+      const ns = schema.NormalizedSchema.of(errorSchema);
+      const message2 = dataObject.message ?? dataObject.Message ?? "UnknownError";
+      const ErrorCtor = this.compositeErrorRegistry.getErrorCtor(errorSchema) ?? Error;
+      const exception = new ErrorCtor({});
+      const output = {};
+      const errorDeserializer = this.codec.createDeserializer();
+      for (const [name, member] of ns.structIterator()) {
+        if (dataObject[name] != null) {
+          output[name] = errorDeserializer.readObject(member, dataObject[name]);
+        }
+      }
+      if (awsQueryCompatible) {
+        this.mixin.queryCompatOutput(dataObject, output);
+      }
+      throw this.mixin.decorateServiceException(Object.assign(exception, errorMetadata, {
+        $fault: ns.getMergedTraits().error,
+        message: message2
+      }, output), dataObject);
+    }
+  }
+
+  class AwsJson1_0Protocol extends AwsJsonRpcProtocol {
+    constructor({ defaultNamespace, errorTypeRegistries, serviceTarget, awsQueryCompatible, jsonCodec }) {
+      super({
+        defaultNamespace,
+        errorTypeRegistries,
+        serviceTarget,
+        awsQueryCompatible,
+        jsonCodec
+      });
+    }
+    getShapeId() {
+      return "aws.protocols#awsJson1_0";
+    }
+    getJsonRpcVersion() {
+      return "1.0";
+    }
+    getDefaultContentType() {
+      return "application/x-amz-json-1.0";
+    }
+  }
+
+  class AwsJson1_1Protocol extends AwsJsonRpcProtocol {
+    constructor({ defaultNamespace, errorTypeRegistries, serviceTarget, awsQueryCompatible, jsonCodec }) {
+      super({
+        defaultNamespace,
+        errorTypeRegistries,
+        serviceTarget,
+        awsQueryCompatible,
+        jsonCodec
+      });
+    }
+    getShapeId() {
+      return "aws.protocols#awsJson1_1";
+    }
+    getJsonRpcVersion() {
+      return "1.1";
+    }
+    getDefaultContentType() {
+      return "application/x-amz-json-1.1";
+    }
+  }
+
+  class AwsRestJsonProtocol extends protocols.HttpBindingProtocol {
+    serializer;
+    deserializer;
+    codec;
+    mixin = new ProtocolLib;
+    constructor({ defaultNamespace, errorTypeRegistries }) {
+      super({
+        defaultNamespace,
+        errorTypeRegistries
+      });
+      const settings = {
+        timestampFormat: {
+          useTrait: true,
+          default: 7
+        },
+        httpBindings: true,
+        jsonName: true
+      };
+      this.codec = new JsonCodec(settings);
+      this.serializer = new protocols.HttpInterceptingShapeSerializer(this.codec.createSerializer(), settings);
+      this.deserializer = new protocols.HttpInterceptingShapeDeserializer(this.codec.createDeserializer(), settings);
+    }
+    getShapeId() {
+      return "aws.protocols#restJson1";
+    }
+    getPayloadCodec() {
+      return this.codec;
+    }
+    setSerdeContext(serdeContext) {
+      this.codec.setSerdeContext(serdeContext);
+      super.setSerdeContext(serdeContext);
+    }
+    async serializeRequest(operationSchema, input, context) {
+      const request = await super.serializeRequest(operationSchema, input, context);
+      const inputSchema = schema.NormalizedSchema.of(operationSchema.input);
+      if (!request.headers["content-type"]) {
+        const contentType = this.mixin.resolveRestContentType(this.getDefaultContentType(), inputSchema);
+        if (contentType) {
+          request.headers["content-type"] = contentType;
+        }
+      }
+      if (request.body == null && request.headers["content-type"] === this.getDefaultContentType()) {
+        request.body = "{}";
+      }
+      return request;
+    }
+    async deserializeResponse(operationSchema, context, response) {
+      const output = await super.deserializeResponse(operationSchema, context, response);
+      const outputSchema = schema.NormalizedSchema.of(operationSchema.output);
+      for (const [name, member] of outputSchema.structIterator()) {
+        if (member.getMemberTraits().httpPayload && !(name in output)) {
+          output[name] = null;
+        }
+      }
+      return output;
+    }
+    async handleError(operationSchema, context, response, dataObject, metadata) {
+      const errorIdentifier = loadRestJsonErrorCode(response, dataObject) ?? "Unknown";
+      this.mixin.compose(this.compositeErrorRegistry, errorIdentifier, this.options.defaultNamespace);
+      const { errorSchema, errorMetadata } = await this.mixin.getErrorSchemaOrThrowBaseException(errorIdentifier, this.options.defaultNamespace, response, dataObject, metadata);
+      const ns = schema.NormalizedSchema.of(errorSchema);
+      const message2 = dataObject.message ?? dataObject.Message ?? "UnknownError";
+      const ErrorCtor = this.compositeErrorRegistry.getErrorCtor(errorSchema) ?? Error;
+      const exception = new ErrorCtor({});
+      await this.deserializeHttpMessage(errorSchema, context, response, dataObject);
+      const output = {};
+      const errorDeserializer = this.codec.createDeserializer();
+      for (const [name, member] of ns.structIterator()) {
+        const target = member.getMergedTraits().jsonName ?? name;
+        output[name] = errorDeserializer.readObject(member, dataObject[target]);
+      }
+      throw this.mixin.decorateServiceException(Object.assign(exception, errorMetadata, {
+        $fault: ns.getMergedTraits().error,
+        message: message2
+      }, output), dataObject);
+    }
+    getDefaultContentType() {
+      return "application/json";
+    }
+  }
+  var awsExpectUnion = (value) => {
+    if (value == null) {
+      return;
+    }
+    if (typeof value === "object" && "__type" in value) {
+      delete value.__type;
+    }
+    return serde.expectUnion(value);
+  };
+
+  class XmlShapeDeserializer extends SerdeContextConfig {
+    settings;
+    stringDeserializer;
+    constructor(settings) {
+      super();
+      this.settings = settings;
+      this.stringDeserializer = new protocols.FromStringShapeDeserializer(settings);
+    }
+    setSerdeContext(serdeContext) {
+      this.serdeContext = serdeContext;
+      this.stringDeserializer.setSerdeContext(serdeContext);
+    }
+    read(schema$1, bytes, key) {
+      const ns = schema.NormalizedSchema.of(schema$1);
+      const memberSchemas = ns.getMemberSchemas();
+      const isEventPayload = ns.isStructSchema() && ns.isMemberSchema() && !!Object.values(memberSchemas).find((memberNs) => {
+        return !!memberNs.getMemberTraits().eventPayload;
+      });
+      if (isEventPayload) {
+        const output = {};
+        const memberName = Object.keys(memberSchemas)[0];
+        const eventMemberSchema = memberSchemas[memberName];
+        if (eventMemberSchema.isBlobSchema()) {
+          output[memberName] = bytes;
+        } else {
+          output[memberName] = this.read(memberSchemas[memberName], bytes);
+        }
+        return output;
+      }
+      const xmlString = (this.serdeContext?.utf8Encoder ?? serde.toUtf8)(bytes);
+      const parsedObject = this.parseXml(xmlString);
+      return this.readSchema(schema$1, key ? parsedObject[key] : parsedObject);
+    }
+    readSchema(_schema, value) {
+      const ns = schema.NormalizedSchema.of(_schema);
+      if (ns.isUnitSchema()) {
+        return;
+      }
+      const traits = ns.getMergedTraits();
+      if (ns.isListSchema() && !Array.isArray(value)) {
+        return this.readSchema(ns, [value]);
+      }
+      if (value == null) {
+        return value;
+      }
+      if (typeof value === "object") {
+        const flat = !!traits.xmlFlattened;
+        if (ns.isListSchema()) {
+          const listValue = ns.getValueSchema();
+          const buffer2 = [];
+          const sourceKey = listValue.getMergedTraits().xmlName ?? "member";
+          const source = flat ? value : (value[0] ?? value)[sourceKey];
+          if (source == null) {
+            return buffer2;
+          }
+          const sourceArray = Array.isArray(source) ? source : [source];
+          for (const v of sourceArray) {
+            buffer2.push(this.readSchema(listValue, v));
+          }
+          return buffer2;
+        }
+        const buffer = {};
+        if (ns.isMapSchema()) {
+          const keyNs = ns.getKeySchema();
+          const memberNs = ns.getValueSchema();
+          let entries;
+          if (flat) {
+            entries = Array.isArray(value) ? value : [value];
+          } else {
+            entries = Array.isArray(value.entry) ? value.entry : [value.entry];
+          }
+          const keyProperty = keyNs.getMergedTraits().xmlName ?? "key";
+          const valueProperty = memberNs.getMergedTraits().xmlName ?? "value";
+          for (const entry of entries) {
+            const key = entry[keyProperty];
+            const value2 = entry[valueProperty];
+            buffer[key] = this.readSchema(memberNs, value2);
+          }
+          return buffer;
+        }
+        if (ns.isStructSchema()) {
+          const union = ns.isUnionSchema();
+          let unionSerde;
+          if (union) {
+            unionSerde = new UnionSerde(value, buffer);
+          }
+          for (const [memberName, memberSchema] of ns.structIterator()) {
+            const memberTraits = memberSchema.getMergedTraits();
+            const xmlObjectKey = !memberTraits.httpPayload ? memberSchema.getMemberTraits().xmlName ?? memberName : memberTraits.xmlName ?? memberSchema.getName();
+            if (union) {
+              unionSerde.mark(xmlObjectKey);
+            }
+            if (value[xmlObjectKey] != null) {
+              buffer[memberName] = this.readSchema(memberSchema, value[xmlObjectKey]);
+            }
+          }
+          if (union) {
+            unionSerde.writeUnknown();
+          }
+          return buffer;
+        }
+        if (ns.isDocumentSchema()) {
+          return value;
+        }
+        throw new Error(`@aws-sdk/core/protocols - xml deserializer unhandled schema type for ${ns.getName(true)}`);
+      }
+      if (ns.isListSchema()) {
+        return [];
+      }
+      if (ns.isMapSchema() || ns.isStructSchema()) {
+        return {};
+      }
+      return this.stringDeserializer.read(ns, value);
+    }
+    parseXml(xml) {
+      if (xml.length) {
+        let parsedObj;
+        try {
+          parsedObj = xmlBuilder.parseXML(xml);
+        } catch (e) {
+          if (e && typeof e === "object") {
+            Object.defineProperty(e, "$responseBodyText", {
+              value: xml
+            });
+          }
+          throw e;
+        }
+        const textNodeName = "#text";
+        const key = Object.keys(parsedObj)[0];
+        const parsedObjToReturn = parsedObj[key];
+        if (parsedObjToReturn[textNodeName]) {
+          parsedObjToReturn[key] = parsedObjToReturn[textNodeName];
+          delete parsedObjToReturn[textNodeName];
+        }
+        return client.getValueFromTextNode(parsedObjToReturn);
+      }
+      return {};
+    }
+  }
+
+  class QueryShapeSerializer extends SerdeContextConfig {
+    settings;
+    buffer;
+    constructor(settings) {
+      super();
+      this.settings = settings;
+    }
+    write(schema$1, value, prefix = "") {
+      if (this.buffer === undefined) {
+        this.buffer = "";
+      }
+      const ns = schema.NormalizedSchema.of(schema$1);
+      if (prefix && !prefix.endsWith(".")) {
+        prefix += ".";
+      }
+      if (ns.isBlobSchema()) {
+        if (typeof value === "string" || value instanceof Uint8Array) {
+          this.writeKey(prefix);
+          this.writeValue((this.serdeContext?.base64Encoder ?? serde.toBase64)(value));
+        }
+      } else if (ns.isBooleanSchema() || ns.isNumericSchema() || ns.isStringSchema()) {
+        if (value != null) {
+          this.writeKey(prefix);
+          this.writeValue(String(value));
+        } else if (ns.isIdempotencyToken()) {
+          this.writeKey(prefix);
+          this.writeValue(serde.generateIdempotencyToken());
+        }
+      } else if (ns.isBigIntegerSchema()) {
+        if (value != null) {
+          this.writeKey(prefix);
+          this.writeValue(String(value));
+        }
+      } else if (ns.isBigDecimalSchema()) {
+        if (value != null) {
+          this.writeKey(prefix);
+          this.writeValue(value instanceof serde.NumericValue ? value.string : String(value));
+        }
+      } else if (ns.isTimestampSchema()) {
+        if (value instanceof Date) {
+          this.writeKey(prefix);
+          const format = protocols.determineTimestampFormat(ns, this.settings);
+          switch (format) {
+            case 5:
+              this.writeValue(value.toISOString().replace(".000Z", "Z"));
+              break;
+            case 6:
+              this.writeValue(serde.dateToUtcString(value));
+              break;
+            case 7:
+              this.writeValue(String(value.getTime() / 1000));
+              break;
+          }
+        }
+      } else if (ns.isDocumentSchema()) {
+        if (Array.isArray(value)) {
+          this.write(64 | 15, value, prefix);
+        } else if (value instanceof Date) {
+          this.write(4, value, prefix);
+        } else if (value instanceof Uint8Array) {
+          this.write(21, value, prefix);
+        } else if (value && typeof value === "object") {
+          this.write(128 | 15, value, prefix);
+        } else {
+          this.writeKey(prefix);
+          this.writeValue(String(value));
+        }
+      } else if (ns.isListSchema()) {
+        if (Array.isArray(value)) {
+          if (value.length === 0) {
+            if (this.settings.serializeEmptyLists) {
+              this.writeKey(prefix);
+              this.writeValue("");
+            }
+          } else {
+            const member = ns.getValueSchema();
+            const flat = this.settings.flattenLists || ns.getMergedTraits().xmlFlattened;
+            let i = 1;
+            for (const item of value) {
+              if (item == null) {
+                continue;
+              }
+              const traits = member.getMergedTraits();
+              const suffix = this.getKey("member", traits.xmlName, traits.ec2QueryName);
+              const key = flat ? `${prefix}${i}` : `${prefix}${suffix}.${i}`;
+              this.write(member, item, key);
+              ++i;
+            }
+          }
+        }
+      } else if (ns.isMapSchema()) {
+        if (value && typeof value === "object") {
+          const keySchema = ns.getKeySchema();
+          const memberSchema = ns.getValueSchema();
+          const flat = ns.getMergedTraits().xmlFlattened;
+          let i = 1;
+          for (const k in value) {
+            const v = value[k];
+            if (v == null) {
+              continue;
+            }
+            const keyTraits = keySchema.getMergedTraits();
+            const keySuffix = this.getKey("key", keyTraits.xmlName, keyTraits.ec2QueryName);
+            const key = flat ? `${prefix}${i}.${keySuffix}` : `${prefix}entry.${i}.${keySuffix}`;
+            const valTraits = memberSchema.getMergedTraits();
+            const valueSuffix = this.getKey("value", valTraits.xmlName, valTraits.ec2QueryName);
+            const valueKey = flat ? `${prefix}${i}.${valueSuffix}` : `${prefix}entry.${i}.${valueSuffix}`;
+            this.write(keySchema, k, key);
+            this.write(memberSchema, v, valueKey);
+            ++i;
+          }
+        }
+      } else if (ns.isStructSchema()) {
+        if (value && typeof value === "object") {
+          let didWriteMember = false;
+          for (const [memberName, member] of ns.structIterator()) {
+            if (value[memberName] == null && !member.isIdempotencyToken()) {
+              continue;
+            }
+            const traits = member.getMergedTraits();
+            const suffix = this.getKey(memberName, traits.xmlName, traits.ec2QueryName, "struct");
+            const key = `${prefix}${suffix}`;
+            this.write(member, value[memberName], key);
+            didWriteMember = true;
+          }
+          if (!didWriteMember && ns.isUnionSchema()) {
+            const { $unknown } = value;
+            if (Array.isArray($unknown)) {
+              const [k, v] = $unknown;
+              const key = `${prefix}${k}`;
+              this.write(15, v, key);
+            }
+          }
+        }
+      } else if (ns.isUnitSchema())
+        ;
+      else {
+        throw new Error(`@aws-sdk/core/protocols - QuerySerializer unrecognized schema type ${ns.getName(true)}`);
+      }
+    }
+    flush() {
+      if (this.buffer === undefined) {
+        throw new Error("@aws-sdk/core/protocols - QuerySerializer cannot flush with nothing written to buffer.");
+      }
+      const str = this.buffer;
+      delete this.buffer;
+      return str;
+    }
+    getKey(memberName, xmlName, ec2QueryName, keySource) {
+      const { ec2, capitalizeKeys } = this.settings;
+      if (ec2 && ec2QueryName) {
+        return ec2QueryName;
+      }
+      const key = xmlName ?? memberName;
+      if (capitalizeKeys && keySource === "struct") {
+        return key[0].toUpperCase() + key.slice(1);
+      }
+      return key;
+    }
+    writeKey(key) {
+      if (key.endsWith(".")) {
+        key = key.slice(0, key.length - 1);
+      }
+      this.buffer += `&${protocols.extendedEncodeURIComponent(key)}=`;
+    }
+    writeValue(value) {
+      this.buffer += protocols.extendedEncodeURIComponent(value);
+    }
+  }
+
+  class AwsQueryProtocol extends protocols.RpcProtocol {
+    options;
+    serializer;
+    deserializer;
+    mixin = new ProtocolLib;
+    constructor(options) {
+      super({
+        defaultNamespace: options.defaultNamespace,
+        errorTypeRegistries: options.errorTypeRegistries
+      });
+      this.options = options;
+      const settings = {
+        timestampFormat: {
+          useTrait: true,
+          default: 5
+        },
+        httpBindings: false,
+        xmlNamespace: options.xmlNamespace,
+        serviceNamespace: options.defaultNamespace,
+        serializeEmptyLists: true
+      };
+      this.serializer = new QueryShapeSerializer(settings);
+      this.deserializer = new XmlShapeDeserializer(settings);
+    }
+    getShapeId() {
+      return "aws.protocols#awsQuery";
+    }
+    setSerdeContext(serdeContext) {
+      this.serializer.setSerdeContext(serdeContext);
+      this.deserializer.setSerdeContext(serdeContext);
+    }
+    getPayloadCodec() {
+      throw new Error("AWSQuery protocol has no payload codec.");
+    }
+    async serializeRequest(operationSchema, input, context) {
+      const request = await super.serializeRequest(operationSchema, input, context);
+      if (!request.path.endsWith("/")) {
+        request.path += "/";
+      }
+      request.headers["content-type"] = "application/x-www-form-urlencoded";
+      if (schema.deref(operationSchema.input) === "unit" || !request.body) {
+        request.body = "";
+      }
+      const action = operationSchema.name.split("#")[1] ?? operationSchema.name;
+      request.body = `Action=${action}&Version=${this.options.version}` + request.body;
+      if (request.body.endsWith("&")) {
+        request.body = request.body.slice(-1);
+      }
+      return request;
+    }
+    async deserializeResponse(operationSchema, context, response) {
+      const deserializer = this.deserializer;
+      const ns = schema.NormalizedSchema.of(operationSchema.output);
+      const dataObject = {};
+      if (response.statusCode >= 300) {
+        const bytes2 = await protocols.collectBody(response.body, context);
+        if (bytes2.byteLength > 0) {
+          Object.assign(dataObject, await deserializer.read(15, bytes2));
+        }
+        await this.handleError(operationSchema, context, response, dataObject, this.deserializeMetadata(response));
+      }
+      for (const header in response.headers) {
+        const value = response.headers[header];
+        delete response.headers[header];
+        response.headers[header.toLowerCase()] = value;
+      }
+      const shortName = operationSchema.name.split("#")[1] ?? operationSchema.name;
+      const awsQueryResultKey = ns.isStructSchema() && this.useNestedResult() ? shortName + "Result" : undefined;
+      const bytes = await protocols.collectBody(response.body, context);
+      if (bytes.byteLength > 0) {
+        Object.assign(dataObject, await deserializer.read(ns, bytes, awsQueryResultKey));
+      }
+      dataObject.$metadata = this.deserializeMetadata(response);
+      return dataObject;
+    }
+    useNestedResult() {
+      return true;
+    }
+    async handleError(operationSchema, context, response, dataObject, metadata) {
+      const errorIdentifier = this.loadQueryErrorCode(response, dataObject) ?? "Unknown";
+      this.mixin.compose(this.compositeErrorRegistry, errorIdentifier, this.options.defaultNamespace);
+      const errorData = this.loadQueryError(dataObject) ?? {};
+      const message2 = this.loadQueryErrorMessage(dataObject);
+      errorData.message = message2;
+      errorData.Error = {
+        Type: errorData.Type,
+        Code: errorData.Code,
+        Message: message2
+      };
+      const { errorSchema, errorMetadata } = await this.mixin.getErrorSchemaOrThrowBaseException(errorIdentifier, this.options.defaultNamespace, response, errorData, metadata, this.mixin.findQueryCompatibleError);
+      const ns = schema.NormalizedSchema.of(errorSchema);
+      const ErrorCtor = this.compositeErrorRegistry.getErrorCtor(errorSchema) ?? Error;
+      const exception = new ErrorCtor({});
+      const output = {
+        Type: errorData.Error.Type,
+        Code: errorData.Error.Code,
+        Error: errorData.Error
+      };
+      for (const [name, member] of ns.structIterator()) {
+        const target = member.getMergedTraits().xmlName ?? name;
+        const value = errorData[target] ?? dataObject[target];
+        output[name] = this.deserializer.readSchema(member, value);
+      }
+      throw this.mixin.decorateServiceException(Object.assign(exception, errorMetadata, {
+        $fault: ns.getMergedTraits().error,
+        message: message2
+      }, output), dataObject);
+    }
+    loadQueryErrorCode(output, data) {
+      const code = (data.Errors?.[0]?.Error ?? data.Errors?.Error ?? data.Error)?.Code;
+      if (code !== undefined) {
+        return code;
+      }
+      if (output.statusCode == 404) {
+        return "NotFound";
+      }
+    }
+    loadQueryError(data) {
+      return data.Errors?.[0]?.Error ?? data.Errors?.Error ?? data.Error;
+    }
+    loadQueryErrorMessage(data) {
+      const errorData = this.loadQueryError(data);
+      return errorData?.message ?? errorData?.Message ?? data.message ?? data.Message ?? "Unknown";
+    }
+    getDefaultContentType() {
+      return "application/x-www-form-urlencoded";
+    }
+  }
+
+  class AwsEc2QueryProtocol extends AwsQueryProtocol {
+    options;
+    constructor(options) {
+      super(options);
+      this.options = options;
+      const ec2Settings = {
+        capitalizeKeys: true,
+        flattenLists: true,
+        serializeEmptyLists: false,
+        ec2: true
+      };
+      Object.assign(this.serializer.settings, ec2Settings);
+    }
+    getShapeId() {
+      return "aws.protocols#ec2Query";
+    }
+    useNestedResult() {
+      return false;
+    }
+  }
+  var parseXmlBody = (streamBody, context) => collectBodyString(streamBody, context).then((encoded) => {
+    if (encoded.length) {
+      let parsedObj;
+      try {
+        parsedObj = xmlBuilder.parseXML(encoded);
+      } catch (e) {
+        if (e && typeof e === "object") {
+          Object.defineProperty(e, "$responseBodyText", {
+            value: encoded
+          });
+        }
+        throw e;
+      }
+      const textNodeName = "#text";
+      const key = Object.keys(parsedObj)[0];
+      const parsedObjToReturn = parsedObj[key];
+      if (parsedObjToReturn[textNodeName]) {
+        parsedObjToReturn[key] = parsedObjToReturn[textNodeName];
+        delete parsedObjToReturn[textNodeName];
+      }
+      return client.getValueFromTextNode(parsedObjToReturn);
+    }
+    return {};
+  });
+  var parseXmlErrorBody = async (errorBody, context) => {
+    const value = await parseXmlBody(errorBody, context);
+    if (value.Error) {
+      value.Error.message = value.Error.message ?? value.Error.Message;
+    }
+    return value;
+  };
+  var loadRestXmlErrorCode = (output, data) => {
+    if (data?.Error?.Code !== undefined) {
+      return data.Error.Code;
+    }
+    if (data?.Code !== undefined) {
+      return data.Code;
+    }
+    if (output.statusCode == 404) {
+      return "NotFound";
+    }
+  };
+
+  class XmlShapeSerializer extends SerdeContextConfig {
+    settings;
+    stringBuffer;
+    byteBuffer;
+    buffer;
+    constructor(settings) {
+      super();
+      this.settings = settings;
+    }
+    write(schema$1, value) {
+      const ns = schema.NormalizedSchema.of(schema$1);
+      if (ns.isStringSchema() && typeof value === "string") {
+        this.stringBuffer = value;
+      } else if (ns.isBlobSchema()) {
+        this.byteBuffer = "byteLength" in value ? value : (this.serdeContext?.base64Decoder ?? serde.fromBase64)(value);
+      } else {
+        this.buffer = this.writeStruct(ns, value, undefined);
+        const traits = ns.getMergedTraits();
+        if (traits.httpPayload && !traits.xmlName) {
+          this.buffer.withName(ns.getName());
+        }
+      }
+    }
+    flush() {
+      if (this.byteBuffer !== undefined) {
+        const bytes = this.byteBuffer;
+        delete this.byteBuffer;
+        return bytes;
+      }
+      if (this.stringBuffer !== undefined) {
+        const str = this.stringBuffer;
+        delete this.stringBuffer;
+        return str;
+      }
+      const buffer = this.buffer;
+      if (this.settings.xmlNamespace) {
+        if (!buffer?.attributes?.["xmlns"]) {
+          buffer.addAttribute("xmlns", this.settings.xmlNamespace);
+        }
+      }
+      delete this.buffer;
+      return buffer.toString();
+    }
+    writeStruct(ns, value, parentXmlns) {
+      const traits = ns.getMergedTraits();
+      const name = ns.isMemberSchema() && !traits.httpPayload ? ns.getMemberTraits().xmlName ?? ns.getMemberName() : traits.xmlName ?? ns.getName();
+      if (!name || !ns.isStructSchema()) {
+        throw new Error(`@aws-sdk/core/protocols - xml serializer, cannot write struct with empty name or non-struct, schema=${ns.getName(true)}.`);
+      }
+      const structXmlNode = xmlBuilder.XmlNode.of(name);
+      const [xmlnsAttr, xmlns] = this.getXmlnsAttribute(ns, parentXmlns);
+      for (const [memberName, memberSchema] of ns.structIterator()) {
+        const val = value[memberName];
+        if (val != null || memberSchema.isIdempotencyToken()) {
+          if (memberSchema.getMergedTraits().xmlAttribute) {
+            structXmlNode.addAttribute(memberSchema.getMergedTraits().xmlName ?? memberName, this.writeSimple(memberSchema, val));
+            continue;
+          }
+          if (memberSchema.isListSchema()) {
+            this.writeList(memberSchema, val, structXmlNode, xmlns);
+          } else if (memberSchema.isMapSchema()) {
+            this.writeMap(memberSchema, val, structXmlNode, xmlns);
+          } else if (memberSchema.isStructSchema()) {
+            structXmlNode.addChildNode(this.writeStruct(memberSchema, val, xmlns));
+          } else {
+            const memberNode = xmlBuilder.XmlNode.of(memberSchema.getMergedTraits().xmlName ?? memberSchema.getMemberName());
+            this.writeSimpleInto(memberSchema, val, memberNode, xmlns);
+            structXmlNode.addChildNode(memberNode);
+          }
+        }
+      }
+      const { $unknown } = value;
+      if ($unknown && ns.isUnionSchema() && Array.isArray($unknown) && Object.keys(value).length === 1) {
+        const [k, v] = $unknown;
+        const node = xmlBuilder.XmlNode.of(k);
+        if (typeof v !== "string") {
+          if (value instanceof xmlBuilder.XmlNode || value instanceof xmlBuilder.XmlText) {
+            structXmlNode.addChildNode(value);
+          } else {
+            throw new Error(`@aws-sdk - $unknown union member in XML requires ` + `value of type string, @aws-sdk/xml-builder::XmlNode or XmlText.`);
+          }
+        }
+        this.writeSimpleInto(0, v, node, xmlns);
+        structXmlNode.addChildNode(node);
+      }
+      if (xmlns) {
+        structXmlNode.addAttribute(xmlnsAttr, xmlns);
+      }
+      return structXmlNode;
+    }
+    writeList(listMember, array, container, parentXmlns) {
+      if (!listMember.isMemberSchema()) {
+        throw new Error(`@aws-sdk/core/protocols - xml serializer, cannot write non-member list: ${listMember.getName(true)}`);
+      }
+      const listTraits = listMember.getMergedTraits();
+      const listValueSchema = listMember.getValueSchema();
+      const listValueTraits = listValueSchema.getMergedTraits();
+      const sparse = !!listValueTraits.sparse;
+      const flat = !!listTraits.xmlFlattened;
+      const [xmlnsAttr, xmlns] = this.getXmlnsAttribute(listMember, parentXmlns);
+      const writeItem = (container2, value) => {
+        if (listValueSchema.isListSchema()) {
+          this.writeList(listValueSchema, Array.isArray(value) ? value : [value], container2, xmlns);
+        } else if (listValueSchema.isMapSchema()) {
+          this.writeMap(listValueSchema, value, container2, xmlns);
+        } else if (listValueSchema.isStructSchema()) {
+          const struct = this.writeStruct(listValueSchema, value, xmlns);
+          container2.addChildNode(struct.withName(flat ? listTraits.xmlName ?? listMember.getMemberName() : listValueTraits.xmlName ?? "member"));
+        } else {
+          const listItemNode = xmlBuilder.XmlNode.of(flat ? listTraits.xmlName ?? listMember.getMemberName() : listValueTraits.xmlName ?? "member");
+          this.writeSimpleInto(listValueSchema, value, listItemNode, xmlns);
+          container2.addChildNode(listItemNode);
+        }
+      };
+      if (flat) {
+        for (const value of array) {
+          if (sparse || value != null) {
+            writeItem(container, value);
+          }
+        }
+      } else {
+        const listNode = xmlBuilder.XmlNode.of(listTraits.xmlName ?? listMember.getMemberName());
+        if (xmlns) {
+          listNode.addAttribute(xmlnsAttr, xmlns);
+        }
+        for (const value of array) {
+          if (sparse || value != null) {
+            writeItem(listNode, value);
+          }
+        }
+        container.addChildNode(listNode);
+      }
+    }
+    writeMap(mapMember, map3, container, parentXmlns, containerIsMap = false) {
+      if (!mapMember.isMemberSchema()) {
+        throw new Error(`@aws-sdk/core/protocols - xml serializer, cannot write non-member map: ${mapMember.getName(true)}`);
+      }
+      const mapTraits = mapMember.getMergedTraits();
+      const mapKeySchema = mapMember.getKeySchema();
+      const mapKeyTraits = mapKeySchema.getMergedTraits();
+      const keyTag = mapKeyTraits.xmlName ?? "key";
+      const mapValueSchema = mapMember.getValueSchema();
+      const mapValueTraits = mapValueSchema.getMergedTraits();
+      const valueTag = mapValueTraits.xmlName ?? "value";
+      const sparse = !!mapValueTraits.sparse;
+      const flat = !!mapTraits.xmlFlattened;
+      const [xmlnsAttr, xmlns] = this.getXmlnsAttribute(mapMember, parentXmlns);
+      const addKeyValue = (entry, key, val) => {
+        const keyNode = xmlBuilder.XmlNode.of(keyTag, key);
+        const [keyXmlnsAttr, keyXmlns] = this.getXmlnsAttribute(mapKeySchema, xmlns);
+        if (keyXmlns) {
+          keyNode.addAttribute(keyXmlnsAttr, keyXmlns);
+        }
+        entry.addChildNode(keyNode);
+        let valueNode = xmlBuilder.XmlNode.of(valueTag);
+        if (mapValueSchema.isListSchema()) {
+          this.writeList(mapValueSchema, val, valueNode, xmlns);
+        } else if (mapValueSchema.isMapSchema()) {
+          this.writeMap(mapValueSchema, val, valueNode, xmlns, true);
+        } else if (mapValueSchema.isStructSchema()) {
+          valueNode = this.writeStruct(mapValueSchema, val, xmlns);
+        } else {
+          this.writeSimpleInto(mapValueSchema, val, valueNode, xmlns);
+        }
+        entry.addChildNode(valueNode);
+      };
+      if (flat) {
+        for (const key in map3) {
+          const val = map3[key];
+          if (sparse || val != null) {
+            const entry = xmlBuilder.XmlNode.of(mapTraits.xmlName ?? mapMember.getMemberName());
+            addKeyValue(entry, key, val);
+            container.addChildNode(entry);
+          }
+        }
+      } else {
+        let mapNode;
+        if (!containerIsMap) {
+          mapNode = xmlBuilder.XmlNode.of(mapTraits.xmlName ?? mapMember.getMemberName());
+          if (xmlns) {
+            mapNode.addAttribute(xmlnsAttr, xmlns);
+          }
+          container.addChildNode(mapNode);
+        }
+        for (const key in map3) {
+          const val = map3[key];
+          if (sparse || val != null) {
+            const entry = xmlBuilder.XmlNode.of("entry");
+            addKeyValue(entry, key, val);
+            (containerIsMap ? container : mapNode).addChildNode(entry);
+          }
+        }
+      }
+    }
+    writeSimple(_schema, value) {
+      if (value === null) {
+        throw new Error("@aws-sdk/core/protocols - (XML serializer) cannot write null value.");
+      }
+      const ns = schema.NormalizedSchema.of(_schema);
+      let nodeContents = null;
+      if (value && typeof value === "object") {
+        if (ns.isBlobSchema()) {
+          nodeContents = (this.serdeContext?.base64Encoder ?? serde.toBase64)(value);
+        } else if (ns.isTimestampSchema() && value instanceof Date) {
+          const format = protocols.determineTimestampFormat(ns, this.settings);
+          switch (format) {
+            case 5:
+              nodeContents = value.toISOString().replace(".000Z", "Z");
+              break;
+            case 6:
+              nodeContents = serde.dateToUtcString(value);
+              break;
+            case 7:
+              nodeContents = String(value.getTime() / 1000);
+              break;
+            default:
+              console.warn("Missing timestamp format, using http date", value);
+              nodeContents = serde.dateToUtcString(value);
+              break;
+          }
+        } else if (ns.isBigDecimalSchema() && value) {
+          if (value instanceof serde.NumericValue) {
+            return value.string;
+          }
+          return String(value);
+        } else if (ns.isMapSchema() || ns.isListSchema()) {
+          throw new Error("@aws-sdk/core/protocols - xml serializer, cannot call _write() on List/Map schema, call writeList or writeMap() instead.");
+        } else {
+          throw new Error(`@aws-sdk/core/protocols - xml serializer, unhandled schema type for object value and schema: ${ns.getName(true)}`);
+        }
+      }
+      if (ns.isBooleanSchema() || ns.isNumericSchema() || ns.isBigIntegerSchema() || ns.isBigDecimalSchema()) {
+        nodeContents = String(value);
+      }
+      if (ns.isStringSchema()) {
+        if (value === undefined && ns.isIdempotencyToken()) {
+          nodeContents = serde.generateIdempotencyToken();
+        } else {
+          nodeContents = String(value);
+        }
+      }
+      if (nodeContents === null) {
+        throw new Error(`Unhandled schema-value pair ${ns.getName(true)}=${value}`);
+      }
+      return nodeContents;
+    }
+    writeSimpleInto(_schema, value, into, parentXmlns) {
+      const nodeContents = this.writeSimple(_schema, value);
+      const ns = schema.NormalizedSchema.of(_schema);
+      const content = new xmlBuilder.XmlText(nodeContents);
+      const [xmlnsAttr, xmlns] = this.getXmlnsAttribute(ns, parentXmlns);
+      if (xmlns) {
+        into.addAttribute(xmlnsAttr, xmlns);
+      }
+      into.addChildNode(content);
+    }
+    getXmlnsAttribute(ns, parentXmlns) {
+      const traits = ns.getMergedTraits();
+      const [prefix, xmlns] = traits.xmlNamespace ?? [];
+      if (xmlns && xmlns !== parentXmlns) {
+        return [prefix ? `xmlns:${prefix}` : "xmlns", xmlns];
+      }
+      return [undefined, undefined];
+    }
+  }
+
+  class XmlCodec extends SerdeContextConfig {
+    settings;
+    constructor(settings) {
+      super();
+      this.settings = settings;
+    }
+    createSerializer() {
+      const serializer = new XmlShapeSerializer(this.settings);
+      serializer.setSerdeContext(this.serdeContext);
+      return serializer;
+    }
+    createDeserializer() {
+      const deserializer = new XmlShapeDeserializer(this.settings);
+      deserializer.setSerdeContext(this.serdeContext);
+      return deserializer;
+    }
+  }
+
+  class AwsRestXmlProtocol extends protocols.HttpBindingProtocol {
+    codec;
+    serializer;
+    deserializer;
+    mixin = new ProtocolLib;
+    constructor(options) {
+      super(options);
+      const settings = {
+        timestampFormat: {
+          useTrait: true,
+          default: 5
+        },
+        httpBindings: true,
+        xmlNamespace: options.xmlNamespace,
+        serviceNamespace: options.defaultNamespace
+      };
+      this.codec = new XmlCodec(settings);
+      this.serializer = new protocols.HttpInterceptingShapeSerializer(this.codec.createSerializer(), settings);
+      this.deserializer = new protocols.HttpInterceptingShapeDeserializer(this.codec.createDeserializer(), settings);
+    }
+    getPayloadCodec() {
+      return this.codec;
+    }
+    getShapeId() {
+      return "aws.protocols#restXml";
+    }
+    async serializeRequest(operationSchema, input, context) {
+      const request = await super.serializeRequest(operationSchema, input, context);
+      const inputSchema = schema.NormalizedSchema.of(operationSchema.input);
+      if (!request.headers["content-type"]) {
+        const contentType = this.mixin.resolveRestContentType(this.getDefaultContentType(), inputSchema);
+        if (contentType) {
+          request.headers["content-type"] = contentType;
+        }
+      }
+      if (typeof request.body === "string" && request.headers["content-type"] === this.getDefaultContentType() && !request.body.startsWith("<?xml ") && !this.hasUnstructuredPayloadBinding(inputSchema)) {
+        request.body = '<?xml version="1.0" encoding="UTF-8"?>' + request.body;
+      }
+      return request;
+    }
+    async deserializeResponse(operationSchema, context, response) {
+      return super.deserializeResponse(operationSchema, context, response);
+    }
+    async handleError(operationSchema, context, response, dataObject, metadata) {
+      const errorIdentifier = loadRestXmlErrorCode(response, dataObject) ?? "Unknown";
+      this.mixin.compose(this.compositeErrorRegistry, errorIdentifier, this.options.defaultNamespace);
+      if (dataObject.Error && typeof dataObject.Error === "object") {
+        for (const key of Object.keys(dataObject.Error)) {
+          dataObject[key] = dataObject.Error[key];
+          if (key.toLowerCase() === "message") {
+            dataObject.message = dataObject.Error[key];
+          }
+        }
+      }
+      if (dataObject.RequestId && !metadata.requestId) {
+        metadata.requestId = dataObject.RequestId;
+      }
+      const { errorSchema, errorMetadata } = await this.mixin.getErrorSchemaOrThrowBaseException(errorIdentifier, this.options.defaultNamespace, response, dataObject, metadata);
+      const ns = schema.NormalizedSchema.of(errorSchema);
+      const message2 = dataObject.Error?.message ?? dataObject.Error?.Message ?? dataObject.message ?? dataObject.Message ?? "UnknownError";
+      const ErrorCtor = this.compositeErrorRegistry.getErrorCtor(errorSchema) ?? Error;
+      const exception = new ErrorCtor({});
+      await this.deserializeHttpMessage(errorSchema, context, response, dataObject);
+      const output = {};
+      const errorDeserializer = this.codec.createDeserializer();
+      for (const [name, member] of ns.structIterator()) {
+        const target = member.getMergedTraits().xmlName ?? name;
+        const value = dataObject.Error?.[target] ?? dataObject[target];
+        output[name] = errorDeserializer.readSchema(member, value);
+      }
+      throw this.mixin.decorateServiceException(Object.assign(exception, errorMetadata, {
+        $fault: ns.getMergedTraits().error,
+        message: message2
+      }, output), dataObject);
+    }
+    getDefaultContentType() {
+      return "application/xml";
+    }
+    hasUnstructuredPayloadBinding(ns) {
+      for (const [, member] of ns.structIterator()) {
+        if (member.getMergedTraits().httpPayload) {
+          return !(member.isStructSchema() || member.isMapSchema() || member.isListSchema());
+        }
+      }
+      return false;
+    }
+  }
+  exports2.AwsEc2QueryProtocol = AwsEc2QueryProtocol;
+  exports2.AwsJson1_0Protocol = AwsJson1_0Protocol;
+  exports2.AwsJson1_1Protocol = AwsJson1_1Protocol;
+  exports2.AwsJsonRpcProtocol = AwsJsonRpcProtocol;
+  exports2.AwsQueryProtocol = AwsQueryProtocol;
+  exports2.AwsRestJsonProtocol = AwsRestJsonProtocol;
+  exports2.AwsRestXmlProtocol = AwsRestXmlProtocol;
+  exports2.AwsSmithyRpcV2CborProtocol = AwsSmithyRpcV2CborProtocol;
+  exports2.JsonCodec = JsonCodec;
+  exports2.JsonShapeDeserializer = JsonShapeDeserializer;
+  exports2.JsonShapeSerializer = JsonShapeSerializer;
+  exports2.QueryShapeSerializer = QueryShapeSerializer;
+  exports2.XmlCodec = XmlCodec;
+  exports2.XmlShapeDeserializer = XmlShapeDeserializer;
+  exports2.XmlShapeSerializer = XmlShapeSerializer;
+  exports2._toBool = _toBool;
+  exports2._toNum = _toNum;
+  exports2._toStr = _toStr;
+  exports2.awsExpectUnion = awsExpectUnion;
+  exports2.loadJsonRpcErrorCode = loadJsonRpcErrorCode;
+  exports2.loadRestJsonErrorCode = loadRestJsonErrorCode;
+  exports2.loadRestXmlErrorCode = loadRestXmlErrorCode;
+  exports2.parseJsonBody = parseJsonBody;
+  exports2.parseJsonErrorBody = parseJsonErrorBody;
+  exports2.parseXmlBody = parseXmlBody;
+  exports2.parseXmlErrorBody = parseXmlErrorBody;
+});
+
+// ../../node_modules/.bun/@smithy+signature-v4@5.4.4/node_modules/@smithy/signature-v4/dist-cjs/index.js
+var require_dist_cjs10 = __commonJS((exports2) => {
+  var serde = require_serde();
+  var client = require_client();
+  var protocols = require_protocols();
+
+  class HeaderFormatter {
+    format(headers) {
+      const chunks = [];
+      for (const headerName of Object.keys(headers)) {
+        const bytes = serde.fromUtf8(headerName);
+        chunks.push(Uint8Array.from([bytes.byteLength]), bytes, this.formatHeaderValue(headers[headerName]));
+      }
+      const out = new Uint8Array(chunks.reduce((carry, bytes) => carry + bytes.byteLength, 0));
+      let position = 0;
+      for (const chunk of chunks) {
+        out.set(chunk, position);
+        position += chunk.byteLength;
+      }
+      return out;
+    }
+    formatHeaderValue(header) {
+      switch (header.type) {
+        case "boolean":
+          return Uint8Array.from([header.value ? 0 : 1]);
+        case "byte":
+          return Uint8Array.from([2, header.value]);
+        case "short":
+          const shortView = new DataView(new ArrayBuffer(3));
+          shortView.setUint8(0, 3);
+          shortView.setInt16(1, header.value, false);
+          return new Uint8Array(shortView.buffer);
+        case "integer":
+          const intView = new DataView(new ArrayBuffer(5));
+          intView.setUint8(0, 4);
+          intView.setInt32(1, header.value, false);
+          return new Uint8Array(intView.buffer);
+        case "long":
+          const longBytes = new Uint8Array(9);
+          longBytes[0] = 5;
+          longBytes.set(header.value.bytes, 1);
+          return longBytes;
+        case "binary":
+          const binView = new DataView(new ArrayBuffer(3 + header.value.byteLength));
+          binView.setUint8(0, 6);
+          binView.setUint16(1, header.value.byteLength, false);
+          const binBytes = new Uint8Array(binView.buffer);
+          binBytes.set(header.value, 3);
+          return binBytes;
+        case "string":
+          const utf8Bytes = serde.fromUtf8(header.value);
+          const strView = new DataView(new ArrayBuffer(3 + utf8Bytes.byteLength));
+          strView.setUint8(0, 7);
+          strView.setUint16(1, utf8Bytes.byteLength, false);
+          const strBytes = new Uint8Array(strView.buffer);
+          strBytes.set(utf8Bytes, 3);
+          return strBytes;
+        case "timestamp":
+          const tsBytes = new Uint8Array(9);
+          tsBytes[0] = 8;
+          tsBytes.set(Int64.fromNumber(header.value.valueOf()).bytes, 1);
+          return tsBytes;
+        case "uuid":
+          if (!UUID_PATTERN.test(header.value)) {
+            throw new Error(`Invalid UUID received: ${header.value}`);
+          }
+          const uuidBytes = new Uint8Array(17);
+          uuidBytes[0] = 9;
+          uuidBytes.set(serde.fromHex(header.value.replace(/\-/g, "")), 1);
+          return uuidBytes;
+      }
+    }
+  }
+  var HEADER_VALUE_TYPE;
+  (function(HEADER_VALUE_TYPE2) {
+    HEADER_VALUE_TYPE2[HEADER_VALUE_TYPE2["boolTrue"] = 0] = "boolTrue";
+    HEADER_VALUE_TYPE2[HEADER_VALUE_TYPE2["boolFalse"] = 1] = "boolFalse";
+    HEADER_VALUE_TYPE2[HEADER_VALUE_TYPE2["byte"] = 2] = "byte";
+    HEADER_VALUE_TYPE2[HEADER_VALUE_TYPE2["short"] = 3] = "short";
+    HEADER_VALUE_TYPE2[HEADER_VALUE_TYPE2["integer"] = 4] = "integer";
+    HEADER_VALUE_TYPE2[HEADER_VALUE_TYPE2["long"] = 5] = "long";
+    HEADER_VALUE_TYPE2[HEADER_VALUE_TYPE2["byteArray"] = 6] = "byteArray";
+    HEADER_VALUE_TYPE2[HEADER_VALUE_TYPE2["string"] = 7] = "string";
+    HEADER_VALUE_TYPE2[HEADER_VALUE_TYPE2["timestamp"] = 8] = "timestamp";
+    HEADER_VALUE_TYPE2[HEADER_VALUE_TYPE2["uuid"] = 9] = "uuid";
+  })(HEADER_VALUE_TYPE || (HEADER_VALUE_TYPE = {}));
+  var UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
+
+  class Int64 {
+    bytes;
+    constructor(bytes) {
+      this.bytes = bytes;
+      if (bytes.byteLength !== 8) {
+        throw new Error("Int64 buffers must be exactly 8 bytes");
+      }
+    }
+    static fromNumber(number) {
+      if (number > 9223372036854776000 || number < -9223372036854776000) {
+        throw new Error(`${number} is too large (or, if negative, too small) to represent as an Int64`);
+      }
+      const bytes = new Uint8Array(8);
+      for (let i = 7, remaining = Math.abs(Math.round(number));i > -1 && remaining > 0; i--, remaining /= 256) {
+        bytes[i] = remaining;
+      }
+      if (number < 0) {
+        negate(bytes);
+      }
+      return new Int64(bytes);
+    }
+    valueOf() {
+      const bytes = this.bytes.slice(0);
+      const negative = bytes[0] & 128;
+      if (negative) {
+        negate(bytes);
+      }
+      return parseInt(serde.toHex(bytes), 16) * (negative ? -1 : 1);
+    }
+    toString() {
+      return String(this.valueOf());
+    }
+  }
+  function negate(bytes) {
+    for (let i = 0;i < 8; i++) {
+      bytes[i] ^= 255;
+    }
+    for (let i = 7;i > -1; i--) {
+      bytes[i]++;
+      if (bytes[i] !== 0)
+        break;
+    }
+  }
+  var ALGORITHM_QUERY_PARAM = "X-Amz-Algorithm";
+  var CREDENTIAL_QUERY_PARAM = "X-Amz-Credential";
+  var AMZ_DATE_QUERY_PARAM = "X-Amz-Date";
+  var SIGNED_HEADERS_QUERY_PARAM = "X-Amz-SignedHeaders";
+  var EXPIRES_QUERY_PARAM = "X-Amz-Expires";
+  var SIGNATURE_QUERY_PARAM = "X-Amz-Signature";
+  var TOKEN_QUERY_PARAM = "X-Amz-Security-Token";
+  var REGION_SET_PARAM = "X-Amz-Region-Set";
+  var AUTH_HEADER = "authorization";
+  var AMZ_DATE_HEADER = AMZ_DATE_QUERY_PARAM.toLowerCase();
+  var DATE_HEADER = "date";
+  var GENERATED_HEADERS = [AUTH_HEADER, AMZ_DATE_HEADER, DATE_HEADER];
+  var SIGNATURE_HEADER = SIGNATURE_QUERY_PARAM.toLowerCase();
+  var SHA256_HEADER = "x-amz-content-sha256";
+  var TOKEN_HEADER = TOKEN_QUERY_PARAM.toLowerCase();
+  var HOST_HEADER = "host";
+  var ALWAYS_UNSIGNABLE_HEADERS = {
+    authorization: true,
+    "cache-control": true,
+    connection: true,
+    expect: true,
+    from: true,
+    "keep-alive": true,
+    "max-forwards": true,
+    pragma: true,
+    referer: true,
+    te: true,
+    trailer: true,
+    "transfer-encoding": true,
+    upgrade: true,
+    "user-agent": true,
+    "x-amzn-trace-id": true
+  };
+  var PROXY_HEADER_PATTERN = /^proxy-/;
+  var SEC_HEADER_PATTERN = /^sec-/;
+  var UNSIGNABLE_PATTERNS = [/^proxy-/i, /^sec-/i];
+  var ALGORITHM_IDENTIFIER = "AWS4-HMAC-SHA256";
+  var ALGORITHM_IDENTIFIER_V4A = "AWS4-ECDSA-P256-SHA256";
+  var EVENT_ALGORITHM_IDENTIFIER = "AWS4-HMAC-SHA256-PAYLOAD";
+  var UNSIGNED_PAYLOAD = "UNSIGNED-PAYLOAD";
+  var MAX_CACHE_SIZE = 50;
+  var KEY_TYPE_IDENTIFIER = "aws4_request";
+  var MAX_PRESIGNED_TTL = 60 * 60 * 24 * 7;
+  var getCanonicalQuery = ({ query = {} }) => {
+    const keys = [];
+    const serialized = {};
+    for (const key of Object.keys(query)) {
+      if (key.toLowerCase() === SIGNATURE_HEADER) {
+        continue;
+      }
+      const encodedKey = protocols.escapeUri(key);
+      keys.push(encodedKey);
+      const value = query[key];
+      if (typeof value === "string") {
+        serialized[encodedKey] = `${encodedKey}=${protocols.escapeUri(value)}`;
+      } else if (Array.isArray(value)) {
+        serialized[encodedKey] = value.slice(0).reduce((encoded, value2) => encoded.concat([`${encodedKey}=${protocols.escapeUri(value2)}`]), []).sort().join("&");
+      }
+    }
+    return keys.sort().map((key) => serialized[key]).filter((serialized2) => serialized2).join("&");
+  };
+  var iso8601 = (time) => toDate(time).toISOString().replace(/\.\d{3}Z$/, "Z");
+  var toDate = (time) => {
+    if (typeof time === "number") {
+      return new Date(time * 1000);
+    }
+    if (typeof time === "string") {
+      if (Number(time)) {
+        return new Date(Number(time) * 1000);
+      }
+      return new Date(time);
+    }
+    return time;
+  };
+
+  class SignatureV4Base {
+    service;
+    regionProvider;
+    credentialProvider;
+    sha256;
+    uriEscapePath;
+    applyChecksum;
+    constructor({ applyChecksum, credentials, region, service, sha256, uriEscapePath = true }) {
+      this.service = service;
+      this.sha256 = sha256;
+      this.uriEscapePath = uriEscapePath;
+      this.applyChecksum = typeof applyChecksum === "boolean" ? applyChecksum : true;
+      this.regionProvider = client.normalizeProvider(region);
+      this.credentialProvider = client.normalizeProvider(credentials);
+    }
+    createCanonicalRequest(request, canonicalHeaders, payloadHash) {
+      const sortedHeaders = Object.keys(canonicalHeaders).sort();
+      return `${request.method}
+${this.getCanonicalPath(request)}
+${getCanonicalQuery(request)}
+${sortedHeaders.map((name) => `${name}:${canonicalHeaders[name]}`).join(`
+`)}
+
+${sortedHeaders.join(";")}
+${payloadHash}`;
+    }
+    async createStringToSign(longDate, credentialScope, canonicalRequest, algorithmIdentifier) {
+      const hash3 = new this.sha256;
+      hash3.update(serde.toUint8Array(canonicalRequest));
+      const hashedRequest = await hash3.digest();
+      return `${algorithmIdentifier}
+${longDate}
+${credentialScope}
+${serde.toHex(hashedRequest)}`;
+    }
+    getCanonicalPath({ path }) {
+      if (this.uriEscapePath) {
+        const normalizedPathSegments = [];
+        for (const pathSegment of path.split("/")) {
+          if (pathSegment?.length === 0)
+            continue;
+          if (pathSegment === ".")
+            continue;
+          if (pathSegment === "..") {
+            normalizedPathSegments.pop();
+          } else {
+            normalizedPathSegments.push(pathSegment);
+          }
+        }
+        const normalizedPath = `${path?.startsWith("/") ? "/" : ""}${normalizedPathSegments.join("/")}${normalizedPathSegments.length > 0 && path?.endsWith("/") ? "/" : ""}`;
+        const doubleEncoded = protocols.escapeUri(normalizedPath);
+        return doubleEncoded.replace(/%2F/g, "/");
+      }
+      return path;
+    }
+    validateResolvedCredentials(credentials) {
+      if (typeof credentials !== "object" || typeof credentials.accessKeyId !== "string" || typeof credentials.secretAccessKey !== "string") {
+        throw new Error("Resolved credential object is not valid");
+      }
+    }
+    formatDate(now) {
+      const longDate = iso8601(now).replace(/[\-:]/g, "");
+      return {
+        longDate,
+        shortDate: longDate.slice(0, 8)
+      };
+    }
+    getCanonicalHeaderList(headers) {
+      return Object.keys(headers).sort().join(";");
+    }
+  }
+  var signingKeyCache = {};
+  var cacheQueue = [];
+  var createScope = (shortDate, region, service) => `${shortDate}/${region}/${service}/${KEY_TYPE_IDENTIFIER}`;
+  var getSigningKey = async (sha256Constructor, credentials, shortDate, region, service) => {
+    const credsHash = await hmac(sha256Constructor, credentials.secretAccessKey, credentials.accessKeyId);
+    const cacheKey = `${shortDate}:${region}:${service}:${serde.toHex(credsHash)}:${credentials.sessionToken}`;
+    if (cacheKey in signingKeyCache) {
+      return signingKeyCache[cacheKey];
+    }
+    cacheQueue.push(cacheKey);
+    while (cacheQueue.length > MAX_CACHE_SIZE) {
+      delete signingKeyCache[cacheQueue.shift()];
+    }
+    let key = `AWS4${credentials.secretAccessKey}`;
+    for (const signable of [shortDate, region, service, KEY_TYPE_IDENTIFIER]) {
+      key = await hmac(sha256Constructor, key, signable);
+    }
+    return signingKeyCache[cacheKey] = key;
+  };
+  var clearCredentialCache = () => {
+    cacheQueue.length = 0;
+    Object.keys(signingKeyCache).forEach((cacheKey) => {
+      delete signingKeyCache[cacheKey];
+    });
+  };
+  var hmac = (ctor, secret, data) => {
+    const hash3 = new ctor(secret);
+    hash3.update(serde.toUint8Array(data));
+    return hash3.digest();
+  };
+  var getCanonicalHeaders = ({ headers }, unsignableHeaders, signableHeaders) => {
+    const canonical = {};
+    for (const headerName of Object.keys(headers).sort()) {
+      if (headers[headerName] == undefined) {
+        continue;
+      }
+      const canonicalHeaderName = headerName.toLowerCase();
+      if (canonicalHeaderName in ALWAYS_UNSIGNABLE_HEADERS || unsignableHeaders?.has(canonicalHeaderName) || PROXY_HEADER_PATTERN.test(canonicalHeaderName) || SEC_HEADER_PATTERN.test(canonicalHeaderName)) {
+        if (!signableHeaders || signableHeaders && !signableHeaders.has(canonicalHeaderName)) {
+          continue;
+        }
+      }
+      canonical[canonicalHeaderName] = headers[headerName].trim().replace(/\s+/g, " ");
+    }
+    return canonical;
+  };
+  var getPayloadHash = async ({ headers, body }, hashConstructor) => {
+    for (const headerName of Object.keys(headers)) {
+      if (headerName.toLowerCase() === SHA256_HEADER) {
+        return headers[headerName];
+      }
+    }
+    if (body == undefined) {
+      return "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+    } else if (typeof body === "string" || ArrayBuffer.isView(body) || serde.isArrayBuffer(body)) {
+      const hashCtor = new hashConstructor;
+      hashCtor.update(serde.toUint8Array(body));
+      return serde.toHex(await hashCtor.digest());
+    }
+    return UNSIGNED_PAYLOAD;
+  };
+  var hasHeader = (soughtHeader, headers) => {
+    soughtHeader = soughtHeader.toLowerCase();
+    for (const headerName of Object.keys(headers)) {
+      if (soughtHeader === headerName.toLowerCase()) {
+        return true;
+      }
+    }
+    return false;
+  };
+  var moveHeadersToQuery = (request, options = {}) => {
+    const { headers, query = {} } = protocols.HttpRequest.clone(request);
+    for (const name of Object.keys(headers)) {
+      const lname = name.toLowerCase();
+      if (lname.slice(0, 6) === "x-amz-" && !options.unhoistableHeaders?.has(lname) || options.hoistableHeaders?.has(lname)) {
+        query[name] = headers[name];
+        delete headers[name];
+      }
+    }
+    return {
+      ...request,
+      headers,
+      query
+    };
+  };
+  var prepareRequest = (request) => {
+    request = protocols.HttpRequest.clone(request);
+    for (const headerName of Object.keys(request.headers)) {
+      if (GENERATED_HEADERS.indexOf(headerName.toLowerCase()) > -1) {
+        delete request.headers[headerName];
+      }
+    }
+    return request;
+  };
+
+  class SignatureV4 extends SignatureV4Base {
+    headerFormatter = new HeaderFormatter;
+    constructor({ applyChecksum, credentials, region, service, sha256, uriEscapePath = true }) {
+      super({
+        applyChecksum,
+        credentials,
+        region,
+        service,
+        sha256,
+        uriEscapePath
+      });
+    }
+    async presign(originalRequest, options = {}) {
+      const { signingDate = new Date, expiresIn = 3600, unsignableHeaders, unhoistableHeaders, signableHeaders, hoistableHeaders, signingRegion, signingService } = options;
+      const credentials = await this.credentialProvider();
+      this.validateResolvedCredentials(credentials);
+      const region = signingRegion ?? await this.regionProvider();
+      const { longDate, shortDate } = this.formatDate(signingDate);
+      if (expiresIn > MAX_PRESIGNED_TTL) {
+        return Promise.reject("Signature version 4 presigned URLs" + " must have an expiration date less than one week in" + " the future");
+      }
+      const scope = createScope(shortDate, region, signingService ?? this.service);
+      const request = moveHeadersToQuery(prepareRequest(originalRequest), { unhoistableHeaders, hoistableHeaders });
+      if (credentials.sessionToken) {
+        request.query[TOKEN_QUERY_PARAM] = credentials.sessionToken;
+      }
+      request.query[ALGORITHM_QUERY_PARAM] = ALGORITHM_IDENTIFIER;
+      request.query[CREDENTIAL_QUERY_PARAM] = `${credentials.accessKeyId}/${scope}`;
+      request.query[AMZ_DATE_QUERY_PARAM] = longDate;
+      request.query[EXPIRES_QUERY_PARAM] = expiresIn.toString(10);
+      const canonicalHeaders = getCanonicalHeaders(request, unsignableHeaders, signableHeaders);
+      request.query[SIGNED_HEADERS_QUERY_PARAM] = this.getCanonicalHeaderList(canonicalHeaders);
+      request.query[SIGNATURE_QUERY_PARAM] = await this.getSignature(longDate, scope, this.getSigningKey(credentials, region, shortDate, signingService), this.createCanonicalRequest(request, canonicalHeaders, await getPayloadHash(originalRequest, this.sha256)));
+      return request;
+    }
+    async sign(toSign, options) {
+      if (typeof toSign === "string") {
+        return this.signString(toSign, options);
+      } else if (toSign.headers && toSign.payload) {
+        return this.signEvent(toSign, options);
+      } else if (toSign.message) {
+        return this.signMessage(toSign, options);
+      } else {
+        return this.signRequest(toSign, options);
+      }
+    }
+    async signEvent({ headers, payload }, { signingDate = new Date, priorSignature, signingRegion, signingService, eventStreamCredentials }) {
+      const region = signingRegion ?? await this.regionProvider();
+      const { shortDate, longDate } = this.formatDate(signingDate);
+      const scope = createScope(shortDate, region, signingService ?? this.service);
+      const hashedPayload = await getPayloadHash({ headers: {}, body: payload }, this.sha256);
+      const hash3 = new this.sha256;
+      hash3.update(headers);
+      const hashedHeaders = serde.toHex(await hash3.digest());
+      const stringToSign = [
+        EVENT_ALGORITHM_IDENTIFIER,
+        longDate,
+        scope,
+        priorSignature,
+        hashedHeaders,
+        hashedPayload
+      ].join(`
+`);
+      return this.signString(stringToSign, {
+        signingDate,
+        signingRegion: region,
+        signingService,
+        eventStreamCredentials
+      });
+    }
+    async signMessage(signableMessage, { signingDate = new Date, signingRegion, signingService, eventStreamCredentials }) {
+      const promise = this.signEvent({
+        headers: this.headerFormatter.format(signableMessage.message.headers),
+        payload: signableMessage.message.body
+      }, {
+        signingDate,
+        signingRegion,
+        signingService,
+        priorSignature: signableMessage.priorSignature,
+        eventStreamCredentials
+      });
+      return promise.then((signature) => {
+        return { message: signableMessage.message, signature };
+      });
+    }
+    async signString(stringToSign, { signingDate = new Date, signingRegion, signingService, eventStreamCredentials } = {}) {
+      const credentials = eventStreamCredentials ?? await this.credentialProvider();
+      this.validateResolvedCredentials(credentials);
+      const region = signingRegion ?? await this.regionProvider();
+      const { shortDate } = this.formatDate(signingDate);
+      const hash3 = new this.sha256(await this.getSigningKey(credentials, region, shortDate, signingService));
+      hash3.update(serde.toUint8Array(stringToSign));
+      return serde.toHex(await hash3.digest());
+    }
+    async signRequest(requestToSign, { signingDate = new Date, signableHeaders, unsignableHeaders, signingRegion, signingService } = {}) {
+      const credentials = await this.credentialProvider();
+      this.validateResolvedCredentials(credentials);
+      const region = signingRegion ?? await this.regionProvider();
+      const request = prepareRequest(requestToSign);
+      const { longDate, shortDate } = this.formatDate(signingDate);
+      const scope = createScope(shortDate, region, signingService ?? this.service);
+      request.headers[AMZ_DATE_HEADER] = longDate;
+      if (credentials.sessionToken) {
+        request.headers[TOKEN_HEADER] = credentials.sessionToken;
+      }
+      const payloadHash = await getPayloadHash(request, this.sha256);
+      if (!hasHeader(SHA256_HEADER, request.headers) && this.applyChecksum) {
+        request.headers[SHA256_HEADER] = payloadHash;
+      }
+      const canonicalHeaders = getCanonicalHeaders(request, unsignableHeaders, signableHeaders);
+      const signature = await this.getSignature(longDate, scope, this.getSigningKey(credentials, region, shortDate, signingService), this.createCanonicalRequest(request, canonicalHeaders, payloadHash));
+      request.headers[AUTH_HEADER] = `${ALGORITHM_IDENTIFIER} ` + `Credential=${credentials.accessKeyId}/${scope}, ` + `SignedHeaders=${this.getCanonicalHeaderList(canonicalHeaders)}, ` + `Signature=${signature}`;
+      return request;
+    }
+    async getSignature(longDate, credentialScope, keyPromise, canonicalRequest) {
+      const stringToSign = await this.createStringToSign(longDate, credentialScope, canonicalRequest, ALGORITHM_IDENTIFIER);
+      const hash3 = new this.sha256(await keyPromise);
+      hash3.update(serde.toUint8Array(stringToSign));
+      return serde.toHex(await hash3.digest());
+    }
+    getSigningKey(credentials, region, shortDate, service) {
+      return getSigningKey(this.sha256, credentials, shortDate, region, service || this.service);
+    }
+  }
+  var signatureV4aContainer = {
+    SignatureV4a: null
+  };
+  exports2.ALGORITHM_IDENTIFIER = ALGORITHM_IDENTIFIER;
+  exports2.ALGORITHM_IDENTIFIER_V4A = ALGORITHM_IDENTIFIER_V4A;
+  exports2.ALGORITHM_QUERY_PARAM = ALGORITHM_QUERY_PARAM;
+  exports2.ALWAYS_UNSIGNABLE_HEADERS = ALWAYS_UNSIGNABLE_HEADERS;
+  exports2.AMZ_DATE_HEADER = AMZ_DATE_HEADER;
+  exports2.AMZ_DATE_QUERY_PARAM = AMZ_DATE_QUERY_PARAM;
+  exports2.AUTH_HEADER = AUTH_HEADER;
+  exports2.CREDENTIAL_QUERY_PARAM = CREDENTIAL_QUERY_PARAM;
+  exports2.DATE_HEADER = DATE_HEADER;
+  exports2.EVENT_ALGORITHM_IDENTIFIER = EVENT_ALGORITHM_IDENTIFIER;
+  exports2.EXPIRES_QUERY_PARAM = EXPIRES_QUERY_PARAM;
+  exports2.GENERATED_HEADERS = GENERATED_HEADERS;
+  exports2.HOST_HEADER = HOST_HEADER;
+  exports2.KEY_TYPE_IDENTIFIER = KEY_TYPE_IDENTIFIER;
+  exports2.MAX_CACHE_SIZE = MAX_CACHE_SIZE;
+  exports2.MAX_PRESIGNED_TTL = MAX_PRESIGNED_TTL;
+  exports2.PROXY_HEADER_PATTERN = PROXY_HEADER_PATTERN;
+  exports2.REGION_SET_PARAM = REGION_SET_PARAM;
+  exports2.SEC_HEADER_PATTERN = SEC_HEADER_PATTERN;
+  exports2.SHA256_HEADER = SHA256_HEADER;
+  exports2.SIGNATURE_HEADER = SIGNATURE_HEADER;
+  exports2.SIGNATURE_QUERY_PARAM = SIGNATURE_QUERY_PARAM;
+  exports2.SIGNED_HEADERS_QUERY_PARAM = SIGNED_HEADERS_QUERY_PARAM;
+  exports2.SignatureV4 = SignatureV4;
+  exports2.SignatureV4Base = SignatureV4Base;
+  exports2.TOKEN_HEADER = TOKEN_HEADER;
+  exports2.TOKEN_QUERY_PARAM = TOKEN_QUERY_PARAM;
+  exports2.UNSIGNABLE_PATTERNS = UNSIGNABLE_PATTERNS;
+  exports2.UNSIGNED_PAYLOAD = UNSIGNED_PAYLOAD;
+  exports2.clearCredentialCache = clearCredentialCache;
+  exports2.createScope = createScope;
+  exports2.getCanonicalHeaders = getCanonicalHeaders;
+  exports2.getCanonicalQuery = getCanonicalQuery;
+  exports2.getPayloadHash = getPayloadHash;
+  exports2.getSigningKey = getSigningKey;
+  exports2.hasHeader = hasHeader;
+  exports2.moveHeadersToQuery = moveHeadersToQuery;
+  exports2.prepareRequest = prepareRequest;
+  exports2.signatureV4aContainer = signatureV4aContainer;
+});
+
+// ../../node_modules/.bun/@aws-sdk+signature-v4-multi-region@3.996.28/node_modules/@aws-sdk/signature-v4-multi-region/dist-cjs/index.js
+var require_dist_cjs11 = __commonJS((exports2) => {
+  var signatureV4 = require_dist_cjs10();
+  var signatureV4CrtContainer = {
+    CrtSignerV4: null
+  };
+  var SESSION_TOKEN_QUERY_PARAM = "X-Amz-S3session-Token";
+  var SESSION_TOKEN_HEADER = SESSION_TOKEN_QUERY_PARAM.toLowerCase();
+
+  class SignatureV4SignWithCredentials extends signatureV4.SignatureV4 {
+    async signWithCredentials(requestToSign, credentials, options) {
+      const credentialsWithoutSessionToken = getCredentialsWithoutSessionToken(credentials);
+      requestToSign.headers[SESSION_TOKEN_HEADER] = credentials.sessionToken;
+      const privateAccess = this;
+      setSingleOverride(privateAccess, credentialsWithoutSessionToken);
+      return privateAccess.signRequest(requestToSign, options ?? {});
+    }
+    async presignWithCredentials(requestToSign, credentials, options) {
+      const credentialsWithoutSessionToken = getCredentialsWithoutSessionToken(credentials);
+      delete requestToSign.headers[SESSION_TOKEN_HEADER];
+      requestToSign.headers[SESSION_TOKEN_QUERY_PARAM] = credentials.sessionToken;
+      requestToSign.query = requestToSign.query ?? {};
+      requestToSign.query[SESSION_TOKEN_QUERY_PARAM] = credentials.sessionToken;
+      const privateAccess = this;
+      setSingleOverride(privateAccess, credentialsWithoutSessionToken);
+      return this.presign(requestToSign, options);
+    }
+  }
+  function getCredentialsWithoutSessionToken(credentials) {
+    return {
+      accessKeyId: credentials.accessKeyId,
+      secretAccessKey: credentials.secretAccessKey,
+      expiration: credentials.expiration
+    };
+  }
+  function setSingleOverride(privateAccess, credentialsWithoutSessionToken) {
+    const currentCredentialProvider = privateAccess.credentialProvider;
+    privateAccess.credentialProvider = () => {
+      privateAccess.credentialProvider = currentCredentialProvider;
+      return Promise.resolve(credentialsWithoutSessionToken);
+    };
+  }
+
+  class SignatureV4MultiRegion {
+    sigv4aSigner;
+    sigv4Signer;
+    signerOptions;
+    static sigv4aDependency() {
+      if (typeof signatureV4CrtContainer.CrtSignerV4 === "function") {
+        return "crt";
+      } else if (typeof signatureV4.signatureV4aContainer.SignatureV4a === "function") {
+        return "js";
+      }
+      return "none";
+    }
+    constructor(options) {
+      this.sigv4Signer = new SignatureV4SignWithCredentials(options);
+      this.signerOptions = options;
+    }
+    async sign(requestToSign, options = {}) {
+      if (options.signingRegion === "*") {
+        return this.getSigv4aSigner().sign(requestToSign, options);
+      }
+      return this.sigv4Signer.sign(requestToSign, options);
+    }
+    async signWithCredentials(requestToSign, credentials, options = {}) {
+      if (options.signingRegion === "*") {
+        const signer = this.getSigv4aSigner();
+        const CrtSignerV4 = signatureV4CrtContainer.CrtSignerV4;
+        if (CrtSignerV4 && signer instanceof CrtSignerV4) {
+          return signer.signWithCredentials(requestToSign, credentials, options);
+        } else {
+          throw new Error(`signWithCredentials with signingRegion '*' is only supported when using the CRT dependency @aws-sdk/signature-v4-crt. ` + `Please check whether you have installed the "@aws-sdk/signature-v4-crt" package explicitly. ` + `You must also register the package by calling [require("@aws-sdk/signature-v4-crt");] ` + `or an ESM equivalent such as [import "@aws-sdk/signature-v4-crt";]. ` + `For more information please go to https://github.com/aws/aws-sdk-js-v3#functionality-requiring-aws-common-runtime-crt`);
+        }
+      }
+      return this.sigv4Signer.signWithCredentials(requestToSign, credentials, options);
+    }
+    async presign(originalRequest, options = {}) {
+      if (options.signingRegion === "*") {
+        const signer = this.getSigv4aSigner();
+        const CrtSignerV4 = signatureV4CrtContainer.CrtSignerV4;
+        if (CrtSignerV4 && signer instanceof CrtSignerV4) {
+          return signer.presign(originalRequest, options);
+        } else {
+          throw new Error(`presign with signingRegion '*' is only supported when using the CRT dependency @aws-sdk/signature-v4-crt. ` + `Please check whether you have installed the "@aws-sdk/signature-v4-crt" package explicitly. ` + `You must also register the package by calling [require("@aws-sdk/signature-v4-crt");] ` + `or an ESM equivalent such as [import "@aws-sdk/signature-v4-crt";]. ` + `For more information please go to https://github.com/aws/aws-sdk-js-v3#functionality-requiring-aws-common-runtime-crt`);
+        }
+      }
+      return this.sigv4Signer.presign(originalRequest, options);
+    }
+    async presignWithCredentials(originalRequest, credentials, options = {}) {
+      if (options.signingRegion === "*") {
+        throw new Error("Method presignWithCredentials is not supported for [signingRegion=*].");
+      }
+      return this.sigv4Signer.presignWithCredentials(originalRequest, credentials, options);
+    }
+    getSigv4aSigner() {
+      if (!this.sigv4aSigner) {
+        const CrtSignerV4 = signatureV4CrtContainer.CrtSignerV4;
+        const JsSigV4aSigner = signatureV4.signatureV4aContainer.SignatureV4a;
+        if (this.signerOptions.runtime === "node") {
+          if (!CrtSignerV4 && !JsSigV4aSigner) {
+            throw new Error("Neither CRT nor JS SigV4a implementation is available. " + "Please load either @aws-sdk/signature-v4-crt or @aws-sdk/signature-v4a. " + "For more information please go to " + "https://github.com/aws/aws-sdk-js-v3#functionality-requiring-aws-common-runtime-crt");
+          }
+          if (CrtSignerV4 && typeof CrtSignerV4 === "function") {
+            this.sigv4aSigner = new CrtSignerV4({
+              ...this.signerOptions,
+              signingAlgorithm: 1
+            });
+          } else if (JsSigV4aSigner && typeof JsSigV4aSigner === "function") {
+            this.sigv4aSigner = new JsSigV4aSigner({
+              ...this.signerOptions
+            });
+          } else {
+            throw new Error("Available SigV4a implementation is not a valid constructor. " + "Please ensure you've properly imported @aws-sdk/signature-v4-crt or @aws-sdk/signature-v4a." + "For more information please go to " + "https://github.com/aws/aws-sdk-js-v3#functionality-requiring-aws-common-runtime-crt");
+          }
+        } else {
+          if (!JsSigV4aSigner || typeof JsSigV4aSigner !== "function") {
+            throw new Error("JS SigV4a implementation is not available or not a valid constructor. " + "Please check whether you have installed the @aws-sdk/signature-v4a package explicitly. The CRT implementation is not available for browsers. " + "You must also register the package by calling [require('@aws-sdk/signature-v4a');] " + "or an ESM equivalent such as [import '@aws-sdk/signature-v4a';]. " + "For more information please go to " + "https://github.com/aws/aws-sdk-js-v3#using-javascript-non-crt-implementation-of-sigv4a");
+          }
+          this.sigv4aSigner = new JsSigV4aSigner({
+            ...this.signerOptions
+          });
+        }
+      }
+      return this.sigv4aSigner;
+    }
+  }
+  exports2.SignatureV4MultiRegion = SignatureV4MultiRegion;
+  exports2.SignatureV4SignWithCredentials = SignatureV4SignWithCredentials;
+  exports2.signatureV4CrtContainer = signatureV4CrtContainer;
+});
+
+// ../../node_modules/.bun/@aws-sdk+middleware-sdk-s3@3.972.42/node_modules/@aws-sdk/middleware-sdk-s3/dist-cjs/index.js
+var require_dist_cjs12 = __commonJS((exports2) => {
+  var client = require_client();
+  var protocols = require_protocols();
+  var serde = require_serde();
+  var toStream = require_toStream();
+  var util = require_util();
+  var protocols$1 = require_protocols2();
+  var schema = require_schema4();
+  var signatureV4MultiRegion = require_dist_cjs11();
+  var config = require_config();
+  var client$1 = require_client2();
+  var core = require_dist_cjs5();
+  var CONTENT_LENGTH_HEADER = "content-length";
+  var DECODED_CONTENT_LENGTH_HEADER = "x-amz-decoded-content-length";
+  function checkContentLengthHeader() {
+    return (next, context) => async (args) => {
+      const { request } = args;
+      if (protocols.HttpRequest.isInstance(request)) {
+        if (!(CONTENT_LENGTH_HEADER in request.headers) && !(DECODED_CONTENT_LENGTH_HEADER in request.headers)) {
+          const message2 = `Are you using a Stream of unknown length as the Body of a PutObject request? Consider using Upload instead from @aws-sdk/lib-storage.`;
+          if (typeof context?.logger?.warn === "function" && !(context.logger instanceof client.NoOpLogger)) {
+            context.logger.warn(message2);
+          } else {
+            console.warn(message2);
+          }
+        }
+      }
+      return next({ ...args });
+    };
+  }
+  var checkContentLengthHeaderMiddlewareOptions = {
+    step: "finalizeRequest",
+    tags: ["CHECK_CONTENT_LENGTH_HEADER"],
+    name: "getCheckContentLengthHeaderPlugin",
+    override: true
+  };
+  var getCheckContentLengthHeaderPlugin = (unused) => ({
+    applyToStack: (clientStack) => {
+      clientStack.add(checkContentLengthHeader(), checkContentLengthHeaderMiddlewareOptions);
+    }
+  });
+  var regionRedirectEndpointMiddleware = (config2) => {
+    return (next, context) => async (args) => {
+      const originalRegion = await config2.region();
+      const regionProviderRef = config2.region;
+      let unlock = () => {};
+      if (context.__s3RegionRedirect) {
+        Object.defineProperty(config2, "region", {
+          writable: false,
+          value: async () => {
+            return context.__s3RegionRedirect;
+          }
+        });
+        unlock = () => Object.defineProperty(config2, "region", {
+          writable: true,
+          value: regionProviderRef
+        });
+      }
+      try {
+        const result = await next(args);
+        if (context.__s3RegionRedirect) {
+          unlock();
+          const region = await config2.region();
+          if (originalRegion !== region) {
+            throw new Error("Region was not restored following S3 region redirect.");
+          }
+        }
+        return result;
+      } catch (e) {
+        unlock();
+        throw e;
+      }
+    };
+  };
+  var regionRedirectEndpointMiddlewareOptions = {
+    tags: ["REGION_REDIRECT", "S3"],
+    name: "regionRedirectEndpointMiddleware",
+    override: true,
+    relation: "before",
+    toMiddleware: "endpointV2Middleware"
+  };
+  function regionRedirectMiddleware(clientConfig) {
+    return (next, context) => async (args) => {
+      try {
+        return await next(args);
+      } catch (err) {
+        if (clientConfig.followRegionRedirects) {
+          const statusCode = err?.$metadata?.httpStatusCode;
+          const isHeadBucket = context.commandName === "HeadBucketCommand";
+          const bucketRegionHeader = err?.$response?.headers?.["x-amz-bucket-region"];
+          if (bucketRegionHeader) {
+            if (statusCode === 301 || statusCode === 400 && (err?.name === "IllegalLocationConstraintException" || isHeadBucket)) {
+              try {
+                const actualRegion = bucketRegionHeader;
+                context.logger?.debug(`Redirecting from ${await clientConfig.region()} to ${actualRegion}`);
+                context.__s3RegionRedirect = actualRegion;
+              } catch (e) {
+                throw new Error("Region redirect failed: " + e);
+              }
+              return next(args);
+            }
+          }
+        }
+        throw err;
+      }
+    };
+  }
+  var regionRedirectMiddlewareOptions = {
+    step: "initialize",
+    tags: ["REGION_REDIRECT", "S3"],
+    name: "regionRedirectMiddleware",
+    override: true
+  };
+  var getRegionRedirectMiddlewarePlugin = (clientConfig) => ({
+    applyToStack: (clientStack) => {
+      clientStack.add(regionRedirectMiddleware(clientConfig), regionRedirectMiddlewareOptions);
+      clientStack.addRelativeTo(regionRedirectEndpointMiddleware(clientConfig), regionRedirectEndpointMiddlewareOptions);
+    }
+  });
+  var s3ExpiresMiddleware = (config2) => {
+    return (next, context) => async (args) => {
+      const result = await next(args);
+      const { response } = result;
+      if (protocols.HttpResponse.isInstance(response)) {
+        if (response.headers.expires) {
+          response.headers.expiresstring = response.headers.expires;
+          try {
+            serde.parseRfc7231DateTime(response.headers.expires);
+          } catch (e) {
+            context.logger?.warn(`AWS SDK Warning for ${context.clientName}::${context.commandName} response parsing (${response.headers.expires}): ${e}`);
+            delete response.headers.expires;
+          }
+        }
+      }
+      return result;
+    };
+  };
+  var s3ExpiresMiddlewareOptions = {
+    tags: ["S3"],
+    name: "s3ExpiresMiddleware",
+    override: true,
+    relation: "after",
+    toMiddleware: "deserializerMiddleware"
+  };
+  var getS3ExpiresMiddlewarePlugin = (clientConfig) => ({
+    applyToStack: (clientStack) => {
+      clientStack.addRelativeTo(s3ExpiresMiddleware(), s3ExpiresMiddlewareOptions);
+    }
+  });
+
+  class S3ExpressIdentityCache {
+    data;
+    lastPurgeTime = Date.now();
+    static EXPIRED_CREDENTIAL_PURGE_INTERVAL_MS = 30000;
+    constructor(data = {}) {
+      this.data = data;
+    }
+    get(key) {
+      const entry = this.data[key];
+      if (!entry) {
+        return;
+      }
+      return entry;
+    }
+    set(key, entry) {
+      this.data[key] = entry;
+      return entry;
+    }
+    delete(key) {
+      delete this.data[key];
+    }
+    async purgeExpired() {
+      const now = Date.now();
+      if (this.lastPurgeTime + S3ExpressIdentityCache.EXPIRED_CREDENTIAL_PURGE_INTERVAL_MS > now) {
+        return;
+      }
+      for (const key in this.data) {
+        const entry = this.data[key];
+        if (!entry.isRefreshing) {
+          const credential = await entry.identity;
+          if (credential.expiration) {
+            if (credential.expiration.getTime() < now) {
+              delete this.data[key];
+            }
+          }
+        }
+      }
+    }
+  }
+
+  class S3ExpressIdentityCacheEntry {
+    _identity;
+    isRefreshing;
+    accessed;
+    constructor(_identity, isRefreshing = false, accessed = Date.now()) {
+      this._identity = _identity;
+      this.isRefreshing = isRefreshing;
+      this.accessed = accessed;
+    }
+    get identity() {
+      this.accessed = Date.now();
+      return this._identity;
+    }
+  }
+
+  class S3ExpressIdentityProviderImpl {
+    createSessionFn;
+    cache;
+    static REFRESH_WINDOW_MS = 60000;
+    constructor(createSessionFn, cache2 = new S3ExpressIdentityCache) {
+      this.createSessionFn = createSessionFn;
+      this.cache = cache2;
+    }
+    async getS3ExpressIdentity(awsIdentity, identityProperties) {
+      const key = identityProperties.Bucket;
+      const { cache: cache2 } = this;
+      const entry = cache2.get(key);
+      if (entry) {
+        return entry.identity.then((identity) => {
+          const isExpired = (identity.expiration?.getTime() ?? 0) < Date.now();
+          if (isExpired) {
+            return cache2.set(key, new S3ExpressIdentityCacheEntry(this.getIdentity(key))).identity;
+          }
+          const isExpiringSoon = (identity.expiration?.getTime() ?? 0) < Date.now() + S3ExpressIdentityProviderImpl.REFRESH_WINDOW_MS;
+          if (isExpiringSoon && !entry.isRefreshing) {
+            entry.isRefreshing = true;
+            this.getIdentity(key).then((id) => {
+              cache2.set(key, new S3ExpressIdentityCacheEntry(Promise.resolve(id)));
+            });
+          }
+          return identity;
+        });
+      }
+      return cache2.set(key, new S3ExpressIdentityCacheEntry(this.getIdentity(key))).identity;
+    }
+    async getIdentity(key) {
+      await this.cache.purgeExpired().catch((error) => {
+        console.warn(`Error while clearing expired entries in S3ExpressIdentityCache: 
+` + error);
+      });
+      const session = await this.createSessionFn(key);
+      if (!session.Credentials?.AccessKeyId || !session.Credentials?.SecretAccessKey) {
+        throw new Error("s3#createSession response credential missing AccessKeyId or SecretAccessKey.");
+      }
+      const identity = {
+        accessKeyId: session.Credentials.AccessKeyId,
+        secretAccessKey: session.Credentials.SecretAccessKey,
+        sessionToken: session.Credentials.SessionToken,
+        expiration: session.Credentials.Expiration ? new Date(session.Credentials.Expiration) : undefined
+      };
+      return identity;
+    }
+  }
+
+  class SignatureV4S3Express extends signatureV4MultiRegion.SignatureV4SignWithCredentials {
+  }
+  var S3_EXPRESS_BUCKET_TYPE = "Directory";
+  var S3_EXPRESS_BACKEND = "S3Express";
+  var S3_EXPRESS_AUTH_SCHEME = "sigv4-s3express";
+  var SESSION_TOKEN_QUERY_PARAM = "X-Amz-S3session-Token";
+  var SESSION_TOKEN_HEADER = SESSION_TOKEN_QUERY_PARAM.toLowerCase();
+  var NODE_DISABLE_S3_EXPRESS_SESSION_AUTH_ENV_NAME = "AWS_S3_DISABLE_EXPRESS_SESSION_AUTH";
+  var NODE_DISABLE_S3_EXPRESS_SESSION_AUTH_INI_NAME = "s3_disable_express_session_auth";
+  var NODE_DISABLE_S3_EXPRESS_SESSION_AUTH_OPTIONS = {
+    environmentVariableSelector: (env4) => config.booleanSelector(env4, NODE_DISABLE_S3_EXPRESS_SESSION_AUTH_ENV_NAME, config.SelectorType.ENV),
+    configFileSelector: (profile) => config.booleanSelector(profile, NODE_DISABLE_S3_EXPRESS_SESSION_AUTH_INI_NAME, config.SelectorType.CONFIG),
+    default: false
+  };
+  var s3ExpressMiddleware = (options) => {
+    return (next, context) => async (args) => {
+      if (context.endpointV2) {
+        const endpoint = context.endpointV2;
+        const isS3ExpressAuth = endpoint.properties?.authSchemes?.[0]?.name === S3_EXPRESS_AUTH_SCHEME;
+        const isS3ExpressBucket = endpoint.properties?.backend === S3_EXPRESS_BACKEND || endpoint.properties?.bucketType === S3_EXPRESS_BUCKET_TYPE;
+        if (isS3ExpressBucket) {
+          client$1.setFeature(context, "S3_EXPRESS_BUCKET", "J");
+          context.isS3ExpressBucket = true;
+        }
+        if (isS3ExpressAuth) {
+          const requestBucket = args.input.Bucket;
+          if (requestBucket) {
+            const s3ExpressIdentity = await options.s3ExpressIdentityProvider.getS3ExpressIdentity(await options.credentials(), {
+              Bucket: requestBucket
+            });
+            context.s3ExpressIdentity = s3ExpressIdentity;
+            if (protocols.HttpRequest.isInstance(args.request) && s3ExpressIdentity.sessionToken) {
+              args.request.headers[SESSION_TOKEN_HEADER] = s3ExpressIdentity.sessionToken;
+            }
+          }
+        }
+      }
+      return next(args);
+    };
+  };
+  var s3ExpressMiddlewareOptions = {
+    name: "s3ExpressMiddleware",
+    step: "build",
+    tags: ["S3", "S3_EXPRESS"],
+    override: true
+  };
+  var getS3ExpressPlugin = (options) => ({
+    applyToStack: (clientStack) => {
+      clientStack.add(s3ExpressMiddleware(options), s3ExpressMiddlewareOptions);
+    }
+  });
+  var signS3Express = async (s3ExpressIdentity, signingOptions, request, sigV4MultiRegionSigner) => {
+    const signedRequest = await sigV4MultiRegionSigner.signWithCredentials(request, s3ExpressIdentity, {});
+    if (signedRequest.headers["X-Amz-Security-Token"] || signedRequest.headers["x-amz-security-token"]) {
+      throw new Error("X-Amz-Security-Token must not be set for s3-express requests.");
+    }
+    return signedRequest;
+  };
+  var defaultErrorHandler = (signingProperties) => (error) => {
+    throw error;
+  };
+  var defaultSuccessHandler = (httpResponse, signingProperties) => {};
+  var s3ExpressHttpSigningMiddlewareOptions = core.httpSigningMiddlewareOptions;
+  var s3ExpressHttpSigningMiddleware = (config2) => (next, context) => async (args) => {
+    if (!protocols.HttpRequest.isInstance(args.request)) {
+      return next(args);
+    }
+    const smithyContext = client.getSmithyContext(context);
+    const scheme = smithyContext.selectedHttpAuthScheme;
+    if (!scheme) {
+      throw new Error(`No HttpAuthScheme was selected: unable to sign request`);
+    }
+    const { httpAuthOption: { signingProperties = {} }, identity, signer } = scheme;
+    let request;
+    if (context.s3ExpressIdentity) {
+      request = await signS3Express(context.s3ExpressIdentity, signingProperties, args.request, await config2.signer());
+    } else {
+      request = await signer.sign(args.request, identity, signingProperties);
+    }
+    const output = await next({
+      ...args,
+      request
+    }).catch((signer.errorHandler || defaultErrorHandler)(signingProperties));
+    (signer.successHandler || defaultSuccessHandler)(output.response, signingProperties);
+    return output;
+  };
+  var getS3ExpressHttpSigningPlugin = (config2) => ({
+    applyToStack: (clientStack) => {
+      clientStack.addRelativeTo(s3ExpressHttpSigningMiddleware(config2), core.httpSigningMiddlewareOptions);
+    }
+  });
+  var resolveS3Config = (input, { session }) => {
+    const [s3ClientProvider, CreateSessionCommandCtor] = session;
+    const { forcePathStyle, useAccelerateEndpoint, disableMultiregionAccessPoints, followRegionRedirects, s3ExpressIdentityProvider, bucketEndpoint, expectContinueHeader } = input;
+    return Object.assign(input, {
+      forcePathStyle: forcePathStyle ?? false,
+      useAccelerateEndpoint: useAccelerateEndpoint ?? false,
+      disableMultiregionAccessPoints: disableMultiregionAccessPoints ?? false,
+      followRegionRedirects: followRegionRedirects ?? false,
+      s3ExpressIdentityProvider: s3ExpressIdentityProvider ?? new S3ExpressIdentityProviderImpl(async (key) => s3ClientProvider().send(new CreateSessionCommandCtor({
+        Bucket: key
+      }))),
+      bucketEndpoint: bucketEndpoint ?? false,
+      expectContinueHeader: expectContinueHeader ?? 2097152
+    });
+  };
+  var THROW_IF_EMPTY_BODY = {
+    CopyObjectCommand: true,
+    UploadPartCopyCommand: true,
+    CompleteMultipartUploadCommand: true
+  };
+  var throw200ExceptionsMiddleware = (config2) => (next, context) => async (args) => {
+    const result = await next(args);
+    const { response } = result;
+    if (!protocols.HttpResponse.isInstance(response)) {
+      return result;
+    }
+    const { statusCode, body } = response;
+    if (statusCode < 200 || statusCode >= 300) {
+      return result;
+    }
+    const bodyBytes = await collectBody(body, config2);
+    response.body = toStream.toStream(bodyBytes);
+    if (bodyBytes.length === 0 && THROW_IF_EMPTY_BODY[context.commandName]) {
+      const err = new Error("S3 aborted request");
+      err.$metadata = {
+        httpStatusCode: 503
+      };
+      err.name = "InternalError";
+      throw err;
+    }
+    const bodyStringTail = config2.utf8Encoder(bodyBytes.subarray(bodyBytes.length - 16));
+    if (bodyStringTail && bodyStringTail.endsWith("</Error>")) {
+      response.statusCode = 503;
+    }
+    return result;
+  };
+  var collectBody = (streamBody = new Uint8Array, context) => {
+    if (streamBody instanceof Uint8Array) {
+      return Promise.resolve(streamBody);
+    }
+    return context.streamCollector(streamBody) || Promise.resolve(new Uint8Array);
+  };
+  var throw200ExceptionsMiddlewareOptions = {
+    relation: "after",
+    toMiddleware: "deserializerMiddleware",
+    tags: ["THROW_200_EXCEPTIONS", "S3"],
+    name: "throw200ExceptionsMiddleware",
+    override: true
+  };
+  var getThrow200ExceptionsPlugin = (config2) => ({
+    applyToStack: (clientStack) => {
+      clientStack.addRelativeTo(throw200ExceptionsMiddleware(config2), throw200ExceptionsMiddlewareOptions);
+    }
+  });
+  function bucketEndpointMiddleware(options) {
+    return (next, context) => async (args) => {
+      if (options.bucketEndpoint) {
+        const endpoint = context.endpointV2;
+        if (endpoint) {
+          const bucket = args.input.Bucket;
+          if (typeof bucket === "string") {
+            try {
+              const bucketEndpointUrl = new URL(bucket);
+              context.endpointV2 = {
+                ...endpoint,
+                url: bucketEndpointUrl
+              };
+            } catch (e) {
+              const warning = `@aws-sdk/middleware-sdk-s3: bucketEndpoint=true was set but Bucket=${bucket} could not be parsed as URL.`;
+              if (context.logger?.constructor?.name === "NoOpLogger") {
+                console.warn(warning);
+              } else {
+                context.logger?.warn?.(warning);
+              }
+              throw e;
+            }
+          }
+        }
+      }
+      return next(args);
+    };
+  }
+  var bucketEndpointMiddlewareOptions = {
+    name: "bucketEndpointMiddleware",
+    override: true,
+    relation: "after",
+    toMiddleware: "endpointV2Middleware"
+  };
+  function validateBucketNameMiddleware({ bucketEndpoint }) {
+    return (next) => async (args) => {
+      const { input: { Bucket } } = args;
+      if (!bucketEndpoint && typeof Bucket === "string" && !util.validate(Bucket) && Bucket.indexOf("/") >= 0) {
+        const err = new Error(`Bucket name shouldn't contain '/', received '${Bucket}'`);
+        err.name = "InvalidBucketName";
+        throw err;
+      }
+      return next({ ...args });
+    };
+  }
+  var validateBucketNameMiddlewareOptions = {
+    step: "initialize",
+    tags: ["VALIDATE_BUCKET_NAME"],
+    name: "validateBucketNameMiddleware",
+    override: true
+  };
+  var getValidateBucketNamePlugin = (options) => ({
+    applyToStack: (clientStack) => {
+      clientStack.add(validateBucketNameMiddleware(options), validateBucketNameMiddlewareOptions);
+      clientStack.addRelativeTo(bucketEndpointMiddleware(options), bucketEndpointMiddlewareOptions);
+    }
+  });
+
+  class S3RestXmlProtocol extends protocols$1.AwsRestXmlProtocol {
+    async serializeRequest(operationSchema, input, context) {
+      const request = await super.serializeRequest(operationSchema, input, context);
+      const ns = schema.NormalizedSchema.of(operationSchema.input);
+      const staticStructureSchema = ns.getSchema();
+      let bucketMemberIndex = 0;
+      const requiredMemberCount = staticStructureSchema[6] ?? 0;
+      if (input && typeof input === "object") {
+        for (const [memberName, memberNs] of ns.structIterator()) {
+          if (++bucketMemberIndex > requiredMemberCount) {
+            break;
+          }
+          if (memberName === "Bucket") {
+            if (!input.Bucket && memberNs.getMergedTraits().httpLabel) {
+              throw new Error(`No value provided for input HTTP label: Bucket.`);
+            }
+            break;
+          }
+        }
+      }
+      return request;
+    }
+  }
+  exports2.NODE_DISABLE_S3_EXPRESS_SESSION_AUTH_OPTIONS = NODE_DISABLE_S3_EXPRESS_SESSION_AUTH_OPTIONS;
+  exports2.S3ExpressIdentityCache = S3ExpressIdentityCache;
+  exports2.S3ExpressIdentityCacheEntry = S3ExpressIdentityCacheEntry;
+  exports2.S3ExpressIdentityProviderImpl = S3ExpressIdentityProviderImpl;
+  exports2.S3RestXmlProtocol = S3RestXmlProtocol;
+  exports2.SignatureV4S3Express = SignatureV4S3Express;
+  exports2.checkContentLengthHeader = checkContentLengthHeader;
+  exports2.checkContentLengthHeaderMiddlewareOptions = checkContentLengthHeaderMiddlewareOptions;
+  exports2.getCheckContentLengthHeaderPlugin = getCheckContentLengthHeaderPlugin;
+  exports2.getRegionRedirectMiddlewarePlugin = getRegionRedirectMiddlewarePlugin;
+  exports2.getS3ExpiresMiddlewarePlugin = getS3ExpiresMiddlewarePlugin;
+  exports2.getS3ExpressHttpSigningPlugin = getS3ExpressHttpSigningPlugin;
+  exports2.getS3ExpressPlugin = getS3ExpressPlugin;
+  exports2.getThrow200ExceptionsPlugin = getThrow200ExceptionsPlugin;
+  exports2.getValidateBucketNamePlugin = getValidateBucketNamePlugin;
+  exports2.regionRedirectEndpointMiddleware = regionRedirectEndpointMiddleware;
+  exports2.regionRedirectEndpointMiddlewareOptions = regionRedirectEndpointMiddlewareOptions;
+  exports2.regionRedirectMiddleware = regionRedirectMiddleware;
+  exports2.regionRedirectMiddlewareOptions = regionRedirectMiddlewareOptions;
+  exports2.resolveS3Config = resolveS3Config;
+  exports2.s3ExpiresMiddleware = s3ExpiresMiddleware;
+  exports2.s3ExpiresMiddlewareOptions = s3ExpiresMiddlewareOptions;
+  exports2.s3ExpressHttpSigningMiddleware = s3ExpressHttpSigningMiddleware;
+  exports2.s3ExpressHttpSigningMiddlewareOptions = s3ExpressHttpSigningMiddlewareOptions;
+  exports2.s3ExpressMiddleware = s3ExpressMiddleware;
+  exports2.s3ExpressMiddlewareOptions = s3ExpressMiddlewareOptions;
+  exports2.throw200ExceptionsMiddleware = throw200ExceptionsMiddleware;
+  exports2.throw200ExceptionsMiddlewareOptions = throw200ExceptionsMiddlewareOptions;
+  exports2.validateBucketNameMiddleware = validateBucketNameMiddleware;
+  exports2.validateBucketNameMiddlewareOptions = validateBucketNameMiddlewareOptions;
+});
+
+// ../../node_modules/.bun/@aws-sdk+core@3.974.13/node_modules/@aws-sdk/core/dist-cjs/submodules/httpAuthSchemes/index.js
+var require_httpAuthSchemes = __commonJS((exports2) => {
+  var protocols = require_protocols();
+  var core = require_dist_cjs5();
+  var config = require_config();
+  var client = require_client2();
+  var signatureV4 = require_dist_cjs10();
+  var getDateHeader = (response) => protocols.HttpResponse.isInstance(response) ? response.headers?.date ?? response.headers?.Date : undefined;
+  var getSkewCorrectedDate = (systemClockOffset) => new Date(Date.now() + systemClockOffset);
+  var isClockSkewed = (clockTime, systemClockOffset) => Math.abs(getSkewCorrectedDate(systemClockOffset).getTime() - clockTime) >= 300000;
+  var getUpdatedSystemClockOffset = (clockTime, currentSystemClockOffset) => {
+    const clockTimeInMs = Date.parse(clockTime);
+    if (isClockSkewed(clockTimeInMs, currentSystemClockOffset)) {
+      return clockTimeInMs - Date.now();
+    }
+    return currentSystemClockOffset;
+  };
+  var throwSigningPropertyError = (name, property) => {
+    if (!property) {
+      throw new Error(`Property \`${name}\` is not resolved for AWS SDK SigV4Auth`);
+    }
+    return property;
+  };
+  var validateSigningProperties = async (signingProperties) => {
+    const context = throwSigningPropertyError("context", signingProperties.context);
+    const config2 = throwSigningPropertyError("config", signingProperties.config);
+    const authScheme = context.endpointV2?.properties?.authSchemes?.[0];
+    const signerFunction = throwSigningPropertyError("signer", config2.signer);
+    const signer = await signerFunction(authScheme);
+    const signingRegion = signingProperties?.signingRegion;
+    const signingRegionSet = signingProperties?.signingRegionSet;
+    const signingName = signingProperties?.signingName;
+    return {
+      config: config2,
+      signer,
+      signingRegion,
+      signingRegionSet,
+      signingName
+    };
+  };
+
+  class AwsSdkSigV4Signer {
+    async sign(httpRequest, identity, signingProperties) {
+      if (!protocols.HttpRequest.isInstance(httpRequest)) {
+        throw new Error("The request is not an instance of `HttpRequest` and cannot be signed");
+      }
+      const validatedProps = await validateSigningProperties(signingProperties);
+      const { config: config2, signer } = validatedProps;
+      let { signingRegion, signingName } = validatedProps;
+      const handlerExecutionContext = signingProperties.context;
+      if (handlerExecutionContext?.authSchemes?.length ?? 0 > 1) {
+        const [first, second] = handlerExecutionContext.authSchemes;
+        if (first?.name === "sigv4a" && second?.name === "sigv4") {
+          signingRegion = second?.signingRegion ?? signingRegion;
+          signingName = second?.signingName ?? signingName;
+        }
+      }
+      const signedRequest = await signer.sign(httpRequest, {
+        signingDate: getSkewCorrectedDate(config2.systemClockOffset),
+        signingRegion,
+        signingService: signingName
+      });
+      return signedRequest;
+    }
+    errorHandler(signingProperties) {
+      return (error) => {
+        const serverTime = error.ServerTime ?? getDateHeader(error.$response);
+        if (serverTime) {
+          const config2 = throwSigningPropertyError("config", signingProperties.config);
+          const initialSystemClockOffset = config2.systemClockOffset;
+          config2.systemClockOffset = getUpdatedSystemClockOffset(serverTime, config2.systemClockOffset);
+          const clockSkewCorrected = config2.systemClockOffset !== initialSystemClockOffset;
+          if (clockSkewCorrected && error.$metadata) {
+            error.$metadata.clockSkewCorrected = true;
+          }
+        }
+        throw error;
+      };
+    }
+    successHandler(httpResponse, signingProperties) {
+      const dateHeader = getDateHeader(httpResponse);
+      if (dateHeader) {
+        const config2 = throwSigningPropertyError("config", signingProperties.config);
+        config2.systemClockOffset = getUpdatedSystemClockOffset(dateHeader, config2.systemClockOffset);
+      }
+    }
+  }
+  var AWSSDKSigV4Signer = AwsSdkSigV4Signer;
+
+  class AwsSdkSigV4ASigner extends AwsSdkSigV4Signer {
+    async sign(httpRequest, identity, signingProperties) {
+      if (!protocols.HttpRequest.isInstance(httpRequest)) {
+        throw new Error("The request is not an instance of `HttpRequest` and cannot be signed");
+      }
+      const { config: config2, signer, signingRegion, signingRegionSet, signingName } = await validateSigningProperties(signingProperties);
+      const configResolvedSigningRegionSet = await config2.sigv4aSigningRegionSet?.();
+      const multiRegionOverride = (configResolvedSigningRegionSet ?? signingRegionSet ?? [signingRegion]).join(",");
+      const signedRequest = await signer.sign(httpRequest, {
+        signingDate: getSkewCorrectedDate(config2.systemClockOffset),
+        signingRegion: multiRegionOverride,
+        signingService: signingName
+      });
+      return signedRequest;
+    }
+  }
+  var getArrayForCommaSeparatedString = (str) => typeof str === "string" && str.length > 0 ? str.split(",").map((item) => item.trim()) : [];
+  var getBearerTokenEnvKey = (signingName) => `AWS_BEARER_TOKEN_${signingName.replace(/[\s-]/g, "_").toUpperCase()}`;
+  var NODE_AUTH_SCHEME_PREFERENCE_ENV_KEY = "AWS_AUTH_SCHEME_PREFERENCE";
+  var NODE_AUTH_SCHEME_PREFERENCE_CONFIG_KEY = "auth_scheme_preference";
+  var NODE_AUTH_SCHEME_PREFERENCE_OPTIONS = {
+    environmentVariableSelector: (env4, options) => {
+      if (options?.signingName) {
+        const bearerTokenKey = getBearerTokenEnvKey(options.signingName);
+        if (bearerTokenKey in env4)
+          return ["httpBearerAuth"];
+      }
+      if (!(NODE_AUTH_SCHEME_PREFERENCE_ENV_KEY in env4))
+        return;
+      return getArrayForCommaSeparatedString(env4[NODE_AUTH_SCHEME_PREFERENCE_ENV_KEY]);
+    },
+    configFileSelector: (profile) => {
+      if (!(NODE_AUTH_SCHEME_PREFERENCE_CONFIG_KEY in profile))
+        return;
+      return getArrayForCommaSeparatedString(profile[NODE_AUTH_SCHEME_PREFERENCE_CONFIG_KEY]);
+    },
+    default: []
+  };
+  var resolveAwsSdkSigV4AConfig = (config2) => {
+    config2.sigv4aSigningRegionSet = core.normalizeProvider(config2.sigv4aSigningRegionSet);
+    return config2;
+  };
+  var NODE_SIGV4A_CONFIG_OPTIONS = {
+    environmentVariableSelector(env4) {
+      if (env4.AWS_SIGV4A_SIGNING_REGION_SET) {
+        return env4.AWS_SIGV4A_SIGNING_REGION_SET.split(",").map((_) => _.trim());
+      }
+      throw new config.ProviderError("AWS_SIGV4A_SIGNING_REGION_SET not set in env.", {
+        tryNextLink: true
+      });
+    },
+    configFileSelector(profile) {
+      if (profile.sigv4a_signing_region_set) {
+        return (profile.sigv4a_signing_region_set ?? "").split(",").map((_) => _.trim());
+      }
+      throw new config.ProviderError("sigv4a_signing_region_set not set in profile.", {
+        tryNextLink: true
+      });
+    },
+    default: undefined
+  };
+  var resolveAwsSdkSigV4Config = (config2) => {
+    let inputCredentials = config2.credentials;
+    let isUserSupplied = !!config2.credentials;
+    let resolvedCredentials = undefined;
+    Object.defineProperty(config2, "credentials", {
+      set(credentials) {
+        if (credentials && credentials !== inputCredentials && credentials !== resolvedCredentials) {
+          isUserSupplied = true;
+        }
+        inputCredentials = credentials;
+        const memoizedProvider = normalizeCredentialProvider(config2, {
+          credentials: inputCredentials,
+          credentialDefaultProvider: config2.credentialDefaultProvider
+        });
+        const boundProvider = bindCallerConfig(config2, memoizedProvider);
+        if (isUserSupplied && !boundProvider.attributed) {
+          const isCredentialObject = typeof inputCredentials === "object" && inputCredentials !== null;
+          resolvedCredentials = async (options) => {
+            const creds = await boundProvider(options);
+            const attributedCreds = creds;
+            if (isCredentialObject && (!attributedCreds.$source || Object.keys(attributedCreds.$source).length === 0)) {
+              return client.setCredentialFeature(attributedCreds, "CREDENTIALS_CODE", "e");
+            }
+            return attributedCreds;
+          };
+          resolvedCredentials.memoized = boundProvider.memoized;
+          resolvedCredentials.configBound = boundProvider.configBound;
+          resolvedCredentials.attributed = true;
+        } else {
+          resolvedCredentials = boundProvider;
+        }
+      },
+      get() {
+        return resolvedCredentials;
+      },
+      enumerable: true,
+      configurable: true
+    });
+    config2.credentials = inputCredentials;
+    const { signingEscapePath = true, systemClockOffset = config2.systemClockOffset || 0, sha256 } = config2;
+    let signer;
+    if (config2.signer) {
+      signer = core.normalizeProvider(config2.signer);
+    } else if (config2.regionInfoProvider) {
+      signer = () => core.normalizeProvider(config2.region)().then(async (region) => [
+        await config2.regionInfoProvider(region, {
+          useFipsEndpoint: await config2.useFipsEndpoint(),
+          useDualstackEndpoint: await config2.useDualstackEndpoint()
+        }) || {},
+        region
+      ]).then(([regionInfo, region]) => {
+        const { signingRegion, signingService } = regionInfo;
+        config2.signingRegion = config2.signingRegion || signingRegion || region;
+        config2.signingName = config2.signingName || signingService || config2.serviceId;
+        const params = {
+          ...config2,
+          credentials: config2.credentials,
+          region: config2.signingRegion,
+          service: config2.signingName,
+          sha256,
+          uriEscapePath: signingEscapePath
+        };
+        const SignerCtor = config2.signerConstructor || signatureV4.SignatureV4;
+        return new SignerCtor(params);
+      });
+    } else {
+      signer = async (authScheme) => {
+        authScheme = Object.assign({}, {
+          name: "sigv4",
+          signingName: config2.signingName || config2.defaultSigningName,
+          signingRegion: await core.normalizeProvider(config2.region)(),
+          properties: {}
+        }, authScheme);
+        const signingRegion = authScheme.signingRegion;
+        const signingService = authScheme.signingName;
+        config2.signingRegion = config2.signingRegion || signingRegion;
+        config2.signingName = config2.signingName || signingService || config2.serviceId;
+        const params = {
+          ...config2,
+          credentials: config2.credentials,
+          region: config2.signingRegion,
+          service: config2.signingName,
+          sha256,
+          uriEscapePath: signingEscapePath
+        };
+        const SignerCtor = config2.signerConstructor || signatureV4.SignatureV4;
+        return new SignerCtor(params);
+      };
+    }
+    const resolvedConfig = Object.assign(config2, {
+      systemClockOffset,
+      signingEscapePath,
+      signer
+    });
+    return resolvedConfig;
+  };
+  var resolveAWSSDKSigV4Config = resolveAwsSdkSigV4Config;
+  function normalizeCredentialProvider(config2, { credentials, credentialDefaultProvider }) {
+    let credentialsProvider;
+    if (credentials) {
+      if (!credentials?.memoized) {
+        credentialsProvider = core.memoizeIdentityProvider(credentials, core.isIdentityExpired, core.doesIdentityRequireRefresh);
+      } else {
+        credentialsProvider = credentials;
+      }
+    } else {
+      if (credentialDefaultProvider) {
+        credentialsProvider = core.normalizeProvider(credentialDefaultProvider(Object.assign({}, config2, {
+          parentClientConfig: config2
+        })));
+      } else {
+        credentialsProvider = async () => {
+          throw new Error("@aws-sdk/core::resolveAwsSdkSigV4Config - `credentials` not provided and no credentialDefaultProvider was configured.");
+        };
+      }
+    }
+    credentialsProvider.memoized = true;
+    return credentialsProvider;
+  }
+  function bindCallerConfig(config2, credentialsProvider) {
+    if (credentialsProvider.configBound) {
+      return credentialsProvider;
+    }
+    const fn = async (options) => credentialsProvider({ ...options, callerClientConfig: config2 });
+    fn.memoized = credentialsProvider.memoized;
+    fn.configBound = true;
+    return fn;
+  }
+  exports2.AWSSDKSigV4Signer = AWSSDKSigV4Signer;
+  exports2.AwsSdkSigV4ASigner = AwsSdkSigV4ASigner;
+  exports2.AwsSdkSigV4Signer = AwsSdkSigV4Signer;
+  exports2.NODE_AUTH_SCHEME_PREFERENCE_OPTIONS = NODE_AUTH_SCHEME_PREFERENCE_OPTIONS;
+  exports2.NODE_SIGV4A_CONFIG_OPTIONS = NODE_SIGV4A_CONFIG_OPTIONS;
+  exports2.getBearerTokenEnvKey = getBearerTokenEnvKey;
+  exports2.resolveAWSSDKSigV4Config = resolveAWSSDKSigV4Config;
+  exports2.resolveAwsSdkSigV4AConfig = resolveAwsSdkSigV4AConfig;
+  exports2.resolveAwsSdkSigV4Config = resolveAwsSdkSigV4Config;
+  exports2.validateSigningProperties = validateSigningProperties;
+});
+
+// ../../node_modules/.bun/@aws-sdk+client-s3@3.1053.0/node_modules/@aws-sdk/client-s3/dist-cjs/endpoint/bdd.js
+var require_bdd = __commonJS((exports2) => {
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.bdd = undefined;
+  var endpoints_1 = require_endpoints();
+  var aw = "ref";
+  var ax = "argv";
+  var ay = "backend";
+  var az = "authSchemes";
+  var aA = "disableDoubleEncoding";
+  var aB = "signingName";
+  var aC = "signingRegion";
+  var aD = "signingRegionSet";
+  var a = -1;
+  var b = true;
+  var c = false;
+  var d = "isSet";
+  var e = "booleanEquals";
+  var f = "stringEquals";
+  var g = "coalesce";
+  var h = "substring";
+  var i = "";
+  var j = "aws.partition";
+  var k = "partitionResult";
+  var l = "accessPointSuffix";
+  var m = "regionPrefix";
+  var n = (n2) => "outpostId_ssa_" + n2 + i;
+  var o = "hardwareType";
+  var p = "ite";
+  var q = "isValidHostLabel";
+  var s = "sigv4";
+  var t3 = "aws.isVirtualHostableS3Bucket";
+  var u = "url";
+  var v = "getAttr";
+  var w = "bucketArn";
+  var x = "--";
+  var y = "arnType";
+  var z = "accesspoint";
+  var A = (n2) => "accessPointName_ssa_" + n2 + i;
+  var B = "s3-object-lambda";
+  var C = "s3-outposts";
+  var D = "bucketPartition";
+  var E = "us-east-1";
+  var F = "outpostType";
+  var G = "name";
+  var H = "s3";
+  var I = "{url#scheme}://{Bucket}.{url#authority}{url#path}";
+  var J = "{url#scheme}://{url#authority}{url#path}";
+  var K = "{url#scheme}://{url#authority}{url#normalizedPath}{Bucket}";
+  var L = "https://{Bucket}.s3-accelerate.{partitionResult#dnsSuffix}";
+  var M = "https://{Bucket}.s3.{partitionResult#dnsSuffix}";
+  var N = (n2) => "{url#scheme}://{accessPointName_ssa_" + n2 + "}-{bucketArn#accountId}.{url#authority}{url#path}";
+  var O = (n2) => "Invalid ARN: The access point name may only contain a-z, A-Z, 0-9 and `-`. Found: `{accessPointName_ssa_" + n2 + "}`";
+  var P = "sigv4a";
+  var Q = "{url#scheme}://{url#authority}{url#normalizedPath}{uri_encoded_bucket}";
+  var R = "https://s3.{partitionResult#dnsSuffix}/{uri_encoded_bucket}";
+  var S = "https://s3.{partitionResult#dnsSuffix}";
+  var T = { [aw]: "UseFIPS" };
+  var U = { [aw]: "UseDualStack" };
+  var V = { [aw]: "Bucket" };
+  var W = { fn: v, [ax]: [{ [aw]: k }, G] };
+  var X = { [aw]: u };
+  var Y = { [aw]: "Region" };
+  var Z = { [aw]: w };
+  var aa = { [aw]: y };
+  var ab = { [aw]: "accessPointName_ssa_1" };
+  var ac = { fn: v, [ax]: [Z, "region"] };
+  var ad = { [aw]: o };
+  var ae = { fn: v, [ax]: [Z, "service"] };
+  var af = { fn: v, [ax]: [Z, "accountId"] };
+  var ag = { [ay]: "S3Express", [az]: [{ [aA]: true, [G]: "{_s3e_auth}", [aB]: "s3express", [aC]: "{Region}" }] };
+  var ah = { [ay]: "S3Express", [az]: [{ [aA]: true, [G]: s, [aB]: "s3express", [aC]: "{Region}" }] };
+  var ai = { [az]: [{ [aA]: true, [G]: P, [aB]: C, [aD]: ["*"] }, { [aA]: true, [G]: s, [aB]: C, [aC]: "{Region}" }] };
+  var aj = { [az]: [{ [aA]: true, [G]: s, [aB]: H, [aC]: E }] };
+  var ak = { [az]: [{ [aA]: true, [G]: s, [aB]: H, [aC]: "{Region}" }] };
+  var al = { [az]: [{ [aA]: true, [G]: s, [aB]: B, [aC]: "{bucketArn#region}" }] };
+  var am = { [az]: [{ [aA]: true, [G]: s, [aB]: H, [aC]: "{bucketArn#region}" }] };
+  var an = { [az]: [{ [aA]: true, [G]: P, [aB]: C, [aD]: ["*"] }, { [aA]: true, [G]: s, [aB]: C, [aC]: "{bucketArn#region}" }] };
+  var ao = { [az]: [{ [aA]: true, [G]: s, [aB]: B, [aC]: "{Region}" }] };
+  var ap = [Y];
+  var aq = [{ [aw]: "Endpoint" }];
+  var as = [V];
+  var at = [V, 0, 7, true];
+  var au = [Z, "resourceId[1]"];
+  var av = ["*"];
+  var _data = {
+    conditions: [
+      [d, ap],
+      [e, [{ [aw]: "Accelerate" }, b]],
+      [e, [T, b]],
+      [e, [U, b]],
+      [d, aq],
+      [d, as],
+      [f, [{ fn: g, [ax]: [{ fn: h, [ax]: [V, 0, 6, b] }, i] }, "--x-s3"]],
+      [f, [{ fn: g, [ax]: [{ fn: h, [ax]: at }, i] }, "--xa-s3"]],
+      [j, ap, k],
+      [h, at, l],
+      [f, [{ [aw]: l }, "--op-s3"]],
+      [h, [V, 8, 12, b], m],
+      [h, [V, 32, 49, b], n(2)],
+      [h, [V, 49, 50, b], o],
+      [e, [{ [aw]: "ForcePathStyle" }, b]],
+      [f, [W, "aws-cn"]],
+      [p, [U, ".dualstack", i], "_s3e_ds"],
+      [q, [{ [aw]: n(2) }, c]],
+      [p, [T, "-fips", i], "_s3e_fips"],
+      [p, [{ fn: g, [ax]: [{ [aw]: "DisableS3ExpressSessionAuth" }, c] }, s, "sigv4-s3express"], "_s3e_auth"],
+      [t3, [V, c]],
+      ["parseURL", aq, u],
+      [e, [{ fn: g, [ax]: [{ [aw]: "UseS3ExpressControlEndpoint" }, c] }, b]],
+      [t3, [V, b]],
+      [f, [{ fn: v, [ax]: [X, "scheme"] }, "http"]],
+      [q, [Y, c]],
+      ["aws.parseArn", as, w],
+      [v, [{ fn: "split", [ax]: [V, x, 0] }, "[-2]"], "s3expressAvailabilityZoneId"],
+      [f, [{ fn: g, [ax]: [{ fn: h, [ax]: [V, 0, 4, c] }, i] }, "arn:"]],
+      [f, [{ fn: g, [ax]: [{ fn: h, [ax]: [V, 16, 18, b] }, i] }, x]],
+      [e, [{ fn: v, [ax]: [X, "isIp"] }, b]],
+      [f, [{ fn: g, [ax]: [{ fn: h, [ax]: [V, 21, 23, b] }, i] }, x]],
+      [f, [{ fn: g, [ax]: [{ fn: h, [ax]: [V, 27, 29, b] }, i] }, x]],
+      [f, [{ [aw]: m }, "beta"]],
+      ["uriEncode", as, "uri_encoded_bucket"],
+      [q, [Y, b]],
+      [e, [{ fn: g, [ax]: [{ [aw]: "UseObjectLambdaEndpoint" }, c] }, b]],
+      [v, [Z, "resourceId[0]"], y],
+      [f, [aa, i]],
+      [f, [aa, z]],
+      [v, au, A(1)],
+      [f, [ab, i]],
+      [f, [ac, i]],
+      [f, [{ fn: g, [ax]: [{ fn: h, [ax]: [V, 14, 16, b] }, i] }, x]],
+      [f, [ad, "e"]],
+      [f, [ad, "o"]],
+      [f, [Y, "aws-global"]],
+      [f, [{ fn: g, [ax]: [{ fn: h, [ax]: [V, 19, 21, b] }, i] }, x]],
+      [f, [ae, B]],
+      [e, [{ fn: g, [ax]: [{ [aw]: "DisableAccessPoints" }, c] }, b]],
+      [f, [ae, C]],
+      [j, [ac], D],
+      [q, [ab, b]],
+      [f, [{ fn: g, [ax]: [{ fn: h, [ax]: [V, 26, 28, b] }, i] }, x]],
+      [f, [{ fn: g, [ax]: [{ fn: h, [ax]: [V, 15, 17, b] }, i] }, x]],
+      [v, [Z, "resourceId[4]"]],
+      [f, [{ fn: g, [ax]: [{ fn: h, [ax]: [V, 20, 22, b] }, i] }, x]],
+      [e, [{ [aw]: "UseGlobalEndpoint" }, b]],
+      [f, [Y, E]],
+      [v, au, n(1)],
+      [e, [{ fn: g, [ax]: [{ [aw]: "UseArnRegion" }, b] }, b]],
+      [q, [{ [aw]: n(1) }, c]],
+      [v, [Z, "resourceId[2]"], F],
+      [f, [Y, ac]],
+      [f, [{ fn: v, [ax]: [{ [aw]: D }, G] }, W]],
+      [e, [{ [aw]: "DisableMultiRegionAccessPoints" }, b]],
+      [q, [ac, b]],
+      [f, [{ fn: v, [ax]: [Z, "partition"] }, W]],
+      [f, [af, i]],
+      [f, [ae, H]],
+      [q, [af, c]],
+      [v, [Z, "resourceId[3]"], A(2)],
+      [q, [ab, c]],
+      [f, [{ [aw]: F }, z]],
+      [q, [{ [aw]: A(2) }, c]]
+    ],
+    results: [
+      [a],
+      [a, "Accelerate cannot be used with FIPS"],
+      [a, "Cannot set dual-stack in combination with a custom endpoint."],
+      [a, "A custom endpoint cannot be combined with FIPS"],
+      [a, "A custom endpoint cannot be combined with S3 Accelerate"],
+      [a, "Partition does not support FIPS"],
+      [a, "S3Express does not support S3 Accelerate."],
+      ["{url#scheme}://{url#authority}/{uri_encoded_bucket}{url#path}", ag],
+      [I, ag],
+      [a, "S3Express bucket name is not a valid virtual hostable name."],
+      ["https://s3express-control{_s3e_fips}{_s3e_ds}.{Region}.{partitionResult#dnsSuffix}/{uri_encoded_bucket}", ah],
+      ["https://{Bucket}.s3express{_s3e_fips}-{s3expressAvailabilityZoneId}{_s3e_ds}.{Region}.{partitionResult#dnsSuffix}", ag],
+      [a, "Unrecognized S3Express bucket name format."],
+      [J, ag],
+      ["https://s3express-control{_s3e_fips}{_s3e_ds}.{Region}.{partitionResult#dnsSuffix}", ah],
+      [a, "Expected a endpoint to be specified but no endpoint was found"],
+      ["https://{Bucket}.ec2.{url#authority}", ai],
+      ["https://{Bucket}.ec2.s3-outposts.{Region}.{partitionResult#dnsSuffix}", ai],
+      ["https://{Bucket}.op-{outpostId_ssa_2}.{url#authority}", ai],
+      ["https://{Bucket}.op-{outpostId_ssa_2}.s3-outposts.{Region}.{partitionResult#dnsSuffix}", ai],
+      [a, 'Unrecognized hardware type: "Expected hardware type o or e but got {hardwareType}"'],
+      [a, "Invalid Outposts Bucket alias - it must be a valid bucket name."],
+      [a, "Invalid ARN: The outpost Id must only contain a-z, A-Z, 0-9 and `-`."],
+      [a, "Custom endpoint `{Endpoint}` was not a valid URI"],
+      [a, "S3 Accelerate cannot be used in this region"],
+      ["https://{Bucket}.s3-fips.dualstack.us-east-1.{partitionResult#dnsSuffix}", aj],
+      ["https://{Bucket}.s3-fips.dualstack.{Region}.{partitionResult#dnsSuffix}", ak],
+      ["https://{Bucket}.s3-fips.us-east-1.{partitionResult#dnsSuffix}", aj],
+      ["https://{Bucket}.s3-fips.{Region}.{partitionResult#dnsSuffix}", ak],
+      ["https://{Bucket}.s3-accelerate.dualstack.us-east-1.{partitionResult#dnsSuffix}", aj],
+      ["https://{Bucket}.s3-accelerate.dualstack.{partitionResult#dnsSuffix}", ak],
+      ["https://{Bucket}.s3.dualstack.us-east-1.{partitionResult#dnsSuffix}", aj],
+      ["https://{Bucket}.s3.dualstack.{Region}.{partitionResult#dnsSuffix}", ak],
+      [K, aj],
+      [I, aj],
+      [K, ak],
+      [I, ak],
+      [L, aj],
+      [L, ak],
+      [M, aj],
+      [M, ak],
+      ["https://{Bucket}.s3.{Region}.{partitionResult#dnsSuffix}", ak],
+      [a, "Invalid region: region was not a valid DNS name."],
+      [a, "S3 Object Lambda does not support Dual-stack"],
+      [a, "S3 Object Lambda does not support S3 Accelerate"],
+      [a, "Access points are not supported for this operation"],
+      [a, "Invalid configuration: region from ARN `{bucketArn#region}` does not match client region `{Region}` and UseArnRegion is `false`"],
+      [a, "Invalid ARN: Missing account id"],
+      [N(1), al],
+      ["https://{accessPointName_ssa_1}-{bucketArn#accountId}.s3-object-lambda-fips.{bucketArn#region}.{bucketPartition#dnsSuffix}", al],
+      ["https://{accessPointName_ssa_1}-{bucketArn#accountId}.s3-object-lambda.{bucketArn#region}.{bucketPartition#dnsSuffix}", al],
+      [a, O(1)],
+      [a, "Invalid ARN: The account id may only contain a-z, A-Z, 0-9 and `-`. Found: `{bucketArn#accountId}`"],
+      [a, "Invalid region in ARN: `{bucketArn#region}` (invalid DNS name)"],
+      [a, "Client was configured for partition `{partitionResult#name}` but ARN (`{Bucket}`) has `{bucketPartition#name}`"],
+      [a, "Invalid ARN: The ARN may only contain a single resource component after `accesspoint`."],
+      [a, "Invalid ARN: bucket ARN is missing a region"],
+      [a, "Invalid ARN: Expected a resource of the format `accesspoint:<accesspoint name>` but no name was provided"],
+      [a, "Invalid ARN: Object Lambda ARNs only support `accesspoint` arn types, but found: `{arnType}`"],
+      [a, "Access Points do not support S3 Accelerate"],
+      ["https://{accessPointName_ssa_1}-{bucketArn#accountId}.s3-accesspoint-fips.dualstack.{bucketArn#region}.{bucketPartition#dnsSuffix}", am],
+      ["https://{accessPointName_ssa_1}-{bucketArn#accountId}.s3-accesspoint-fips.{bucketArn#region}.{bucketPartition#dnsSuffix}", am],
+      ["https://{accessPointName_ssa_1}-{bucketArn#accountId}.s3-accesspoint.dualstack.{bucketArn#region}.{bucketPartition#dnsSuffix}", am],
+      [N(1), am],
+      ["https://{accessPointName_ssa_1}-{bucketArn#accountId}.s3-accesspoint.{bucketArn#region}.{bucketPartition#dnsSuffix}", am],
+      [a, "Invalid ARN: The ARN was not for the S3 service, found: {bucketArn#service}"],
+      [a, "S3 MRAP does not support dual-stack"],
+      [a, "S3 MRAP does not support FIPS"],
+      [a, "S3 MRAP does not support S3 Accelerate"],
+      [a, "Invalid configuration: Multi-Region Access Point ARNs are disabled."],
+      ["https://{accessPointName_ssa_1}.accesspoint.s3-global.{partitionResult#dnsSuffix}", { [az]: [{ [aA]: b, name: P, [aB]: H, [aD]: av }] }],
+      [a, "Client was configured for partition `{partitionResult#name}` but bucket referred to partition `{bucketArn#partition}`"],
+      [a, "Invalid Access Point Name"],
+      [a, "S3 Outposts does not support Dual-stack"],
+      [a, "S3 Outposts does not support FIPS"],
+      [a, "S3 Outposts does not support S3 Accelerate"],
+      [a, "Invalid Arn: Outpost Access Point ARN contains sub resources"],
+      ["https://{accessPointName_ssa_2}-{bucketArn#accountId}.{outpostId_ssa_1}.{url#authority}", an],
+      ["https://{accessPointName_ssa_2}-{bucketArn#accountId}.{outpostId_ssa_1}.s3-outposts.{bucketArn#region}.{bucketPartition#dnsSuffix}", an],
+      [a, O(2)],
+      [a, "Expected an outpost type `accesspoint`, found {outpostType}"],
+      [a, "Invalid ARN: expected an access point name"],
+      [a, "Invalid ARN: Expected a 4-component resource"],
+      [a, "Invalid ARN: The outpost Id may only contain a-z, A-Z, 0-9 and `-`. Found: `{outpostId_ssa_1}`"],
+      [a, "Invalid ARN: The Outpost Id was not set"],
+      [a, "Invalid ARN: Unrecognized format: {Bucket} (type: {arnType})"],
+      [a, "Invalid ARN: No ARN type specified"],
+      [a, "Invalid ARN: `{Bucket}` was not a valid ARN"],
+      [a, "Path-style addressing cannot be used with ARN buckets"],
+      ["https://s3-fips.dualstack.us-east-1.{partitionResult#dnsSuffix}/{uri_encoded_bucket}", aj],
+      ["https://s3-fips.dualstack.{Region}.{partitionResult#dnsSuffix}/{uri_encoded_bucket}", ak],
+      ["https://s3-fips.us-east-1.{partitionResult#dnsSuffix}/{uri_encoded_bucket}", aj],
+      ["https://s3-fips.{Region}.{partitionResult#dnsSuffix}/{uri_encoded_bucket}", ak],
+      ["https://s3.dualstack.us-east-1.{partitionResult#dnsSuffix}/{uri_encoded_bucket}", aj],
+      ["https://s3.dualstack.{Region}.{partitionResult#dnsSuffix}/{uri_encoded_bucket}", ak],
+      [Q, aj],
+      [Q, ak],
+      [R, aj],
+      [R, ak],
+      ["https://s3.{Region}.{partitionResult#dnsSuffix}/{uri_encoded_bucket}", ak],
+      [a, "Path-style addressing cannot be used with S3 Accelerate"],
+      [J, ao],
+      ["https://s3-object-lambda-fips.{Region}.{partitionResult#dnsSuffix}", ao],
+      ["https://s3-object-lambda.{Region}.{partitionResult#dnsSuffix}", ao],
+      ["https://s3-fips.dualstack.us-east-1.{partitionResult#dnsSuffix}", aj],
+      ["https://s3-fips.dualstack.{Region}.{partitionResult#dnsSuffix}", ak],
+      ["https://s3-fips.us-east-1.{partitionResult#dnsSuffix}", aj],
+      ["https://s3-fips.{Region}.{partitionResult#dnsSuffix}", ak],
+      ["https://s3.dualstack.us-east-1.{partitionResult#dnsSuffix}", aj],
+      ["https://s3.dualstack.{Region}.{partitionResult#dnsSuffix}", ak],
+      [J, aj],
+      [J, ak],
+      [S, aj],
+      [S, ak],
+      ["https://s3.{Region}.{partitionResult#dnsSuffix}", ak],
+      [a, "A region must be set when sending requests to S3."]
+    ]
+  };
+  var root = 2;
+  var r = 1e8;
+  var nodes = new Int32Array([
+    -1,
+    1,
+    -1,
+    0,
+    3,
+    r + 115,
+    1,
+    424,
+    4,
+    2,
+    272,
+    5,
+    3,
+    233,
+    6,
+    4,
+    85,
+    7,
+    5,
+    15,
+    8,
+    8,
+    9,
+    r + 115,
+    16,
+    10,
+    13,
+    18,
+    11,
+    13,
+    19,
+    12,
+    13,
+    22,
+    r + 14,
+    13,
+    35,
+    14,
+    r + 42,
+    36,
+    r + 103,
+    435,
+    6,
+    271,
+    16,
+    7,
+    270,
+    17,
+    8,
+    19,
+    18,
+    14,
+    501,
+    106,
+    9,
+    20,
+    24,
+    10,
+    21,
+    24,
+    11,
+    22,
+    24,
+    12,
+    23,
+    24,
+    13,
+    547,
+    24,
+    14,
+    77,
+    25,
+    20,
+    73,
+    26,
+    26,
+    27,
+    78,
+    37,
+    28,
+    r + 86,
+    38,
+    r + 86,
+    29,
+    39,
+    47,
+    30,
+    48,
+    r + 58,
+    31,
+    50,
+    32,
+    r + 85,
+    51,
+    33,
+    136,
+    55,
+    r + 76,
+    34,
+    59,
+    35,
+    r + 84,
+    60,
+    39,
+    36,
+    61,
+    37,
+    r + 83,
+    62,
+    38,
+    146,
+    63,
+    41,
+    r + 46,
+    61,
+    40,
+    r + 83,
+    62,
+    41,
+    150,
+    64,
+    42,
+    r + 54,
+    66,
+    43,
+    r + 53,
+    70,
+    44,
+    r + 52,
+    71,
+    45,
+    r + 81,
+    73,
+    46,
+    r + 80,
+    74,
+    r + 78,
+    r + 79,
+    40,
+    48,
+    r + 57,
+    41,
+    r + 57,
+    49,
+    42,
+    185,
+    50,
+    48,
+    62,
+    51,
+    49,
+    r + 45,
+    52,
+    51,
+    53,
+    526,
+    60,
+    56,
+    54,
+    62,
+    r + 55,
+    55,
+    63,
+    57,
+    r + 46,
+    62,
+    r + 55,
+    57,
+    64,
+    58,
+    r + 54,
+    66,
+    59,
+    r + 53,
+    69,
+    60,
+    r + 65,
+    70,
+    61,
+    r + 52,
+    72,
+    r + 64,
+    r + 51,
+    49,
+    r + 45,
+    63,
+    51,
+    64,
+    526,
+    60,
+    67,
+    65,
+    62,
+    r + 55,
+    66,
+    63,
+    68,
+    r + 46,
+    62,
+    r + 55,
+    68,
+    64,
+    69,
+    r + 54,
+    66,
+    70,
+    r + 53,
+    68,
+    r + 47,
+    71,
+    70,
+    72,
+    r + 52,
+    72,
+    r + 50,
+    r + 51,
+    25,
+    74,
+    r + 42,
+    46,
+    r + 39,
+    75,
+    57,
+    76,
+    r + 41,
+    58,
+    r + 40,
+    r + 41,
+    26,
+    r + 88,
+    78,
+    28,
+    r + 87,
+    79,
+    34,
+    82,
+    80,
+    35,
+    81,
+    545,
+    36,
+    r + 103,
+    r + 115,
+    46,
+    r + 97,
+    83,
+    57,
+    84,
+    r + 99,
+    58,
+    r + 98,
+    r + 99,
+    5,
+    101,
+    86,
+    8,
+    87,
+    r + 115,
+    16,
+    88,
+    89,
+    18,
+    91,
+    89,
+    19,
+    90,
+    92,
+    21,
+    97,
+    95,
+    19,
+    93,
+    92,
+    21,
+    98,
+    95,
+    21,
+    97,
+    94,
+    22,
+    r + 14,
+    95,
+    35,
+    96,
+    r + 42,
+    36,
+    r + 103,
+    r + 42,
+    22,
+    r + 13,
+    98,
+    35,
+    99,
+    r + 42,
+    36,
+    r + 101,
+    100,
+    46,
+    r + 110,
+    r + 111,
+    6,
+    214,
+    102,
+    7,
+    208,
+    103,
+    8,
+    119,
+    104,
+    14,
+    118,
+    105,
+    21,
+    106,
+    r + 23,
+    26,
+    107,
+    502,
+    37,
+    108,
+    r + 86,
+    38,
+    r + 86,
+    109,
+    39,
+    112,
+    110,
+    48,
+    r + 58,
+    111,
+    50,
+    136,
+    r + 85,
+    40,
+    113,
+    r + 57,
+    41,
+    r + 57,
+    114,
+    42,
+    115,
+    500,
+    48,
+    r + 56,
+    116,
+    52,
+    117,
+    r + 72,
+    65,
+    r + 69,
+    r + 72,
+    21,
+    501,
+    r + 23,
+    9,
+    120,
+    124,
+    10,
+    121,
+    124,
+    11,
+    122,
+    124,
+    12,
+    123,
+    124,
+    13,
+    202,
+    124,
+    14,
+    195,
+    125,
+    20,
+    190,
+    126,
+    21,
+    127,
+    r + 23,
+    23,
+    128,
+    129,
+    24,
+    189,
+    129,
+    26,
+    130,
+    197,
+    37,
+    131,
+    r + 86,
+    38,
+    r + 86,
+    132,
+    39,
+    159,
+    133,
+    48,
+    r + 58,
+    134,
+    50,
+    135,
+    r + 85,
+    51,
+    141,
+    136,
+    55,
+    r + 76,
+    137,
+    59,
+    138,
+    r + 84,
+    60,
+    r + 83,
+    139,
+    61,
+    140,
+    r + 83,
+    63,
+    r + 83,
+    r + 46,
+    55,
+    r + 76,
+    142,
+    59,
+    143,
+    r + 84,
+    60,
+    148,
+    144,
+    61,
+    145,
+    r + 83,
+    62,
+    147,
+    146,
+    63,
+    150,
+    r + 46,
+    63,
+    153,
+    r + 46,
+    61,
+    149,
+    r + 83,
+    62,
+    153,
+    150,
+    64,
+    151,
+    r + 54,
+    66,
+    152,
+    r + 53,
+    70,
+    r + 82,
+    r + 52,
+    64,
+    154,
+    r + 54,
+    66,
+    155,
+    r + 53,
+    70,
+    156,
+    r + 52,
+    71,
+    157,
+    r + 81,
+    73,
+    158,
+    r + 80,
+    74,
+    r + 77,
+    r + 79,
+    40,
+    160,
+    r + 57,
+    41,
+    r + 57,
+    161,
+    42,
+    185,
+    162,
+    48,
+    174,
+    163,
+    49,
+    r + 45,
+    164,
+    51,
+    165,
+    526,
+    60,
+    168,
+    166,
+    62,
+    r + 55,
+    167,
+    63,
+    169,
+    r + 46,
+    62,
+    r + 55,
+    169,
+    64,
+    170,
+    r + 54,
+    66,
+    171,
+    r + 53,
+    69,
+    172,
+    r + 65,
+    70,
+    173,
+    r + 52,
+    72,
+    r + 63,
+    r + 51,
+    49,
+    r + 45,
+    175,
+    51,
+    176,
+    526,
+    60,
+    179,
+    177,
+    62,
+    r + 55,
+    178,
+    63,
+    180,
+    r + 46,
+    62,
+    r + 55,
+    180,
+    64,
+    181,
+    r + 54,
+    66,
+    182,
+    r + 53,
+    68,
+    r + 47,
+    183,
+    70,
+    184,
+    r + 52,
+    72,
+    r + 48,
+    r + 51,
+    48,
+    r + 56,
+    186,
+    52,
+    187,
+    r + 72,
+    65,
+    r + 69,
+    188,
+    67,
+    r + 70,
+    r + 71,
+    25,
+    r + 36,
+    r + 42,
+    21,
+    191,
+    r + 23,
+    25,
+    192,
+    r + 42,
+    30,
+    194,
+    193,
+    46,
+    r + 34,
+    r + 36,
+    46,
+    r + 33,
+    r + 35,
+    21,
+    196,
+    r + 23,
+    26,
+    r + 88,
+    197,
+    28,
+    r + 87,
+    198,
+    34,
+    201,
+    199,
+    35,
+    200,
+    545,
+    36,
+    r + 101,
+    r + 115,
+    46,
+    r + 95,
+    r + 96,
+    17,
+    203,
+    r + 22,
+    20,
+    204,
+    r + 21,
+    21,
+    205,
+    550,
+    33,
+    206,
+    550,
+    44,
+    r + 16,
+    207,
+    45,
+    r + 18,
+    r + 20,
+    8,
+    209,
+    215,
+    16,
+    210,
+    220,
+    18,
+    211,
+    220,
+    19,
+    212,
+    224,
+    20,
+    213,
+    227,
+    21,
+    231,
+    401,
+    8,
+    218,
+    215,
+    19,
+    216,
+    r + 9,
+    20,
+    217,
+    227,
+    21,
+    231,
+    r + 9,
+    16,
+    219,
+    220,
+    18,
+    223,
+    220,
+    19,
+    221,
+    224,
+    20,
+    222,
+    227,
+    21,
+    231,
+    r + 12,
+    19,
+    226,
+    224,
+    20,
+    225,
+    r + 9,
+    21,
+    r + 9,
+    r + 12,
+    20,
+    230,
+    227,
+    21,
+    228,
+    r + 9,
+    30,
+    229,
+    r + 9,
+    34,
+    r + 7,
+    r + 9,
+    21,
+    231,
+    415,
+    30,
+    232,
+    r + 8,
+    34,
+    r + 7,
+    r + 8,
+    4,
+    r + 2,
+    234,
+    5,
+    235,
+    480,
+    6,
+    271,
+    236,
+    7,
+    270,
+    237,
+    8,
+    238,
+    491,
+    9,
+    239,
+    243,
+    10,
+    240,
+    243,
+    11,
+    241,
+    243,
+    12,
+    242,
+    243,
+    13,
+    547,
+    243,
+    14,
+    266,
+    244,
+    20,
+    264,
+    245,
+    26,
+    246,
+    267,
+    37,
+    247,
+    r + 86,
+    38,
+    r + 86,
+    248,
+    39,
+    249,
+    518,
+    40,
+    250,
+    r + 57,
+    41,
+    r + 57,
+    251,
+    42,
+    538,
+    252,
+    48,
+    r + 43,
+    253,
+    49,
+    r + 45,
+    254,
+    51,
+    255,
+    526,
+    60,
+    258,
+    256,
+    62,
+    r + 55,
+    257,
+    63,
+    259,
+    r + 46,
+    62,
+    r + 55,
+    259,
+    64,
+    260,
+    r + 54,
+    66,
+    261,
+    r + 53,
+    69,
+    262,
+    r + 65,
+    70,
+    263,
+    r + 52,
+    72,
+    r + 62,
+    r + 51,
+    25,
+    265,
+    r + 42,
+    46,
+    r + 31,
+    r + 32,
+    26,
+    r + 88,
+    267,
+    28,
+    r + 87,
+    268,
+    34,
+    269,
+    544,
+    46,
+    r + 93,
+    r + 94,
+    8,
+    397,
+    r + 9,
+    8,
+    407,
+    r + 9,
+    3,
+    346,
+    273,
+    4,
+    r + 3,
+    274,
+    5,
+    284,
+    275,
+    8,
+    276,
+    r + 115,
+    15,
+    r + 5,
+    277,
+    16,
+    278,
+    281,
+    18,
+    279,
+    281,
+    19,
+    280,
+    281,
+    22,
+    r + 14,
+    281,
+    35,
+    282,
+    r + 42,
+    36,
+    r + 102,
+    283,
+    46,
+    r + 106,
+    r + 107,
+    6,
+    405,
+    285,
+    7,
+    395,
+    286,
+    8,
+    295,
+    287,
+    14,
+    501,
+    288,
+    26,
+    289,
+    502,
+    37,
+    290,
+    r + 86,
+    38,
+    r + 86,
+    291,
+    39,
+    292,
+    307,
+    40,
+    293,
+    r + 57,
+    41,
+    r + 57,
+    294,
+    42,
+    335,
+    500,
+    9,
+    296,
+    300,
+    10,
+    297,
+    300,
+    11,
+    298,
+    300,
+    12,
+    299,
+    300,
+    13,
+    394,
+    300,
+    14,
+    339,
+    301,
+    15,
+    r + 5,
+    302,
+    20,
+    337,
+    303,
+    26,
+    304,
+    341,
+    37,
+    305,
+    r + 86,
+    38,
+    r + 86,
+    306,
+    39,
+    309,
+    307,
+    48,
+    r + 58,
+    308,
+    50,
+    r + 74,
+    r + 85,
+    40,
+    310,
+    r + 57,
+    41,
+    r + 57,
+    311,
+    42,
+    335,
+    312,
+    48,
+    324,
+    313,
+    49,
+    r + 45,
+    314,
+    51,
+    315,
+    526,
+    60,
+    318,
+    316,
+    62,
+    r + 55,
+    317,
+    63,
+    319,
+    r + 46,
+    62,
+    r + 55,
+    319,
+    64,
+    320,
+    r + 54,
+    66,
+    321,
+    r + 53,
+    69,
+    322,
+    r + 65,
+    70,
+    323,
+    r + 52,
+    72,
+    r + 61,
+    r + 51,
+    49,
+    r + 45,
+    325,
+    51,
+    326,
+    526,
+    60,
+    329,
+    327,
+    62,
+    r + 55,
+    328,
+    63,
+    330,
+    r + 46,
+    62,
+    r + 55,
+    330,
+    64,
+    331,
+    r + 54,
+    66,
+    332,
+    r + 53,
+    68,
+    r + 47,
+    333,
+    70,
+    334,
+    r + 52,
+    72,
+    r + 49,
+    r + 51,
+    48,
+    r + 56,
+    336,
+    52,
+    r + 67,
+    r + 72,
+    25,
+    338,
+    r + 42,
+    46,
+    r + 27,
+    r + 28,
+    15,
+    r + 5,
+    340,
+    26,
+    r + 88,
+    341,
+    28,
+    r + 87,
+    342,
+    34,
+    345,
+    343,
+    35,
+    344,
+    545,
+    36,
+    r + 102,
+    r + 115,
+    46,
+    r + 91,
+    r + 92,
+    4,
+    r + 2,
+    347,
+    5,
+    357,
+    348,
+    8,
+    349,
+    r + 115,
+    15,
+    r + 5,
+    350,
+    16,
+    351,
+    354,
+    18,
+    352,
+    354,
+    19,
+    353,
+    354,
+    22,
+    r + 14,
+    354,
+    35,
+    355,
+    r + 42,
+    36,
+    r + 43,
+    356,
+    46,
+    r + 104,
+    r + 105,
+    6,
+    405,
+    358,
+    7,
+    395,
+    359,
+    8,
+    360,
+    491,
+    9,
+    361,
+    365,
+    10,
+    362,
+    365,
+    11,
+    363,
+    365,
+    12,
+    364,
+    365,
+    13,
+    394,
+    365,
+    14,
+    389,
+    366,
+    15,
+    r + 5,
+    367,
+    20,
+    387,
+    368,
+    26,
+    369,
+    391,
+    37,
+    370,
+    r + 86,
+    38,
+    r + 86,
+    371,
+    39,
+    372,
+    518,
+    40,
+    373,
+    r + 57,
+    41,
+    r + 57,
+    374,
+    42,
+    538,
+    375,
+    48,
+    r + 43,
+    376,
+    49,
+    r + 45,
+    377,
+    51,
+    378,
+    526,
+    60,
+    381,
+    379,
+    62,
+    r + 55,
+    380,
+    63,
+    382,
+    r + 46,
+    62,
+    r + 55,
+    382,
+    64,
+    383,
+    r + 54,
+    66,
+    384,
+    r + 53,
+    69,
+    385,
+    r + 65,
+    70,
+    386,
+    r + 52,
+    72,
+    r + 60,
+    r + 51,
+    25,
+    388,
+    r + 42,
+    46,
+    r + 25,
+    r + 26,
+    15,
+    r + 5,
+    390,
+    26,
+    r + 88,
+    391,
+    28,
+    r + 87,
+    392,
+    34,
+    393,
+    544,
+    46,
+    r + 89,
+    r + 90,
+    15,
+    r + 5,
+    547,
+    8,
+    396,
+    r + 9,
+    15,
+    r + 5,
+    397,
+    16,
+    398,
+    410,
+    18,
+    399,
+    410,
+    19,
+    400,
+    410,
+    20,
+    401,
+    r + 9,
+    27,
+    402,
+    r + 12,
+    29,
+    r + 11,
+    403,
+    31,
+    r + 11,
+    404,
+    32,
+    r + 11,
+    422,
+    8,
+    406,
+    r + 9,
+    15,
+    r + 5,
+    407,
+    16,
+    408,
+    410,
+    18,
+    409,
+    410,
+    19,
+    411,
+    410,
+    20,
+    r + 12,
+    r + 9,
+    20,
+    414,
+    412,
+    22,
+    413,
+    r + 9,
+    34,
+    r + 10,
+    r + 9,
+    22,
+    416,
+    415,
+    27,
+    419,
+    r + 12,
+    27,
+    418,
+    417,
+    34,
+    r + 10,
+    r + 12,
+    34,
+    r + 10,
+    419,
+    43,
+    r + 11,
+    420,
+    47,
+    r + 11,
+    421,
+    53,
+    r + 11,
+    422,
+    54,
+    r + 11,
+    423,
+    56,
+    r + 11,
+    r + 12,
+    2,
+    r + 1,
+    425,
+    3,
+    478,
+    426,
+    4,
+    r + 4,
+    427,
+    5,
+    438,
+    428,
+    8,
+    429,
+    r + 115,
+    16,
+    430,
+    433,
+    18,
+    431,
+    433,
+    19,
+    432,
+    433,
+    22,
+    r + 14,
+    433,
+    35,
+    434,
+    r + 42,
+    36,
+    r + 44,
+    435,
+    46,
+    r + 112,
+    436,
+    57,
+    437,
+    r + 114,
+    58,
+    r + 113,
+    r + 114,
+    6,
+    r + 6,
+    439,
+    7,
+    r + 6,
+    440,
+    8,
+    450,
+    441,
+    14,
+    501,
+    442,
+    26,
+    443,
+    502,
+    37,
+    444,
+    r + 86,
+    38,
+    r + 86,
+    445,
+    39,
+    446,
+    465,
+    40,
+    447,
+    r + 57,
+    41,
+    r + 57,
+    448,
+    42,
+    471,
+    449,
+    48,
+    r + 44,
+    500,
+    9,
+    451,
+    455,
+    10,
+    452,
+    455,
+    11,
+    453,
+    455,
+    12,
+    454,
+    455,
+    13,
+    547,
+    455,
+    14,
+    473,
+    456,
+    15,
+    460,
+    457,
+    20,
+    458,
+    461,
+    25,
+    459,
+    r + 42,
+    46,
+    r + 37,
+    r + 38,
+    20,
+    540,
+    461,
+    26,
+    462,
+    474,
+    37,
+    463,
+    r + 86,
+    38,
+    r + 86,
+    464,
+    39,
+    467,
+    465,
+    48,
+    r + 58,
+    466,
+    50,
+    r + 75,
+    r + 85,
+    40,
+    468,
+    r + 57,
+    41,
+    r + 57,
+    469,
+    42,
+    471,
+    470,
+    48,
+    r + 44,
+    524,
+    48,
+    r + 44,
+    472,
+    52,
+    r + 68,
+    r + 72,
+    26,
+    r + 88,
+    474,
+    28,
+    r + 87,
+    475,
+    34,
+    r + 100,
+    476,
+    35,
+    477,
+    545,
+    36,
+    r + 44,
+    r + 115,
+    4,
+    r + 2,
+    479,
+    5,
+    488,
+    480,
+    8,
+    481,
+    r + 115,
+    16,
+    482,
+    485,
+    18,
+    483,
+    485,
+    19,
+    484,
+    485,
+    22,
+    r + 14,
+    485,
+    35,
+    486,
+    r + 42,
+    36,
+    r + 43,
+    487,
+    46,
+    r + 108,
+    r + 109,
+    6,
+    r + 6,
+    489,
+    7,
+    r + 6,
+    490,
+    8,
+    503,
+    491,
+    14,
+    501,
+    492,
+    26,
+    493,
+    502,
+    37,
+    494,
+    r + 86,
+    38,
+    r + 86,
+    495,
+    39,
+    496,
+    518,
+    40,
+    497,
+    r + 57,
+    41,
+    r + 57,
+    498,
+    42,
+    538,
+    499,
+    48,
+    r + 43,
+    500,
+    49,
+    r + 45,
+    526,
+    26,
+    r + 88,
+    502,
+    28,
+    r + 87,
+    r + 115,
+    9,
+    504,
+    508,
+    10,
+    505,
+    508,
+    11,
+    506,
+    508,
+    12,
+    507,
+    508,
+    13,
+    547,
+    508,
+    14,
+    541,
+    509,
+    15,
+    513,
+    510,
+    20,
+    511,
+    514,
+    25,
+    512,
+    r + 42,
+    46,
+    r + 29,
+    r + 30,
+    20,
+    540,
+    514,
+    26,
+    515,
+    542,
+    37,
+    516,
+    r + 86,
+    38,
+    r + 86,
+    517,
+    39,
+    520,
+    518,
+    48,
+    r + 58,
+    519,
+    50,
+    r + 73,
+    r + 85,
+    40,
+    521,
+    r + 57,
+    41,
+    r + 57,
+    522,
+    42,
+    538,
+    523,
+    48,
+    r + 43,
+    524,
+    49,
+    r + 45,
+    525,
+    51,
+    529,
+    526,
+    60,
+    r + 55,
+    527,
+    62,
+    r + 55,
+    528,
+    63,
+    r + 55,
+    r + 46,
+    60,
+    532,
+    530,
+    62,
+    r + 55,
+    531,
+    63,
+    533,
+    r + 46,
+    62,
+    r + 55,
+    533,
+    64,
+    534,
+    r + 54,
+    66,
+    535,
+    r + 53,
+    69,
+    536,
+    r + 65,
+    70,
+    537,
+    r + 52,
+    72,
+    r + 59,
+    r + 51,
+    48,
+    r + 43,
+    539,
+    52,
+    r + 66,
+    r + 72,
+    25,
+    r + 24,
+    r + 42,
+    26,
+    r + 88,
+    542,
+    28,
+    r + 87,
+    543,
+    34,
+    r + 100,
+    544,
+    35,
+    546,
+    545,
+    36,
+    r + 42,
+    r + 115,
+    36,
+    r + 43,
+    r + 115,
+    17,
+    548,
+    r + 22,
+    20,
+    549,
+    r + 21,
+    33,
+    552,
+    550,
+    44,
+    r + 17,
+    551,
+    45,
+    r + 19,
+    r + 20,
+    44,
+    r + 15,
+    553,
+    45,
+    r + 15,
+    r + 20
+  ]);
+  exports2.bdd = endpoints_1.BinaryDecisionDiagram.from(nodes, root, _data.conditions, _data.results);
+});
+
+// ../../node_modules/.bun/@aws-sdk+client-s3@3.1053.0/node_modules/@aws-sdk/client-s3/dist-cjs/endpoint/endpointResolver.js
+var require_endpointResolver = __commonJS((exports2) => {
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.defaultEndpointResolver = undefined;
+  var client_1 = require_client2();
+  var endpoints_1 = require_endpoints();
+  var bdd_1 = require_bdd();
+  var cache2 = new endpoints_1.EndpointCache({
+    size: 50,
+    params: [
+      "Accelerate",
+      "Bucket",
+      "DisableAccessPoints",
+      "DisableMultiRegionAccessPoints",
+      "DisableS3ExpressSessionAuth",
+      "Endpoint",
+      "ForcePathStyle",
+      "Region",
+      "UseArnRegion",
+      "UseDualStack",
+      "UseFIPS",
+      "UseGlobalEndpoint",
+      "UseObjectLambdaEndpoint",
+      "UseS3ExpressControlEndpoint"
+    ]
+  });
+  var defaultEndpointResolver = (endpointParams, context = {}) => {
+    return cache2.get(endpointParams, () => (0, endpoints_1.decideEndpoint)(bdd_1.bdd, {
+      endpointParams,
+      logger: context.logger
+    }));
+  };
+  exports2.defaultEndpointResolver = defaultEndpointResolver;
+  endpoints_1.customEndpointFunctions.aws = client_1.awsEndpointFunctions;
+});
+
+// ../../node_modules/.bun/@aws-sdk+client-s3@3.1053.0/node_modules/@aws-sdk/client-s3/dist-cjs/auth/httpAuthSchemeProvider.js
+var require_httpAuthSchemeProvider = __commonJS((exports2) => {
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.resolveHttpAuthSchemeConfig = exports2.defaultS3HttpAuthSchemeProvider = exports2.defaultS3HttpAuthSchemeParametersProvider = undefined;
+  var httpAuthSchemes_1 = require_httpAuthSchemes();
+  var signature_v4_multi_region_1 = require_dist_cjs11();
+  var client_1 = require_client();
+  var endpoints_1 = require_endpoints();
+  var endpointResolver_1 = require_endpointResolver();
+  var createEndpointRuleSetHttpAuthSchemeParametersProvider = (defaultHttpAuthSchemeParametersProvider) => async (config, context, input) => {
+    if (!input) {
+      throw new Error("Could not find `input` for `defaultEndpointRuleSetHttpAuthSchemeParametersProvider`");
+    }
+    const defaultParameters = await defaultHttpAuthSchemeParametersProvider(config, context, input);
+    const instructionsFn = (0, client_1.getSmithyContext)(context)?.commandInstance?.constructor?.getEndpointParameterInstructions;
+    if (!instructionsFn) {
+      throw new Error(`getEndpointParameterInstructions() is not defined on '${context.commandName}'`);
+    }
+    const endpointParameters = await (0, endpoints_1.resolveParams)(input, { getEndpointParameterInstructions: instructionsFn }, config);
+    return Object.assign(defaultParameters, endpointParameters);
+  };
+  var _defaultS3HttpAuthSchemeParametersProvider = async (config, context, input) => {
+    return {
+      operation: (0, client_1.getSmithyContext)(context).operation,
+      region: await (0, client_1.normalizeProvider)(config.region)() || (() => {
+        throw new Error("expected `region` to be configured for `aws.auth#sigv4`");
+      })()
+    };
+  };
+  exports2.defaultS3HttpAuthSchemeParametersProvider = createEndpointRuleSetHttpAuthSchemeParametersProvider(_defaultS3HttpAuthSchemeParametersProvider);
+  function createAwsAuthSigv4HttpAuthOption(authParameters) {
+    return {
+      schemeId: "aws.auth#sigv4",
+      signingProperties: {
+        name: "s3",
+        region: authParameters.region
+      },
+      propertiesExtractor: (config, context) => ({
+        signingProperties: {
+          config,
+          context
+        }
+      })
+    };
+  }
+  function createAwsAuthSigv4aHttpAuthOption(authParameters) {
+    return {
+      schemeId: "aws.auth#sigv4a",
+      signingProperties: {
+        name: "s3",
+        region: authParameters.region
+      },
+      propertiesExtractor: (config, context) => ({
+        signingProperties: {
+          config,
+          context
+        }
+      })
+    };
+  }
+  var createEndpointRuleSetHttpAuthSchemeProvider = (defaultEndpointResolver, defaultHttpAuthSchemeResolver, createHttpAuthOptionFunctions) => {
+    const endpointRuleSetHttpAuthSchemeProvider = (authParameters) => {
+      const endpoint = defaultEndpointResolver(authParameters);
+      const authSchemes = endpoint.properties?.authSchemes;
+      if (!authSchemes) {
+        return defaultHttpAuthSchemeResolver(authParameters);
+      }
+      const options = [];
+      for (const scheme of authSchemes) {
+        const { name: resolvedName, properties = {}, ...rest } = scheme;
+        const name = resolvedName.toLowerCase();
+        if (resolvedName !== name) {
+          console.warn(`HttpAuthScheme has been normalized with lowercasing: '${resolvedName}' to '${name}'`);
+        }
+        let schemeId;
+        if (name === "sigv4a") {
+          schemeId = "aws.auth#sigv4a";
+          const sigv4Present = authSchemes.find((s) => {
+            const name2 = s.name.toLowerCase();
+            return name2 !== "sigv4a" && name2.startsWith("sigv4");
+          });
+          if (signature_v4_multi_region_1.SignatureV4MultiRegion.sigv4aDependency() === "none" && sigv4Present) {
+            continue;
+          }
+        } else if (name.startsWith("sigv4")) {
+          schemeId = "aws.auth#sigv4";
+        } else {
+          throw new Error(`Unknown HttpAuthScheme found in '@smithy.rules#endpointRuleSet': '${name}'`);
+        }
+        const createOption = createHttpAuthOptionFunctions[schemeId];
+        if (!createOption) {
+          throw new Error(`Could not find HttpAuthOption create function for '${schemeId}'`);
+        }
+        const option = createOption(authParameters);
+        option.schemeId = schemeId;
+        option.signingProperties = { ...option.signingProperties || {}, ...rest, ...properties };
+        options.push(option);
+      }
+      return options;
+    };
+    return endpointRuleSetHttpAuthSchemeProvider;
+  };
+  var _defaultS3HttpAuthSchemeProvider = (authParameters) => {
+    const options = [];
+    switch (authParameters.operation) {
+      default: {
+        options.push(createAwsAuthSigv4HttpAuthOption(authParameters));
+        options.push(createAwsAuthSigv4aHttpAuthOption(authParameters));
+      }
+    }
+    return options;
+  };
+  exports2.defaultS3HttpAuthSchemeProvider = createEndpointRuleSetHttpAuthSchemeProvider(endpointResolver_1.defaultEndpointResolver, _defaultS3HttpAuthSchemeProvider, {
+    "aws.auth#sigv4": createAwsAuthSigv4HttpAuthOption,
+    "aws.auth#sigv4a": createAwsAuthSigv4aHttpAuthOption
+  });
+  var resolveHttpAuthSchemeConfig = (config) => {
+    const config_0 = (0, httpAuthSchemes_1.resolveAwsSdkSigV4Config)(config);
+    const config_1 = (0, httpAuthSchemes_1.resolveAwsSdkSigV4AConfig)(config_0);
+    return Object.assign(config_1, {
+      authSchemePreference: (0, client_1.normalizeProvider)(config.authSchemePreference ?? [])
+    });
+  };
+  exports2.resolveHttpAuthSchemeConfig = resolveHttpAuthSchemeConfig;
+});
+
+// ../../node_modules/.bun/@aws-sdk+client-s3@3.1053.0/node_modules/@aws-sdk/client-s3/dist-cjs/models/S3ServiceException.js
+var require_S3ServiceException = __commonJS((exports2) => {
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.S3ServiceException = exports2.__ServiceException = undefined;
+  var client_1 = require_client();
+  Object.defineProperty(exports2, "__ServiceException", { enumerable: true, get: function() {
+    return client_1.ServiceException;
+  } });
+
+  class S3ServiceException extends client_1.ServiceException {
+    constructor(options) {
+      super(options);
+      Object.setPrototypeOf(this, S3ServiceException.prototype);
+    }
+  }
+  exports2.S3ServiceException = S3ServiceException;
+});
+
+// ../../node_modules/.bun/@aws-sdk+client-s3@3.1053.0/node_modules/@aws-sdk/client-s3/dist-cjs/models/errors.js
+var require_errors3 = __commonJS((exports2) => {
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.ObjectAlreadyInActiveTierError = exports2.IdempotencyParameterMismatch = exports2.TooManyParts = exports2.InvalidWriteOffset = exports2.InvalidRequest = exports2.EncryptionTypeMismatch = exports2.NotFound = exports2.NoSuchKey = exports2.InvalidObjectState = exports2.NoSuchBucket = exports2.BucketAlreadyOwnedByYou = exports2.BucketAlreadyExists = exports2.ObjectNotInActiveTierError = exports2.AccessDenied = exports2.NoSuchUpload = undefined;
+  var S3ServiceException_1 = require_S3ServiceException();
+
+  class NoSuchUpload extends S3ServiceException_1.S3ServiceException {
+    name = "NoSuchUpload";
+    $fault = "client";
+    constructor(opts) {
+      super({
+        name: "NoSuchUpload",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, NoSuchUpload.prototype);
+    }
+  }
+  exports2.NoSuchUpload = NoSuchUpload;
+
+  class AccessDenied extends S3ServiceException_1.S3ServiceException {
+    name = "AccessDenied";
+    $fault = "client";
+    constructor(opts) {
+      super({
+        name: "AccessDenied",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, AccessDenied.prototype);
+    }
+  }
+  exports2.AccessDenied = AccessDenied;
+
+  class ObjectNotInActiveTierError extends S3ServiceException_1.S3ServiceException {
+    name = "ObjectNotInActiveTierError";
+    $fault = "client";
+    constructor(opts) {
+      super({
+        name: "ObjectNotInActiveTierError",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, ObjectNotInActiveTierError.prototype);
+    }
+  }
+  exports2.ObjectNotInActiveTierError = ObjectNotInActiveTierError;
+
+  class BucketAlreadyExists extends S3ServiceException_1.S3ServiceException {
+    name = "BucketAlreadyExists";
+    $fault = "client";
+    constructor(opts) {
+      super({
+        name: "BucketAlreadyExists",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, BucketAlreadyExists.prototype);
+    }
+  }
+  exports2.BucketAlreadyExists = BucketAlreadyExists;
+
+  class BucketAlreadyOwnedByYou extends S3ServiceException_1.S3ServiceException {
+    name = "BucketAlreadyOwnedByYou";
+    $fault = "client";
+    constructor(opts) {
+      super({
+        name: "BucketAlreadyOwnedByYou",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, BucketAlreadyOwnedByYou.prototype);
+    }
+  }
+  exports2.BucketAlreadyOwnedByYou = BucketAlreadyOwnedByYou;
+
+  class NoSuchBucket extends S3ServiceException_1.S3ServiceException {
+    name = "NoSuchBucket";
+    $fault = "client";
+    constructor(opts) {
+      super({
+        name: "NoSuchBucket",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, NoSuchBucket.prototype);
+    }
+  }
+  exports2.NoSuchBucket = NoSuchBucket;
+
+  class InvalidObjectState extends S3ServiceException_1.S3ServiceException {
+    name = "InvalidObjectState";
+    $fault = "client";
+    StorageClass;
+    AccessTier;
+    constructor(opts) {
+      super({
+        name: "InvalidObjectState",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, InvalidObjectState.prototype);
+      this.StorageClass = opts.StorageClass;
+      this.AccessTier = opts.AccessTier;
+    }
+  }
+  exports2.InvalidObjectState = InvalidObjectState;
+
+  class NoSuchKey extends S3ServiceException_1.S3ServiceException {
+    name = "NoSuchKey";
+    $fault = "client";
+    constructor(opts) {
+      super({
+        name: "NoSuchKey",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, NoSuchKey.prototype);
+    }
+  }
+  exports2.NoSuchKey = NoSuchKey;
+
+  class NotFound extends S3ServiceException_1.S3ServiceException {
+    name = "NotFound";
+    $fault = "client";
+    constructor(opts) {
+      super({
+        name: "NotFound",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, NotFound.prototype);
+    }
+  }
+  exports2.NotFound = NotFound;
+
+  class EncryptionTypeMismatch extends S3ServiceException_1.S3ServiceException {
+    name = "EncryptionTypeMismatch";
+    $fault = "client";
+    constructor(opts) {
+      super({
+        name: "EncryptionTypeMismatch",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, EncryptionTypeMismatch.prototype);
+    }
+  }
+  exports2.EncryptionTypeMismatch = EncryptionTypeMismatch;
+
+  class InvalidRequest extends S3ServiceException_1.S3ServiceException {
+    name = "InvalidRequest";
+    $fault = "client";
+    constructor(opts) {
+      super({
+        name: "InvalidRequest",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, InvalidRequest.prototype);
+    }
+  }
+  exports2.InvalidRequest = InvalidRequest;
+
+  class InvalidWriteOffset extends S3ServiceException_1.S3ServiceException {
+    name = "InvalidWriteOffset";
+    $fault = "client";
+    constructor(opts) {
+      super({
+        name: "InvalidWriteOffset",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, InvalidWriteOffset.prototype);
+    }
+  }
+  exports2.InvalidWriteOffset = InvalidWriteOffset;
+
+  class TooManyParts extends S3ServiceException_1.S3ServiceException {
+    name = "TooManyParts";
+    $fault = "client";
+    constructor(opts) {
+      super({
+        name: "TooManyParts",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, TooManyParts.prototype);
+    }
+  }
+  exports2.TooManyParts = TooManyParts;
+
+  class IdempotencyParameterMismatch extends S3ServiceException_1.S3ServiceException {
+    name = "IdempotencyParameterMismatch";
+    $fault = "client";
+    constructor(opts) {
+      super({
+        name: "IdempotencyParameterMismatch",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, IdempotencyParameterMismatch.prototype);
+    }
+  }
+  exports2.IdempotencyParameterMismatch = IdempotencyParameterMismatch;
+
+  class ObjectAlreadyInActiveTierError extends S3ServiceException_1.S3ServiceException {
+    name = "ObjectAlreadyInActiveTierError";
+    $fault = "client";
+    constructor(opts) {
+      super({
+        name: "ObjectAlreadyInActiveTierError",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, ObjectAlreadyInActiveTierError.prototype);
+    }
+  }
+  exports2.ObjectAlreadyInActiveTierError = ObjectAlreadyInActiveTierError;
+});
+
+// ../../node_modules/.bun/@aws-sdk+client-s3@3.1053.0/node_modules/@aws-sdk/client-s3/dist-cjs/schemas/schemas_0.js
+var require_schemas_0 = __commonJS((exports2) => {
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.CreateBucketMetadataTableConfigurationRequest$ = exports2.CreateBucketMetadataConfigurationRequest$ = exports2.CreateBucketConfiguration$ = exports2.CORSRule$ = exports2.CORSConfiguration$ = exports2.CopyPartResult$ = exports2.CopyObjectResult$ = exports2.CopyObjectRequest$ = exports2.CopyObjectOutput$ = exports2.ContinuationEvent$ = exports2.Condition$ = exports2.CompleteMultipartUploadRequest$ = exports2.CompleteMultipartUploadOutput$ = exports2.CompletedPart$ = exports2.CompletedMultipartUpload$ = exports2.CommonPrefix$ = exports2.Checksum$ = exports2.BucketLoggingStatus$ = exports2.BucketLifecycleConfiguration$ = exports2.BucketInfo$ = exports2.Bucket$ = exports2.BlockedEncryptionTypes$ = exports2.AnalyticsS3BucketDestination$ = exports2.AnalyticsExportDestination$ = exports2.AnalyticsConfiguration$ = exports2.AnalyticsAndOperator$ = exports2.AccessControlTranslation$ = exports2.AccessControlPolicy$ = exports2.AccelerateConfiguration$ = exports2.AbortMultipartUploadRequest$ = exports2.AbortMultipartUploadOutput$ = exports2.AbortIncompleteMultipartUpload$ = exports2.AbacStatus$ = exports2.errorTypeRegistries = exports2.TooManyParts$ = exports2.ObjectNotInActiveTierError$ = exports2.ObjectAlreadyInActiveTierError$ = exports2.NotFound$ = exports2.NoSuchUpload$ = exports2.NoSuchKey$ = exports2.NoSuchBucket$ = exports2.InvalidWriteOffset$ = exports2.InvalidRequest$ = exports2.InvalidObjectState$ = exports2.IdempotencyParameterMismatch$ = exports2.EncryptionTypeMismatch$ = exports2.BucketAlreadyOwnedByYou$ = exports2.BucketAlreadyExists$ = exports2.AccessDenied$ = exports2.S3ServiceException$ = undefined;
+  exports2.GetBucketAccelerateConfigurationRequest$ = exports2.GetBucketAccelerateConfigurationOutput$ = exports2.GetBucketAbacRequest$ = exports2.GetBucketAbacOutput$ = exports2.FilterRule$ = exports2.ExistingObjectReplication$ = exports2.EventBridgeConfiguration$ = exports2.ErrorDocument$ = exports2.ErrorDetails$ = exports2._Error$ = exports2.EndEvent$ = exports2.EncryptionConfiguration$ = exports2.Encryption$ = exports2.DestinationResult$ = exports2.Destination$ = exports2.DeletePublicAccessBlockRequest$ = exports2.DeleteObjectTaggingRequest$ = exports2.DeleteObjectTaggingOutput$ = exports2.DeleteObjectsRequest$ = exports2.DeleteObjectsOutput$ = exports2.DeleteObjectRequest$ = exports2.DeleteObjectOutput$ = exports2.DeleteMarkerReplication$ = exports2.DeleteMarkerEntry$ = exports2.DeletedObject$ = exports2.DeleteBucketWebsiteRequest$ = exports2.DeleteBucketTaggingRequest$ = exports2.DeleteBucketRequest$ = exports2.DeleteBucketReplicationRequest$ = exports2.DeleteBucketPolicyRequest$ = exports2.DeleteBucketOwnershipControlsRequest$ = exports2.DeleteBucketMetricsConfigurationRequest$ = exports2.DeleteBucketMetadataTableConfigurationRequest$ = exports2.DeleteBucketMetadataConfigurationRequest$ = exports2.DeleteBucketLifecycleRequest$ = exports2.DeleteBucketInventoryConfigurationRequest$ = exports2.DeleteBucketIntelligentTieringConfigurationRequest$ = exports2.DeleteBucketEncryptionRequest$ = exports2.DeleteBucketCorsRequest$ = exports2.DeleteBucketAnalyticsConfigurationRequest$ = exports2.Delete$ = exports2.DefaultRetention$ = exports2.CSVOutput$ = exports2.CSVInput$ = exports2.CreateSessionRequest$ = exports2.CreateSessionOutput$ = exports2.CreateMultipartUploadRequest$ = exports2.CreateMultipartUploadOutput$ = exports2.CreateBucketRequest$ = exports2.CreateBucketOutput$ = undefined;
+  exports2.GetObjectLegalHoldRequest$ = exports2.GetObjectLegalHoldOutput$ = exports2.GetObjectAttributesRequest$ = exports2.GetObjectAttributesParts$ = exports2.GetObjectAttributesOutput$ = exports2.GetObjectAclRequest$ = exports2.GetObjectAclOutput$ = exports2.GetBucketWebsiteRequest$ = exports2.GetBucketWebsiteOutput$ = exports2.GetBucketVersioningRequest$ = exports2.GetBucketVersioningOutput$ = exports2.GetBucketTaggingRequest$ = exports2.GetBucketTaggingOutput$ = exports2.GetBucketRequestPaymentRequest$ = exports2.GetBucketRequestPaymentOutput$ = exports2.GetBucketReplicationRequest$ = exports2.GetBucketReplicationOutput$ = exports2.GetBucketPolicyStatusRequest$ = exports2.GetBucketPolicyStatusOutput$ = exports2.GetBucketPolicyRequest$ = exports2.GetBucketPolicyOutput$ = exports2.GetBucketOwnershipControlsRequest$ = exports2.GetBucketOwnershipControlsOutput$ = exports2.GetBucketNotificationConfigurationRequest$ = exports2.GetBucketMetricsConfigurationRequest$ = exports2.GetBucketMetricsConfigurationOutput$ = exports2.GetBucketMetadataTableConfigurationResult$ = exports2.GetBucketMetadataTableConfigurationRequest$ = exports2.GetBucketMetadataTableConfigurationOutput$ = exports2.GetBucketMetadataConfigurationResult$ = exports2.GetBucketMetadataConfigurationRequest$ = exports2.GetBucketMetadataConfigurationOutput$ = exports2.GetBucketLoggingRequest$ = exports2.GetBucketLoggingOutput$ = exports2.GetBucketLocationRequest$ = exports2.GetBucketLocationOutput$ = exports2.GetBucketLifecycleConfigurationRequest$ = exports2.GetBucketLifecycleConfigurationOutput$ = exports2.GetBucketInventoryConfigurationRequest$ = exports2.GetBucketInventoryConfigurationOutput$ = exports2.GetBucketIntelligentTieringConfigurationRequest$ = exports2.GetBucketIntelligentTieringConfigurationOutput$ = exports2.GetBucketEncryptionRequest$ = exports2.GetBucketEncryptionOutput$ = exports2.GetBucketCorsRequest$ = exports2.GetBucketCorsOutput$ = exports2.GetBucketAnalyticsConfigurationRequest$ = exports2.GetBucketAnalyticsConfigurationOutput$ = exports2.GetBucketAclRequest$ = exports2.GetBucketAclOutput$ = undefined;
+  exports2.ListBucketInventoryConfigurationsRequest$ = exports2.ListBucketInventoryConfigurationsOutput$ = exports2.ListBucketIntelligentTieringConfigurationsRequest$ = exports2.ListBucketIntelligentTieringConfigurationsOutput$ = exports2.ListBucketAnalyticsConfigurationsRequest$ = exports2.ListBucketAnalyticsConfigurationsOutput$ = exports2.LifecycleRuleFilter$ = exports2.LifecycleRuleAndOperator$ = exports2.LifecycleRule$ = exports2.LifecycleExpiration$ = exports2.LambdaFunctionConfiguration$ = exports2.JSONOutput$ = exports2.JSONInput$ = exports2.JournalTableConfigurationUpdates$ = exports2.JournalTableConfigurationResult$ = exports2.JournalTableConfiguration$ = exports2.InventoryTableConfigurationUpdates$ = exports2.InventoryTableConfigurationResult$ = exports2.InventoryTableConfiguration$ = exports2.InventorySchedule$ = exports2.InventoryS3BucketDestination$ = exports2.InventoryFilter$ = exports2.InventoryEncryption$ = exports2.InventoryDestination$ = exports2.InventoryConfiguration$ = exports2.IntelligentTieringFilter$ = exports2.IntelligentTieringConfiguration$ = exports2.IntelligentTieringAndOperator$ = exports2.InputSerialization$ = exports2.Initiator$ = exports2.IndexDocument$ = exports2.HeadObjectRequest$ = exports2.HeadObjectOutput$ = exports2.HeadBucketRequest$ = exports2.HeadBucketOutput$ = exports2.Grantee$ = exports2.Grant$ = exports2.GlacierJobParameters$ = exports2.GetPublicAccessBlockRequest$ = exports2.GetPublicAccessBlockOutput$ = exports2.GetObjectTorrentRequest$ = exports2.GetObjectTorrentOutput$ = exports2.GetObjectTaggingRequest$ = exports2.GetObjectTaggingOutput$ = exports2.GetObjectRetentionRequest$ = exports2.GetObjectRetentionOutput$ = exports2.GetObjectRequest$ = exports2.GetObjectOutput$ = exports2.GetObjectLockConfigurationRequest$ = exports2.GetObjectLockConfigurationOutput$ = undefined;
+  exports2.Progress$ = exports2.PolicyStatus$ = exports2.PartitionedPrefix$ = exports2.Part$ = exports2.ParquetInput$ = exports2.OwnershipControlsRule$ = exports2.OwnershipControls$ = exports2.Owner$ = exports2.OutputSerialization$ = exports2.OutputLocation$ = exports2.ObjectVersion$ = exports2.ObjectPart$ = exports2.ObjectLockRule$ = exports2.ObjectLockRetention$ = exports2.ObjectLockLegalHold$ = exports2.ObjectLockConfiguration$ = exports2.ObjectIdentifier$ = exports2._Object$ = exports2.NotificationConfigurationFilter$ = exports2.NotificationConfiguration$ = exports2.NoncurrentVersionTransition$ = exports2.NoncurrentVersionExpiration$ = exports2.MultipartUpload$ = exports2.MetricsConfiguration$ = exports2.MetricsAndOperator$ = exports2.Metrics$ = exports2.MetadataTableEncryptionConfiguration$ = exports2.MetadataTableConfigurationResult$ = exports2.MetadataTableConfiguration$ = exports2.MetadataEntry$ = exports2.MetadataConfigurationResult$ = exports2.MetadataConfiguration$ = exports2.LoggingEnabled$ = exports2.LocationInfo$ = exports2.ListPartsRequest$ = exports2.ListPartsOutput$ = exports2.ListObjectVersionsRequest$ = exports2.ListObjectVersionsOutput$ = exports2.ListObjectsV2Request$ = exports2.ListObjectsV2Output$ = exports2.ListObjectsRequest$ = exports2.ListObjectsOutput$ = exports2.ListMultipartUploadsRequest$ = exports2.ListMultipartUploadsOutput$ = exports2.ListDirectoryBucketsRequest$ = exports2.ListDirectoryBucketsOutput$ = exports2.ListBucketsRequest$ = exports2.ListBucketsOutput$ = exports2.ListBucketMetricsConfigurationsRequest$ = exports2.ListBucketMetricsConfigurationsOutput$ = undefined;
+  exports2.RequestPaymentConfiguration$ = exports2.ReplicationTimeValue$ = exports2.ReplicationTime$ = exports2.ReplicationRuleFilter$ = exports2.ReplicationRuleAndOperator$ = exports2.ReplicationRule$ = exports2.ReplicationConfiguration$ = exports2.ReplicaModifications$ = exports2.RenameObjectRequest$ = exports2.RenameObjectOutput$ = exports2.RedirectAllRequestsTo$ = exports2.Redirect$ = exports2.RecordsEvent$ = exports2.RecordExpiration$ = exports2.QueueConfiguration$ = exports2.PutPublicAccessBlockRequest$ = exports2.PutObjectTaggingRequest$ = exports2.PutObjectTaggingOutput$ = exports2.PutObjectRetentionRequest$ = exports2.PutObjectRetentionOutput$ = exports2.PutObjectRequest$ = exports2.PutObjectOutput$ = exports2.PutObjectLockConfigurationRequest$ = exports2.PutObjectLockConfigurationOutput$ = exports2.PutObjectLegalHoldRequest$ = exports2.PutObjectLegalHoldOutput$ = exports2.PutObjectAclRequest$ = exports2.PutObjectAclOutput$ = exports2.PutBucketWebsiteRequest$ = exports2.PutBucketVersioningRequest$ = exports2.PutBucketTaggingRequest$ = exports2.PutBucketRequestPaymentRequest$ = exports2.PutBucketReplicationRequest$ = exports2.PutBucketPolicyRequest$ = exports2.PutBucketOwnershipControlsRequest$ = exports2.PutBucketNotificationConfigurationRequest$ = exports2.PutBucketMetricsConfigurationRequest$ = exports2.PutBucketLoggingRequest$ = exports2.PutBucketLifecycleConfigurationRequest$ = exports2.PutBucketLifecycleConfigurationOutput$ = exports2.PutBucketInventoryConfigurationRequest$ = exports2.PutBucketIntelligentTieringConfigurationRequest$ = exports2.PutBucketEncryptionRequest$ = exports2.PutBucketCorsRequest$ = exports2.PutBucketAnalyticsConfigurationRequest$ = exports2.PutBucketAclRequest$ = exports2.PutBucketAccelerateConfigurationRequest$ = exports2.PutBucketAbacRequest$ = exports2.PublicAccessBlockConfiguration$ = exports2.ProgressEvent$ = undefined;
+  exports2.SelectObjectContentEventStream$ = exports2.ObjectEncryption$ = exports2.MetricsFilter$ = exports2.AnalyticsFilter$ = exports2.WriteGetObjectResponseRequest$ = exports2.WebsiteConfiguration$ = exports2.VersioningConfiguration$ = exports2.UploadPartRequest$ = exports2.UploadPartOutput$ = exports2.UploadPartCopyRequest$ = exports2.UploadPartCopyOutput$ = exports2.UpdateObjectEncryptionResponse$ = exports2.UpdateObjectEncryptionRequest$ = exports2.UpdateBucketMetadataJournalTableConfigurationRequest$ = exports2.UpdateBucketMetadataInventoryTableConfigurationRequest$ = exports2.Transition$ = exports2.TopicConfiguration$ = exports2.Tiering$ = exports2.TargetObjectKeyFormat$ = exports2.TargetGrant$ = exports2.Tagging$ = exports2.Tag$ = exports2.StorageClassAnalysisDataExport$ = exports2.StorageClassAnalysis$ = exports2.StatsEvent$ = exports2.Stats$ = exports2.SSES3$ = exports2.SSEKMSEncryption$ = exports2.SseKmsEncryptedObjects$ = exports2.SSEKMS$ = exports2.SourceSelectionCriteria$ = exports2.SimplePrefix$ = exports2.SessionCredentials$ = exports2.ServerSideEncryptionRule$ = exports2.ServerSideEncryptionConfiguration$ = exports2.ServerSideEncryptionByDefault$ = exports2.SelectParameters$ = exports2.SelectObjectContentRequest$ = exports2.SelectObjectContentOutput$ = exports2.ScanRange$ = exports2.S3TablesDestinationResult$ = exports2.S3TablesDestination$ = exports2.S3Location$ = exports2.S3KeyFilter$ = exports2.RoutingRule$ = exports2.RestoreStatus$ = exports2.RestoreRequest$ = exports2.RestoreObjectRequest$ = exports2.RestoreObjectOutput$ = exports2.RequestProgress$ = undefined;
+  exports2.GetBucketWebsite$ = exports2.GetBucketVersioning$ = exports2.GetBucketTagging$ = exports2.GetBucketRequestPayment$ = exports2.GetBucketReplication$ = exports2.GetBucketPolicyStatus$ = exports2.GetBucketPolicy$ = exports2.GetBucketOwnershipControls$ = exports2.GetBucketNotificationConfiguration$ = exports2.GetBucketMetricsConfiguration$ = exports2.GetBucketMetadataTableConfiguration$ = exports2.GetBucketMetadataConfiguration$ = exports2.GetBucketLogging$ = exports2.GetBucketLocation$ = exports2.GetBucketLifecycleConfiguration$ = exports2.GetBucketInventoryConfiguration$ = exports2.GetBucketIntelligentTieringConfiguration$ = exports2.GetBucketEncryption$ = exports2.GetBucketCors$ = exports2.GetBucketAnalyticsConfiguration$ = exports2.GetBucketAcl$ = exports2.GetBucketAccelerateConfiguration$ = exports2.GetBucketAbac$ = exports2.DeletePublicAccessBlock$ = exports2.DeleteObjectTagging$ = exports2.DeleteObjects$ = exports2.DeleteObject$ = exports2.DeleteBucketWebsite$ = exports2.DeleteBucketTagging$ = exports2.DeleteBucketReplication$ = exports2.DeleteBucketPolicy$ = exports2.DeleteBucketOwnershipControls$ = exports2.DeleteBucketMetricsConfiguration$ = exports2.DeleteBucketMetadataTableConfiguration$ = exports2.DeleteBucketMetadataConfiguration$ = exports2.DeleteBucketLifecycle$ = exports2.DeleteBucketInventoryConfiguration$ = exports2.DeleteBucketIntelligentTieringConfiguration$ = exports2.DeleteBucketEncryption$ = exports2.DeleteBucketCors$ = exports2.DeleteBucketAnalyticsConfiguration$ = exports2.DeleteBucket$ = exports2.CreateSession$ = exports2.CreateMultipartUpload$ = exports2.CreateBucketMetadataTableConfiguration$ = exports2.CreateBucketMetadataConfiguration$ = exports2.CreateBucket$ = exports2.CopyObject$ = exports2.CompleteMultipartUpload$ = exports2.AbortMultipartUpload$ = undefined;
+  exports2.RestoreObject$ = exports2.RenameObject$ = exports2.PutPublicAccessBlock$ = exports2.PutObjectTagging$ = exports2.PutObjectRetention$ = exports2.PutObjectLockConfiguration$ = exports2.PutObjectLegalHold$ = exports2.PutObjectAcl$ = exports2.PutObject$ = exports2.PutBucketWebsite$ = exports2.PutBucketVersioning$ = exports2.PutBucketTagging$ = exports2.PutBucketRequestPayment$ = exports2.PutBucketReplication$ = exports2.PutBucketPolicy$ = exports2.PutBucketOwnershipControls$ = exports2.PutBucketNotificationConfiguration$ = exports2.PutBucketMetricsConfiguration$ = exports2.PutBucketLogging$ = exports2.PutBucketLifecycleConfiguration$ = exports2.PutBucketInventoryConfiguration$ = exports2.PutBucketIntelligentTieringConfiguration$ = exports2.PutBucketEncryption$ = exports2.PutBucketCors$ = exports2.PutBucketAnalyticsConfiguration$ = exports2.PutBucketAcl$ = exports2.PutBucketAccelerateConfiguration$ = exports2.PutBucketAbac$ = exports2.ListParts$ = exports2.ListObjectVersions$ = exports2.ListObjectsV2$ = exports2.ListObjects$ = exports2.ListMultipartUploads$ = exports2.ListDirectoryBuckets$ = exports2.ListBuckets$ = exports2.ListBucketMetricsConfigurations$ = exports2.ListBucketInventoryConfigurations$ = exports2.ListBucketIntelligentTieringConfigurations$ = exports2.ListBucketAnalyticsConfigurations$ = exports2.HeadObject$ = exports2.HeadBucket$ = exports2.GetPublicAccessBlock$ = exports2.GetObjectTorrent$ = exports2.GetObjectTagging$ = exports2.GetObjectRetention$ = exports2.GetObjectLockConfiguration$ = exports2.GetObjectLegalHold$ = exports2.GetObjectAttributes$ = exports2.GetObjectAcl$ = exports2.GetObject$ = undefined;
+  exports2.WriteGetObjectResponse$ = exports2.UploadPartCopy$ = exports2.UploadPart$ = exports2.UpdateObjectEncryption$ = exports2.UpdateBucketMetadataJournalTableConfiguration$ = exports2.UpdateBucketMetadataInventoryTableConfiguration$ = exports2.SelectObjectContent$ = undefined;
+  var _A = "Account";
+  var _AAO = "AnalyticsAndOperator";
+  var _AC = "AccelerateConfiguration";
+  var _ACL = "AccessControlList";
+  var _ACL_ = "ACL";
+  var _ACLn = "AnalyticsConfigurationList";
+  var _ACP = "AccessControlPolicy";
+  var _ACT = "AccessControlTranslation";
+  var _ACn = "AnalyticsConfiguration";
+  var _AD = "AccessDenied";
+  var _ADb = "AbortDate";
+  var _AED = "AnalyticsExportDestination";
+  var _AF = "AnalyticsFilter";
+  var _AH = "AllowedHeaders";
+  var _AHl = "AllowedHeader";
+  var _AI = "AccountId";
+  var _AIMU = "AbortIncompleteMultipartUpload";
+  var _AKI = "AccessKeyId";
+  var _AM = "AllowedMethods";
+  var _AMU = "AbortMultipartUpload";
+  var _AMUO = "AbortMultipartUploadOutput";
+  var _AMUR = "AbortMultipartUploadRequest";
+  var _AMl = "AllowedMethod";
+  var _AO = "AllowedOrigins";
+  var _AOl = "AllowedOrigin";
+  var _APA = "AccessPointAlias";
+  var _APAc = "AccessPointArn";
+  var _AQRD = "AllowQuotedRecordDelimiter";
+  var _AR = "AcceptRanges";
+  var _ARI = "AbortRuleId";
+  var _AS = "AbacStatus";
+  var _ASBD = "AnalyticsS3BucketDestination";
+  var _ASSEBD = "ApplyServerSideEncryptionByDefault";
+  var _ASr = "ArchiveStatus";
+  var _AT = "AccessTier";
+  var _An = "And";
+  var _B = "Bucket";
+  var _BA = "BucketArn";
+  var _BAE = "BucketAlreadyExists";
+  var _BAI = "BucketAccountId";
+  var _BAOBY = "BucketAlreadyOwnedByYou";
+  var _BET = "BlockedEncryptionTypes";
+  var _BGR = "BypassGovernanceRetention";
+  var _BI = "BucketInfo";
+  var _BKE = "BucketKeyEnabled";
+  var _BLC = "BucketLifecycleConfiguration";
+  var _BLN = "BucketLocationName";
+  var _BLS = "BucketLoggingStatus";
+  var _BLT = "BucketLocationType";
+  var _BN = "BucketNamespace";
+  var _BNu = "BucketName";
+  var _BP = "BytesProcessed";
+  var _BPA = "BlockPublicAcls";
+  var _BPP = "BlockPublicPolicy";
+  var _BR = "BucketRegion";
+  var _BRy = "BytesReturned";
+  var _BS = "BytesScanned";
+  var _Bo = "Body";
+  var _Bu = "Buckets";
+  var _C = "Checksum";
+  var _CA = "ChecksumAlgorithm";
+  var _CACL = "CannedACL";
+  var _CB = "CreateBucket";
+  var _CBC = "CreateBucketConfiguration";
+  var _CBMC = "CreateBucketMetadataConfiguration";
+  var _CBMCR = "CreateBucketMetadataConfigurationRequest";
+  var _CBMTC = "CreateBucketMetadataTableConfiguration";
+  var _CBMTCR = "CreateBucketMetadataTableConfigurationRequest";
+  var _CBO = "CreateBucketOutput";
+  var _CBR = "CreateBucketRequest";
+  var _CC = "CacheControl";
+  var _CCRC = "ChecksumCRC32";
+  var _CCRCC = "ChecksumCRC32C";
+  var _CCRCNVME = "ChecksumCRC64NVME";
+  var _CC_ = "Cache-Control";
+  var _CD = "CreationDate";
+  var _CD_ = "Content-Disposition";
+  var _CDo = "ContentDisposition";
+  var _CE = "ContinuationEvent";
+  var _CE_ = "Content-Encoding";
+  var _CEo = "ContentEncoding";
+  var _CF = "CloudFunction";
+  var _CFC = "CloudFunctionConfiguration";
+  var _CL = "ContentLanguage";
+  var _CL_ = "Content-Language";
+  var _CL__ = "Content-Length";
+  var _CLo = "ContentLength";
+  var _CM = "Content-MD5";
+  var _CMD = "ChecksumMD5";
+  var _CMDo = "ContentMD5";
+  var _CMU = "CompletedMultipartUpload";
+  var _CMUO = "CompleteMultipartUploadOutput";
+  var _CMUOr = "CreateMultipartUploadOutput";
+  var _CMUR = "CompleteMultipartUploadResult";
+  var _CMURo = "CompleteMultipartUploadRequest";
+  var _CMURr = "CreateMultipartUploadRequest";
+  var _CMUo = "CompleteMultipartUpload";
+  var _CMUr = "CreateMultipartUpload";
+  var _CMh = "ChecksumMode";
+  var _CO = "CopyObject";
+  var _COO = "CopyObjectOutput";
+  var _COR = "CopyObjectResult";
+  var _CORSC = "CORSConfiguration";
+  var _CORSR = "CORSRules";
+  var _CORSRu = "CORSRule";
+  var _CORo = "CopyObjectRequest";
+  var _CP = "CommonPrefix";
+  var _CPL = "CommonPrefixList";
+  var _CPLo = "CompletedPartList";
+  var _CPR = "CopyPartResult";
+  var _CPo = "CompletedPart";
+  var _CPom = "CommonPrefixes";
+  var _CR = "ContentRange";
+  var _CRSBA = "ConfirmRemoveSelfBucketAccess";
+  var _CR_ = "Content-Range";
+  var _CS = "CopySource";
+  var _CSHA = "ChecksumSHA1";
+  var _CSHAh = "ChecksumSHA256";
+  var _CSHAhe = "ChecksumSHA512";
+  var _CSIM = "CopySourceIfMatch";
+  var _CSIMS = "CopySourceIfModifiedSince";
+  var _CSINM = "CopySourceIfNoneMatch";
+  var _CSIUS = "CopySourceIfUnmodifiedSince";
+  var _CSO = "CreateSessionOutput";
+  var _CSR = "CreateSessionResult";
+  var _CSRo = "CopySourceRange";
+  var _CSRr = "CreateSessionRequest";
+  var _CSSSECA = "CopySourceSSECustomerAlgorithm";
+  var _CSSSECK = "CopySourceSSECustomerKey";
+  var _CSSSECKMD = "CopySourceSSECustomerKeyMD5";
+  var _CSV = "CSV";
+  var _CSVI = "CopySourceVersionId";
+  var _CSVIn = "CSVInput";
+  var _CSVO = "CSVOutput";
+  var _CSo = "ConfigurationState";
+  var _CSr = "CreateSession";
+  var _CT = "ChecksumType";
+  var _CT_ = "Content-Type";
+  var _CTl = "ClientToken";
+  var _CTo = "ContentType";
+  var _CTom = "CompressionType";
+  var _CTon = "ContinuationToken";
+  var _CXXHASH = "ChecksumXXHASH64";
+  var _CXXHASHh = "ChecksumXXHASH3";
+  var _CXXHASHhe = "ChecksumXXHASH128";
+  var _Co = "Condition";
+  var _Cod = "Code";
+  var _Com = "Comments";
+  var _Con = "Contents";
+  var _Cont = "Cont";
+  var _Cr = "Credentials";
+  var _D = "Days";
+  var _DAI = "DaysAfterInitiation";
+  var _DB = "DeleteBucket";
+  var _DBAC = "DeleteBucketAnalyticsConfiguration";
+  var _DBACR = "DeleteBucketAnalyticsConfigurationRequest";
+  var _DBC = "DeleteBucketCors";
+  var _DBCR = "DeleteBucketCorsRequest";
+  var _DBE = "DeleteBucketEncryption";
+  var _DBER = "DeleteBucketEncryptionRequest";
+  var _DBIC = "DeleteBucketInventoryConfiguration";
+  var _DBICR = "DeleteBucketInventoryConfigurationRequest";
+  var _DBITC = "DeleteBucketIntelligentTieringConfiguration";
+  var _DBITCR = "DeleteBucketIntelligentTieringConfigurationRequest";
+  var _DBL = "DeleteBucketLifecycle";
+  var _DBLR = "DeleteBucketLifecycleRequest";
+  var _DBMC = "DeleteBucketMetadataConfiguration";
+  var _DBMCR = "DeleteBucketMetadataConfigurationRequest";
+  var _DBMCRe = "DeleteBucketMetricsConfigurationRequest";
+  var _DBMCe = "DeleteBucketMetricsConfiguration";
+  var _DBMTC = "DeleteBucketMetadataTableConfiguration";
+  var _DBMTCR = "DeleteBucketMetadataTableConfigurationRequest";
+  var _DBOC = "DeleteBucketOwnershipControls";
+  var _DBOCR = "DeleteBucketOwnershipControlsRequest";
+  var _DBP = "DeleteBucketPolicy";
+  var _DBPR = "DeleteBucketPolicyRequest";
+  var _DBR = "DeleteBucketRequest";
+  var _DBRR = "DeleteBucketReplicationRequest";
+  var _DBRe = "DeleteBucketReplication";
+  var _DBT = "DeleteBucketTagging";
+  var _DBTR = "DeleteBucketTaggingRequest";
+  var _DBW = "DeleteBucketWebsite";
+  var _DBWR = "DeleteBucketWebsiteRequest";
+  var _DE = "DataExport";
+  var _DIM = "DestinationIfMatch";
+  var _DIMS = "DestinationIfModifiedSince";
+  var _DINM = "DestinationIfNoneMatch";
+  var _DIUS = "DestinationIfUnmodifiedSince";
+  var _DM = "DeleteMarker";
+  var _DME = "DeleteMarkerEntry";
+  var _DMR = "DeleteMarkerReplication";
+  var _DMVI = "DeleteMarkerVersionId";
+  var _DMe = "DeleteMarkers";
+  var _DN = "DisplayName";
+  var _DO = "DeletedObject";
+  var _DOO = "DeleteObjectOutput";
+  var _DOOe = "DeleteObjectsOutput";
+  var _DOR = "DeleteObjectRequest";
+  var _DORe = "DeleteObjectsRequest";
+  var _DOT = "DeleteObjectTagging";
+  var _DOTO = "DeleteObjectTaggingOutput";
+  var _DOTR = "DeleteObjectTaggingRequest";
+  var _DOe = "DeletedObjects";
+  var _DOel = "DeleteObject";
+  var _DOele = "DeleteObjects";
+  var _DPAB = "DeletePublicAccessBlock";
+  var _DPABR = "DeletePublicAccessBlockRequest";
+  var _DR = "DataRedundancy";
+  var _DRe = "DefaultRetention";
+  var _DRel = "DeleteResult";
+  var _DRes = "DestinationResult";
+  var _Da = "Date";
+  var _De = "Delete";
+  var _Del = "Deleted";
+  var _Deli = "Delimiter";
+  var _Des = "Destination";
+  var _Desc = "Description";
+  var _Det = "Details";
+  var _E = "Expiration";
+  var _EA = "EmailAddress";
+  var _EBC = "EventBridgeConfiguration";
+  var _EBO = "ExpectedBucketOwner";
+  var _EC = "EncryptionConfiguration";
+  var _ECr = "ErrorCode";
+  var _ED = "ErrorDetails";
+  var _EDr = "ErrorDocument";
+  var _EE = "EndEvent";
+  var _EH = "ExposeHeaders";
+  var _EHx = "ExposeHeader";
+  var _EM = "ErrorMessage";
+  var _EODM = "ExpiredObjectDeleteMarker";
+  var _EOR = "ExistingObjectReplication";
+  var _ES = "ExpiresString";
+  var _ESBO = "ExpectedSourceBucketOwner";
+  var _ET = "EncryptionType";
+  var _ETL = "EncryptionTypeList";
+  var _ETM = "EncryptionTypeMismatch";
+  var _ETa = "ETag";
+  var _ETn = "EncodingType";
+  var _ETv = "EventThreshold";
+  var _ETx = "ExpressionType";
+  var _En = "Encryption";
+  var _Ena = "Enabled";
+  var _End = "End";
+  var _Er = "Errors";
+  var _Err = "Error";
+  var _Ev = "Events";
+  var _Eve = "Event";
+  var _Ex = "Expires";
+  var _Exp = "Expression";
+  var _F = "Filter";
+  var _FD = "FieldDelimiter";
+  var _FHI = "FileHeaderInfo";
+  var _FO = "FetchOwner";
+  var _FR = "FilterRule";
+  var _FRL = "FilterRuleList";
+  var _FRi = "FilterRules";
+  var _Fi = "Field";
+  var _Fo = "Format";
+  var _Fr = "Frequency";
+  var _G = "Grants";
+  var _GBA = "GetBucketAbac";
+  var _GBAC = "GetBucketAccelerateConfiguration";
+  var _GBACO = "GetBucketAccelerateConfigurationOutput";
+  var _GBACOe = "GetBucketAnalyticsConfigurationOutput";
+  var _GBACR = "GetBucketAccelerateConfigurationRequest";
+  var _GBACRe = "GetBucketAnalyticsConfigurationRequest";
+  var _GBACe = "GetBucketAnalyticsConfiguration";
+  var _GBAO = "GetBucketAbacOutput";
+  var _GBAOe = "GetBucketAclOutput";
+  var _GBAR = "GetBucketAbacRequest";
+  var _GBARe = "GetBucketAclRequest";
+  var _GBAe = "GetBucketAcl";
+  var _GBC = "GetBucketCors";
+  var _GBCO = "GetBucketCorsOutput";
+  var _GBCR = "GetBucketCorsRequest";
+  var _GBE = "GetBucketEncryption";
+  var _GBEO = "GetBucketEncryptionOutput";
+  var _GBER = "GetBucketEncryptionRequest";
+  var _GBIC = "GetBucketInventoryConfiguration";
+  var _GBICO = "GetBucketInventoryConfigurationOutput";
+  var _GBICR = "GetBucketInventoryConfigurationRequest";
+  var _GBITC = "GetBucketIntelligentTieringConfiguration";
+  var _GBITCO = "GetBucketIntelligentTieringConfigurationOutput";
+  var _GBITCR = "GetBucketIntelligentTieringConfigurationRequest";
+  var _GBL = "GetBucketLocation";
+  var _GBLC = "GetBucketLifecycleConfiguration";
+  var _GBLCO = "GetBucketLifecycleConfigurationOutput";
+  var _GBLCR = "GetBucketLifecycleConfigurationRequest";
+  var _GBLO = "GetBucketLocationOutput";
+  var _GBLOe = "GetBucketLoggingOutput";
+  var _GBLR = "GetBucketLocationRequest";
+  var _GBLRe = "GetBucketLoggingRequest";
+  var _GBLe = "GetBucketLogging";
+  var _GBMC = "GetBucketMetadataConfiguration";
+  var _GBMCO = "GetBucketMetadataConfigurationOutput";
+  var _GBMCOe = "GetBucketMetricsConfigurationOutput";
+  var _GBMCR = "GetBucketMetadataConfigurationResult";
+  var _GBMCRe = "GetBucketMetadataConfigurationRequest";
+  var _GBMCRet = "GetBucketMetricsConfigurationRequest";
+  var _GBMCe = "GetBucketMetricsConfiguration";
+  var _GBMTC = "GetBucketMetadataTableConfiguration";
+  var _GBMTCO = "GetBucketMetadataTableConfigurationOutput";
+  var _GBMTCR = "GetBucketMetadataTableConfigurationResult";
+  var _GBMTCRe = "GetBucketMetadataTableConfigurationRequest";
+  var _GBNC = "GetBucketNotificationConfiguration";
+  var _GBNCR = "GetBucketNotificationConfigurationRequest";
+  var _GBOC = "GetBucketOwnershipControls";
+  var _GBOCO = "GetBucketOwnershipControlsOutput";
+  var _GBOCR = "GetBucketOwnershipControlsRequest";
+  var _GBP = "GetBucketPolicy";
+  var _GBPO = "GetBucketPolicyOutput";
+  var _GBPR = "GetBucketPolicyRequest";
+  var _GBPS = "GetBucketPolicyStatus";
+  var _GBPSO = "GetBucketPolicyStatusOutput";
+  var _GBPSR = "GetBucketPolicyStatusRequest";
+  var _GBR = "GetBucketReplication";
+  var _GBRO = "GetBucketReplicationOutput";
+  var _GBRP = "GetBucketRequestPayment";
+  var _GBRPO = "GetBucketRequestPaymentOutput";
+  var _GBRPR = "GetBucketRequestPaymentRequest";
+  var _GBRR = "GetBucketReplicationRequest";
+  var _GBT = "GetBucketTagging";
+  var _GBTO = "GetBucketTaggingOutput";
+  var _GBTR = "GetBucketTaggingRequest";
+  var _GBV = "GetBucketVersioning";
+  var _GBVO = "GetBucketVersioningOutput";
+  var _GBVR = "GetBucketVersioningRequest";
+  var _GBW = "GetBucketWebsite";
+  var _GBWO = "GetBucketWebsiteOutput";
+  var _GBWR = "GetBucketWebsiteRequest";
+  var _GFC = "GrantFullControl";
+  var _GJP = "GlacierJobParameters";
+  var _GO = "GetObject";
+  var _GOA = "GetObjectAcl";
+  var _GOAO = "GetObjectAclOutput";
+  var _GOAOe = "GetObjectAttributesOutput";
+  var _GOAP = "GetObjectAttributesParts";
+  var _GOAR = "GetObjectAclRequest";
+  var _GOARe = "GetObjectAttributesResponse";
+  var _GOARet = "GetObjectAttributesRequest";
+  var _GOAe = "GetObjectAttributes";
+  var _GOLC = "GetObjectLockConfiguration";
+  var _GOLCO = "GetObjectLockConfigurationOutput";
+  var _GOLCR = "GetObjectLockConfigurationRequest";
+  var _GOLH = "GetObjectLegalHold";
+  var _GOLHO = "GetObjectLegalHoldOutput";
+  var _GOLHR = "GetObjectLegalHoldRequest";
+  var _GOO = "GetObjectOutput";
+  var _GOR = "GetObjectRequest";
+  var _GORO = "GetObjectRetentionOutput";
+  var _GORR = "GetObjectRetentionRequest";
+  var _GORe = "GetObjectRetention";
+  var _GOT = "GetObjectTagging";
+  var _GOTO = "GetObjectTaggingOutput";
+  var _GOTOe = "GetObjectTorrentOutput";
+  var _GOTR = "GetObjectTaggingRequest";
+  var _GOTRe = "GetObjectTorrentRequest";
+  var _GOTe = "GetObjectTorrent";
+  var _GPAB = "GetPublicAccessBlock";
+  var _GPABO = "GetPublicAccessBlockOutput";
+  var _GPABR = "GetPublicAccessBlockRequest";
+  var _GR = "GrantRead";
+  var _GRACP = "GrantReadACP";
+  var _GW = "GrantWrite";
+  var _GWACP = "GrantWriteACP";
+  var _Gr = "Grant";
+  var _Gra = "Grantee";
+  var _HB = "HeadBucket";
+  var _HBO = "HeadBucketOutput";
+  var _HBR = "HeadBucketRequest";
+  var _HECRE = "HttpErrorCodeReturnedEquals";
+  var _HN = "HostName";
+  var _HO = "HeadObject";
+  var _HOO = "HeadObjectOutput";
+  var _HOR = "HeadObjectRequest";
+  var _HRC = "HttpRedirectCode";
+  var _I = "Id";
+  var _IC = "InventoryConfiguration";
+  var _ICL = "InventoryConfigurationList";
+  var _ID = "ID";
+  var _IDn = "IndexDocument";
+  var _IDnv = "InventoryDestination";
+  var _IE = "IsEnabled";
+  var _IEn = "InventoryEncryption";
+  var _IF = "InventoryFilter";
+  var _IL = "IsLatest";
+  var _IM = "IfMatch";
+  var _IMIT = "IfMatchInitiatedTime";
+  var _IMLMT = "IfMatchLastModifiedTime";
+  var _IMS = "IfMatchSize";
+  var _IMS_ = "If-Modified-Since";
+  var _IMSf = "IfModifiedSince";
+  var _IMUR = "InitiateMultipartUploadResult";
+  var _IM_ = "If-Match";
+  var _INM = "IfNoneMatch";
+  var _INM_ = "If-None-Match";
+  var _IOF = "InventoryOptionalFields";
+  var _IOS = "InvalidObjectState";
+  var _IOV = "IncludedObjectVersions";
+  var _IP = "IsPublic";
+  var _IPA = "IgnorePublicAcls";
+  var _IPM = "IdempotencyParameterMismatch";
+  var _IR = "InvalidRequest";
+  var _IRIP = "IsRestoreInProgress";
+  var _IS = "InputSerialization";
+  var _ISBD = "InventoryS3BucketDestination";
+  var _ISn = "InventorySchedule";
+  var _IT = "IsTruncated";
+  var _ITAO = "IntelligentTieringAndOperator";
+  var _ITC = "IntelligentTieringConfiguration";
+  var _ITCL = "IntelligentTieringConfigurationList";
+  var _ITCR = "InventoryTableConfigurationResult";
+  var _ITCU = "InventoryTableConfigurationUpdates";
+  var _ITCn = "InventoryTableConfiguration";
+  var _ITF = "IntelligentTieringFilter";
+  var _IUS = "IfUnmodifiedSince";
+  var _IUS_ = "If-Unmodified-Since";
+  var _IWO = "InvalidWriteOffset";
+  var _In = "Initiator";
+  var _Ini = "Initiated";
+  var _JSON = "JSON";
+  var _JSONI = "JSONInput";
+  var _JSONO = "JSONOutput";
+  var _JTC = "JournalTableConfiguration";
+  var _JTCR = "JournalTableConfigurationResult";
+  var _JTCU = "JournalTableConfigurationUpdates";
+  var _K = "Key";
+  var _KC = "KeyCount";
+  var _KI = "KeyId";
+  var _KKA = "KmsKeyArn";
+  var _KM = "KeyMarker";
+  var _KMSC = "KMSContext";
+  var _KMSKA = "KMSKeyArn";
+  var _KMSKI = "KMSKeyId";
+  var _KMSMKID = "KMSMasterKeyID";
+  var _KPE = "KeyPrefixEquals";
+  var _L = "Location";
+  var _LAMBR = "ListAllMyBucketsResult";
+  var _LAMDBR = "ListAllMyDirectoryBucketsResult";
+  var _LB = "ListBuckets";
+  var _LBAC = "ListBucketAnalyticsConfigurations";
+  var _LBACO = "ListBucketAnalyticsConfigurationsOutput";
+  var _LBACR = "ListBucketAnalyticsConfigurationResult";
+  var _LBACRi = "ListBucketAnalyticsConfigurationsRequest";
+  var _LBIC = "ListBucketInventoryConfigurations";
+  var _LBICO = "ListBucketInventoryConfigurationsOutput";
+  var _LBICR = "ListBucketInventoryConfigurationsRequest";
+  var _LBITC = "ListBucketIntelligentTieringConfigurations";
+  var _LBITCO = "ListBucketIntelligentTieringConfigurationsOutput";
+  var _LBITCR = "ListBucketIntelligentTieringConfigurationsRequest";
+  var _LBMC = "ListBucketMetricsConfigurations";
+  var _LBMCO = "ListBucketMetricsConfigurationsOutput";
+  var _LBMCR = "ListBucketMetricsConfigurationsRequest";
+  var _LBO = "ListBucketsOutput";
+  var _LBR = "ListBucketsRequest";
+  var _LBRi = "ListBucketResult";
+  var _LC = "LocationConstraint";
+  var _LCi = "LifecycleConfiguration";
+  var _LDB = "ListDirectoryBuckets";
+  var _LDBO = "ListDirectoryBucketsOutput";
+  var _LDBR = "ListDirectoryBucketsRequest";
+  var _LE = "LoggingEnabled";
+  var _LEi = "LifecycleExpiration";
+  var _LFA = "LambdaFunctionArn";
+  var _LFC = "LambdaFunctionConfiguration";
+  var _LFCL = "LambdaFunctionConfigurationList";
+  var _LFCa = "LambdaFunctionConfigurations";
+  var _LH = "LegalHold";
+  var _LI = "LocationInfo";
+  var _LICR = "ListInventoryConfigurationsResult";
+  var _LM = "LastModified";
+  var _LMCR = "ListMetricsConfigurationsResult";
+  var _LMT = "LastModifiedTime";
+  var _LMU = "ListMultipartUploads";
+  var _LMUO = "ListMultipartUploadsOutput";
+  var _LMUR = "ListMultipartUploadsResult";
+  var _LMURi = "ListMultipartUploadsRequest";
+  var _LM_ = "Last-Modified";
+  var _LO = "ListObjects";
+  var _LOO = "ListObjectsOutput";
+  var _LOR = "ListObjectsRequest";
+  var _LOV = "ListObjectsV2";
+  var _LOVO = "ListObjectsV2Output";
+  var _LOVOi = "ListObjectVersionsOutput";
+  var _LOVR = "ListObjectsV2Request";
+  var _LOVRi = "ListObjectVersionsRequest";
+  var _LOVi = "ListObjectVersions";
+  var _LP = "ListParts";
+  var _LPO = "ListPartsOutput";
+  var _LPR = "ListPartsResult";
+  var _LPRi = "ListPartsRequest";
+  var _LR = "LifecycleRule";
+  var _LRAO = "LifecycleRuleAndOperator";
+  var _LRF = "LifecycleRuleFilter";
+  var _LRi = "LifecycleRules";
+  var _LVR = "ListVersionsResult";
+  var _M = "Metadata";
+  var _MAO = "MetricsAndOperator";
+  var _MAS = "MaxAgeSeconds";
+  var _MB = "MaxBuckets";
+  var _MC = "MetadataConfiguration";
+  var _MCL = "MetricsConfigurationList";
+  var _MCR = "MetadataConfigurationResult";
+  var _MCe = "MetricsConfiguration";
+  var _MD = "MetadataDirective";
+  var _MDB = "MaxDirectoryBuckets";
+  var _MDf = "MfaDelete";
+  var _ME = "MetadataEntry";
+  var _MF = "MetricsFilter";
+  var _MFA = "MFA";
+  var _MFAD = "MFADelete";
+  var _MK = "MaxKeys";
+  var _MM = "MissingMeta";
+  var _MOS = "MpuObjectSize";
+  var _MP = "MaxParts";
+  var _MTC = "MetadataTableConfiguration";
+  var _MTCR = "MetadataTableConfigurationResult";
+  var _MTEC = "MetadataTableEncryptionConfiguration";
+  var _MU = "MultipartUpload";
+  var _MUL = "MultipartUploadList";
+  var _MUa = "MaxUploads";
+  var _Ma = "Marker";
+  var _Me = "Metrics";
+  var _Mes = "Message";
+  var _Mi = "Minutes";
+  var _Mo = "Mode";
+  var _N = "Name";
+  var _NC = "NotificationConfiguration";
+  var _NCF = "NotificationConfigurationFilter";
+  var _NCT = "NextContinuationToken";
+  var _ND = "NoncurrentDays";
+  var _NEKKAS = "NonEmptyKmsKeyArnString";
+  var _NF = "NotFound";
+  var _NKM = "NextKeyMarker";
+  var _NM = "NextMarker";
+  var _NNV = "NewerNoncurrentVersions";
+  var _NPNM = "NextPartNumberMarker";
+  var _NSB = "NoSuchBucket";
+  var _NSK = "NoSuchKey";
+  var _NSU = "NoSuchUpload";
+  var _NUIM = "NextUploadIdMarker";
+  var _NVE = "NoncurrentVersionExpiration";
+  var _NVIM = "NextVersionIdMarker";
+  var _NVT = "NoncurrentVersionTransitions";
+  var _NVTL = "NoncurrentVersionTransitionList";
+  var _NVTo = "NoncurrentVersionTransition";
+  var _O = "Owner";
+  var _OA = "ObjectAttributes";
+  var _OAIATE = "ObjectAlreadyInActiveTierError";
+  var _OC = "OwnershipControls";
+  var _OCR = "OwnershipControlsRule";
+  var _OCRw = "OwnershipControlsRules";
+  var _OE = "ObjectEncryption";
+  var _OF = "OptionalFields";
+  var _OI = "ObjectIdentifier";
+  var _OIL = "ObjectIdentifierList";
+  var _OL = "OutputLocation";
+  var _OLC = "ObjectLockConfiguration";
+  var _OLE = "ObjectLockEnabled";
+  var _OLEFB = "ObjectLockEnabledForBucket";
+  var _OLLH = "ObjectLockLegalHold";
+  var _OLLHS = "ObjectLockLegalHoldStatus";
+  var _OLM = "ObjectLockMode";
+  var _OLR = "ObjectLockRetention";
+  var _OLRUD = "ObjectLockRetainUntilDate";
+  var _OLRb = "ObjectLockRule";
+  var _OLb = "ObjectList";
+  var _ONIATE = "ObjectNotInActiveTierError";
+  var _OO = "ObjectOwnership";
+  var _OOA = "OptionalObjectAttributes";
+  var _OP = "ObjectParts";
+  var _OPb = "ObjectPart";
+  var _OS = "ObjectSize";
+  var _OSGT = "ObjectSizeGreaterThan";
+  var _OSLT = "ObjectSizeLessThan";
+  var _OSV = "OutputSchemaVersion";
+  var _OSu = "OutputSerialization";
+  var _OV = "ObjectVersion";
+  var _OVL = "ObjectVersionList";
+  var _Ob = "Objects";
+  var _Obj = "Object";
+  var _P = "Prefix";
+  var _PABC = "PublicAccessBlockConfiguration";
+  var _PBA = "PutBucketAbac";
+  var _PBAC = "PutBucketAccelerateConfiguration";
+  var _PBACR = "PutBucketAccelerateConfigurationRequest";
+  var _PBACRu = "PutBucketAnalyticsConfigurationRequest";
+  var _PBACu = "PutBucketAnalyticsConfiguration";
+  var _PBAR = "PutBucketAbacRequest";
+  var _PBARu = "PutBucketAclRequest";
+  var _PBAu = "PutBucketAcl";
+  var _PBC = "PutBucketCors";
+  var _PBCR = "PutBucketCorsRequest";
+  var _PBE = "PutBucketEncryption";
+  var _PBER = "PutBucketEncryptionRequest";
+  var _PBIC = "PutBucketInventoryConfiguration";
+  var _PBICR = "PutBucketInventoryConfigurationRequest";
+  var _PBITC = "PutBucketIntelligentTieringConfiguration";
+  var _PBITCR = "PutBucketIntelligentTieringConfigurationRequest";
+  var _PBL = "PutBucketLogging";
+  var _PBLC = "PutBucketLifecycleConfiguration";
+  var _PBLCO = "PutBucketLifecycleConfigurationOutput";
+  var _PBLCR = "PutBucketLifecycleConfigurationRequest";
+  var _PBLR = "PutBucketLoggingRequest";
+  var _PBMC = "PutBucketMetricsConfiguration";
+  var _PBMCR = "PutBucketMetricsConfigurationRequest";
+  var _PBNC = "PutBucketNotificationConfiguration";
+  var _PBNCR = "PutBucketNotificationConfigurationRequest";
+  var _PBOC = "PutBucketOwnershipControls";
+  var _PBOCR = "PutBucketOwnershipControlsRequest";
+  var _PBP = "PutBucketPolicy";
+  var _PBPR = "PutBucketPolicyRequest";
+  var _PBR = "PutBucketReplication";
+  var _PBRP = "PutBucketRequestPayment";
+  var _PBRPR = "PutBucketRequestPaymentRequest";
+  var _PBRR = "PutBucketReplicationRequest";
+  var _PBT = "PutBucketTagging";
+  var _PBTR = "PutBucketTaggingRequest";
+  var _PBV = "PutBucketVersioning";
+  var _PBVR = "PutBucketVersioningRequest";
+  var _PBW = "PutBucketWebsite";
+  var _PBWR = "PutBucketWebsiteRequest";
+  var _PC = "PartsCount";
+  var _PDS = "PartitionDateSource";
+  var _PE = "ProgressEvent";
+  var _PI = "ParquetInput";
+  var _PL = "PartsList";
+  var _PN = "PartNumber";
+  var _PNM = "PartNumberMarker";
+  var _PO = "PutObject";
+  var _POA = "PutObjectAcl";
+  var _POAO = "PutObjectAclOutput";
+  var _POAR = "PutObjectAclRequest";
+  var _POLC = "PutObjectLockConfiguration";
+  var _POLCO = "PutObjectLockConfigurationOutput";
+  var _POLCR = "PutObjectLockConfigurationRequest";
+  var _POLH = "PutObjectLegalHold";
+  var _POLHO = "PutObjectLegalHoldOutput";
+  var _POLHR = "PutObjectLegalHoldRequest";
+  var _POO = "PutObjectOutput";
+  var _POR = "PutObjectRequest";
+  var _PORO = "PutObjectRetentionOutput";
+  var _PORR = "PutObjectRetentionRequest";
+  var _PORu = "PutObjectRetention";
+  var _POT = "PutObjectTagging";
+  var _POTO = "PutObjectTaggingOutput";
+  var _POTR = "PutObjectTaggingRequest";
+  var _PP = "PartitionedPrefix";
+  var _PPAB = "PutPublicAccessBlock";
+  var _PPABR = "PutPublicAccessBlockRequest";
+  var _PS = "PolicyStatus";
+  var _Pa = "Parts";
+  var _Par = "Part";
+  var _Parq = "Parquet";
+  var _Pay = "Payer";
+  var _Payl = "Payload";
+  var _Pe = "Permission";
+  var _Po = "Policy";
+  var _Pr = "Progress";
+  var _Pri = "Priority";
+  var _Pro = "Protocol";
+  var _Q = "Quiet";
+  var _QA = "QueueArn";
+  var _QC = "QuoteCharacter";
+  var _QCL = "QueueConfigurationList";
+  var _QCu = "QueueConfigurations";
+  var _QCue = "QueueConfiguration";
+  var _QEC = "QuoteEscapeCharacter";
+  var _QF = "QuoteFields";
+  var _Qu = "Queue";
+  var _R = "Rules";
+  var _RART = "RedirectAllRequestsTo";
+  var _RC = "RequestCharged";
+  var _RCC = "ResponseCacheControl";
+  var _RCD = "ResponseContentDisposition";
+  var _RCE = "ResponseContentEncoding";
+  var _RCL = "ResponseContentLanguage";
+  var _RCT = "ResponseContentType";
+  var _RCe = "ReplicationConfiguration";
+  var _RD = "RecordDelimiter";
+  var _RE = "ResponseExpires";
+  var _RED = "RestoreExpiryDate";
+  var _REe = "RecordExpiration";
+  var _REec = "RecordsEvent";
+  var _RKKID = "ReplicaKmsKeyID";
+  var _RKPW = "ReplaceKeyPrefixWith";
+  var _RKW = "ReplaceKeyWith";
+  var _RM = "ReplicaModifications";
+  var _RO = "RenameObject";
+  var _ROO = "RenameObjectOutput";
+  var _ROOe = "RestoreObjectOutput";
+  var _ROP = "RestoreOutputPath";
+  var _ROR = "RenameObjectRequest";
+  var _RORe = "RestoreObjectRequest";
+  var _ROe = "RestoreObject";
+  var _RP = "RequestPayer";
+  var _RPB = "RestrictPublicBuckets";
+  var _RPC = "RequestPaymentConfiguration";
+  var _RPe = "RequestProgress";
+  var _RR = "RoutingRules";
+  var _RRAO = "ReplicationRuleAndOperator";
+  var _RRF = "ReplicationRuleFilter";
+  var _RRe = "ReplicationRule";
+  var _RRep = "ReplicationRules";
+  var _RReq = "RequestRoute";
+  var _RRes = "RestoreRequest";
+  var _RRo = "RoutingRule";
+  var _RS = "ReplicationStatus";
+  var _RSe = "RestoreStatus";
+  var _RSen = "RenameSource";
+  var _RT = "ReplicationTime";
+  var _RTV = "ReplicationTimeValue";
+  var _RTe = "RequestToken";
+  var _RUD = "RetainUntilDate";
+  var _Ra = "Range";
+  var _Re = "Restore";
+  var _Rec = "Records";
+  var _Red = "Redirect";
+  var _Ret = "Retention";
+  var _Ro = "Role";
+  var _Ru = "Rule";
+  var _S = "Status";
+  var _SA = "StartAfter";
+  var _SAK = "SecretAccessKey";
+  var _SAs = "SseAlgorithm";
+  var _SB = "StreamingBlob";
+  var _SBD = "S3BucketDestination";
+  var _SC = "StorageClass";
+  var _SCA = "StorageClassAnalysis";
+  var _SCADE = "StorageClassAnalysisDataExport";
+  var _SCV = "SessionCredentialValue";
+  var _SCe = "SessionCredentials";
+  var _SCt = "StatusCode";
+  var _SDV = "SkipDestinationValidation";
+  var _SE = "StatsEvent";
+  var _SIM = "SourceIfMatch";
+  var _SIMS = "SourceIfModifiedSince";
+  var _SINM = "SourceIfNoneMatch";
+  var _SIUS = "SourceIfUnmodifiedSince";
+  var _SK = "SSE-KMS";
+  var _SKEO = "SseKmsEncryptedObjects";
+  var _SKF = "S3KeyFilter";
+  var _SKe = "S3Key";
+  var _SL = "S3Location";
+  var _SM = "SessionMode";
+  var _SOC = "SelectObjectContent";
+  var _SOCES = "SelectObjectContentEventStream";
+  var _SOCO = "SelectObjectContentOutput";
+  var _SOCR = "SelectObjectContentRequest";
+  var _SP = "SelectParameters";
+  var _SPi = "SimplePrefix";
+  var _SR = "ScanRange";
+  var _SS = "SSE-S3";
+  var _SSC = "SourceSelectionCriteria";
+  var _SSE = "ServerSideEncryption";
+  var _SSEA = "SSEAlgorithm";
+  var _SSEBD = "ServerSideEncryptionByDefault";
+  var _SSEC = "ServerSideEncryptionConfiguration";
+  var _SSECA = "SSECustomerAlgorithm";
+  var _SSECK = "SSECustomerKey";
+  var _SSECKMD = "SSECustomerKeyMD5";
+  var _SSEKMS = "SSEKMS";
+  var _SSEKMSE = "SSEKMSEncryption";
+  var _SSEKMSEC = "SSEKMSEncryptionContext";
+  var _SSEKMSKI = "SSEKMSKeyId";
+  var _SSER = "ServerSideEncryptionRule";
+  var _SSERe = "ServerSideEncryptionRules";
+  var _SSES = "SSES3";
+  var _ST = "SessionToken";
+  var _STD = "S3TablesDestination";
+  var _STDR = "S3TablesDestinationResult";
+  var _S_ = "S3";
+  var _Sc = "Schedule";
+  var _Si = "Size";
+  var _St = "Start";
+  var _Sta = "Stats";
+  var _Su = "Suffix";
+  var _T = "Tags";
+  var _TA = "TableArn";
+  var _TAo = "TopicArn";
+  var _TB = "TargetBucket";
+  var _TBA = "TableBucketArn";
+  var _TBT = "TableBucketType";
+  var _TC = "TagCount";
+  var _TCL = "TopicConfigurationList";
+  var _TCo = "TopicConfigurations";
+  var _TCop = "TopicConfiguration";
+  var _TD = "TaggingDirective";
+  var _TDMOS = "TransitionDefaultMinimumObjectSize";
+  var _TG = "TargetGrants";
+  var _TGa = "TargetGrant";
+  var _TL = "TieringList";
+  var _TLr = "TransitionList";
+  var _TMP = "TooManyParts";
+  var _TN = "TableNamespace";
+  var _TNa = "TableName";
+  var _TOKF = "TargetObjectKeyFormat";
+  var _TP = "TargetPrefix";
+  var _TPC = "TotalPartsCount";
+  var _TS = "TagSet";
+  var _TSa = "TableStatus";
+  var _Ta = "Tag";
+  var _Tag = "Tagging";
+  var _Ti = "Tier";
+  var _Tie = "Tierings";
+  var _Tier = "Tiering";
+  var _Tim = "Time";
+  var _To = "Token";
+  var _Top = "Topic";
+  var _Tr = "Transitions";
+  var _Tra = "Transition";
+  var _Ty = "Type";
+  var _U = "Uploads";
+  var _UBMITC = "UpdateBucketMetadataInventoryTableConfiguration";
+  var _UBMITCR = "UpdateBucketMetadataInventoryTableConfigurationRequest";
+  var _UBMJTC = "UpdateBucketMetadataJournalTableConfiguration";
+  var _UBMJTCR = "UpdateBucketMetadataJournalTableConfigurationRequest";
+  var _UI = "UploadId";
+  var _UIM = "UploadIdMarker";
+  var _UM = "UserMetadata";
+  var _UOE = "UpdateObjectEncryption";
+  var _UOER = "UpdateObjectEncryptionRequest";
+  var _UOERp = "UpdateObjectEncryptionResponse";
+  var _UP = "UploadPart";
+  var _UPC = "UploadPartCopy";
+  var _UPCO = "UploadPartCopyOutput";
+  var _UPCR = "UploadPartCopyRequest";
+  var _UPO = "UploadPartOutput";
+  var _UPR = "UploadPartRequest";
+  var _URI = "URI";
+  var _Up = "Upload";
+  var _V = "Value";
+  var _VC = "VersioningConfiguration";
+  var _VI = "VersionId";
+  var _VIM = "VersionIdMarker";
+  var _Ve = "Versions";
+  var _Ver = "Version";
+  var _WC = "WebsiteConfiguration";
+  var _WGOR = "WriteGetObjectResponse";
+  var _WGORR = "WriteGetObjectResponseRequest";
+  var _WOB = "WriteOffsetBytes";
+  var _WRL = "WebsiteRedirectLocation";
+  var _Y = "Years";
+  var _ar = "accept-ranges";
+  var _br = "bucket-region";
+  var _c = "client";
+  var _ct = "continuation-token";
+  var _d = "delimiter";
+  var _e = "error";
+  var _eP = "eventPayload";
+  var _en = "endpoint";
+  var _et = "encoding-type";
+  var _fo = "fetch-owner";
+  var _h = "http";
+  var _hC = "httpChecksum";
+  var _hE = "httpError";
+  var _hH = "httpHeader";
+  var _hL = "hostLabel";
+  var _hP = "httpPayload";
+  var _hPH = "httpPrefixHeaders";
+  var _hQ = "httpQuery";
+  var _hi = "http://www.w3.org/2001/XMLSchema-instance";
+  var _i = "id";
+  var _iT = "idempotencyToken";
+  var _km = "key-marker";
+  var _m = "marker";
+  var _mb = "max-buckets";
+  var _mdb = "max-directory-buckets";
+  var _mk = "max-keys";
+  var _mp = "max-parts";
+  var _mu = "max-uploads";
+  var _p = "prefix";
+  var _pN = "partNumber";
+  var _pnm = "part-number-marker";
+  var _rcc = "response-cache-control";
+  var _rcd = "response-content-disposition";
+  var _rce = "response-content-encoding";
+  var _rcl = "response-content-language";
+  var _rct = "response-content-type";
+  var _re = "response-expires";
+  var _s = "smithy.ts.sdk.synthetic.com.amazonaws.s3";
+  var _sa = "start-after";
+  var _st = "streaming";
+  var _uI = "uploadId";
+  var _uim = "upload-id-marker";
+  var _vI = "versionId";
+  var _vim = "version-id-marker";
+  var _x = "xsi";
+  var _xA = "xmlAttribute";
+  var _xF = "xmlFlattened";
+  var _xN = "xmlName";
+  var _xNm = "xmlNamespace";
+  var _xaa = "x-amz-acl";
+  var _xaad = "x-amz-abort-date";
+  var _xaapa = "x-amz-access-point-alias";
+  var _xaari = "x-amz-abort-rule-id";
+  var _xaas = "x-amz-archive-status";
+  var _xaba = "x-amz-bucket-arn";
+  var _xabgr = "x-amz-bypass-governance-retention";
+  var _xabln = "x-amz-bucket-location-name";
+  var _xablt = "x-amz-bucket-location-type";
+  var _xabn = "x-amz-bucket-namespace";
+  var _xabole = "x-amz-bucket-object-lock-enabled";
+  var _xabolt = "x-amz-bucket-object-lock-token";
+  var _xabr = "x-amz-bucket-region";
+  var _xaca = "x-amz-checksum-algorithm";
+  var _xacc = "x-amz-checksum-crc32";
+  var _xacc_ = "x-amz-checksum-crc32c";
+  var _xacc__ = "x-amz-checksum-crc64nvme";
+  var _xacm = "x-amz-checksum-md5";
+  var _xacm_ = "x-amz-checksum-mode";
+  var _xacrsba = "x-amz-confirm-remove-self-bucket-access";
+  var _xacs = "x-amz-checksum-sha1";
+  var _xacs_ = "x-amz-checksum-sha256";
+  var _xacs__ = "x-amz-checksum-sha512";
+  var _xacs___ = "x-amz-copy-source";
+  var _xacsim = "x-amz-copy-source-if-match";
+  var _xacsims = "x-amz-copy-source-if-modified-since";
+  var _xacsinm = "x-amz-copy-source-if-none-match";
+  var _xacsius = "x-amz-copy-source-if-unmodified-since";
+  var _xacsm = "x-amz-create-session-mode";
+  var _xacsr = "x-amz-copy-source-range";
+  var _xacssseca = "x-amz-copy-source-server-side-encryption-customer-algorithm";
+  var _xacssseck = "x-amz-copy-source-server-side-encryption-customer-key";
+  var _xacssseckM = "x-amz-copy-source-server-side-encryption-customer-key-MD5";
+  var _xacsvi = "x-amz-copy-source-version-id";
+  var _xact = "x-amz-checksum-type";
+  var _xact_ = "x-amz-client-token";
+  var _xacx = "x-amz-checksum-xxhash64";
+  var _xacx_ = "x-amz-checksum-xxhash3";
+  var _xacx__ = "x-amz-checksum-xxhash128";
+  var _xadm = "x-amz-delete-marker";
+  var _xae = "x-amz-expiration";
+  var _xaebo = "x-amz-expected-bucket-owner";
+  var _xafec = "x-amz-fwd-error-code";
+  var _xafem = "x-amz-fwd-error-message";
+  var _xafhCC = "x-amz-fwd-header-Cache-Control";
+  var _xafhCD = "x-amz-fwd-header-Content-Disposition";
+  var _xafhCE = "x-amz-fwd-header-Content-Encoding";
+  var _xafhCL = "x-amz-fwd-header-Content-Language";
+  var _xafhCR = "x-amz-fwd-header-Content-Range";
+  var _xafhCT = "x-amz-fwd-header-Content-Type";
+  var _xafhE = "x-amz-fwd-header-ETag";
+  var _xafhE_ = "x-amz-fwd-header-Expires";
+  var _xafhLM = "x-amz-fwd-header-Last-Modified";
+  var _xafhar = "x-amz-fwd-header-accept-ranges";
+  var _xafhxacc = "x-amz-fwd-header-x-amz-checksum-crc32";
+  var _xafhxacc_ = "x-amz-fwd-header-x-amz-checksum-crc32c";
+  var _xafhxacc__ = "x-amz-fwd-header-x-amz-checksum-crc64nvme";
+  var _xafhxacm = "x-amz-fwd-header-x-amz-checksum-md5";
+  var _xafhxacs = "x-amz-fwd-header-x-amz-checksum-sha1";
+  var _xafhxacs_ = "x-amz-fwd-header-x-amz-checksum-sha256";
+  var _xafhxacs__ = "x-amz-fwd-header-x-amz-checksum-sha512";
+  var _xafhxacx = "x-amz-fwd-header-x-amz-checksum-xxhash64";
+  var _xafhxacx_ = "x-amz-fwd-header-x-amz-checksum-xxhash3";
+  var _xafhxacx__ = "x-amz-fwd-header-x-amz-checksum-xxhash128";
+  var _xafhxadm = "x-amz-fwd-header-x-amz-delete-marker";
+  var _xafhxae = "x-amz-fwd-header-x-amz-expiration";
+  var _xafhxamm = "x-amz-fwd-header-x-amz-missing-meta";
+  var _xafhxampc = "x-amz-fwd-header-x-amz-mp-parts-count";
+  var _xafhxaollh = "x-amz-fwd-header-x-amz-object-lock-legal-hold";
+  var _xafhxaolm = "x-amz-fwd-header-x-amz-object-lock-mode";
+  var _xafhxaolrud = "x-amz-fwd-header-x-amz-object-lock-retain-until-date";
+  var _xafhxar = "x-amz-fwd-header-x-amz-restore";
+  var _xafhxarc = "x-amz-fwd-header-x-amz-request-charged";
+  var _xafhxars = "x-amz-fwd-header-x-amz-replication-status";
+  var _xafhxasc = "x-amz-fwd-header-x-amz-storage-class";
+  var _xafhxasse = "x-amz-fwd-header-x-amz-server-side-encryption";
+  var _xafhxasseakki = "x-amz-fwd-header-x-amz-server-side-encryption-aws-kms-key-id";
+  var _xafhxassebke = "x-amz-fwd-header-x-amz-server-side-encryption-bucket-key-enabled";
+  var _xafhxasseca = "x-amz-fwd-header-x-amz-server-side-encryption-customer-algorithm";
+  var _xafhxasseckM = "x-amz-fwd-header-x-amz-server-side-encryption-customer-key-MD5";
+  var _xafhxatc = "x-amz-fwd-header-x-amz-tagging-count";
+  var _xafhxavi = "x-amz-fwd-header-x-amz-version-id";
+  var _xafs = "x-amz-fwd-status";
+  var _xagfc = "x-amz-grant-full-control";
+  var _xagr = "x-amz-grant-read";
+  var _xagra = "x-amz-grant-read-acp";
+  var _xagw = "x-amz-grant-write";
+  var _xagwa = "x-amz-grant-write-acp";
+  var _xaimit = "x-amz-if-match-initiated-time";
+  var _xaimlmt = "x-amz-if-match-last-modified-time";
+  var _xaims = "x-amz-if-match-size";
+  var _xam = "x-amz-meta-";
+  var _xam_ = "x-amz-mfa";
+  var _xamd = "x-amz-metadata-directive";
+  var _xamm = "x-amz-missing-meta";
+  var _xamos = "x-amz-mp-object-size";
+  var _xamp = "x-amz-max-parts";
+  var _xampc = "x-amz-mp-parts-count";
+  var _xaoa = "x-amz-object-attributes";
+  var _xaollh = "x-amz-object-lock-legal-hold";
+  var _xaolm = "x-amz-object-lock-mode";
+  var _xaolrud = "x-amz-object-lock-retain-until-date";
+  var _xaoo = "x-amz-object-ownership";
+  var _xaooa = "x-amz-optional-object-attributes";
+  var _xaos = "x-amz-object-size";
+  var _xapnm = "x-amz-part-number-marker";
+  var _xar = "x-amz-restore";
+  var _xarc = "x-amz-request-charged";
+  var _xarop = "x-amz-restore-output-path";
+  var _xarp = "x-amz-request-payer";
+  var _xarr = "x-amz-request-route";
+  var _xars = "x-amz-replication-status";
+  var _xars_ = "x-amz-rename-source";
+  var _xarsim = "x-amz-rename-source-if-match";
+  var _xarsims = "x-amz-rename-source-if-modified-since";
+  var _xarsinm = "x-amz-rename-source-if-none-match";
+  var _xarsius = "x-amz-rename-source-if-unmodified-since";
+  var _xart = "x-amz-request-token";
+  var _xasc = "x-amz-storage-class";
+  var _xasca = "x-amz-sdk-checksum-algorithm";
+  var _xasdv = "x-amz-skip-destination-validation";
+  var _xasebo = "x-amz-source-expected-bucket-owner";
+  var _xasse = "x-amz-server-side-encryption";
+  var _xasseakki = "x-amz-server-side-encryption-aws-kms-key-id";
+  var _xassebke = "x-amz-server-side-encryption-bucket-key-enabled";
+  var _xassec = "x-amz-server-side-encryption-context";
+  var _xasseca = "x-amz-server-side-encryption-customer-algorithm";
+  var _xasseck = "x-amz-server-side-encryption-customer-key";
+  var _xasseckM = "x-amz-server-side-encryption-customer-key-MD5";
+  var _xat = "x-amz-tagging";
+  var _xatc = "x-amz-tagging-count";
+  var _xatd = "x-amz-tagging-directive";
+  var _xatdmos = "x-amz-transition-default-minimum-object-size";
+  var _xavi = "x-amz-version-id";
+  var _xawob = "x-amz-write-offset-bytes";
+  var _xawrl = "x-amz-website-redirect-location";
+  var _xs = "xsi:type";
+  var n0 = "com.amazonaws.s3";
+  var schema_1 = require_schema4();
+  var errors_1 = require_errors3();
+  var S3ServiceException_1 = require_S3ServiceException();
+  var _s_registry = schema_1.TypeRegistry.for(_s);
+  exports2.S3ServiceException$ = [-3, _s, "S3ServiceException", 0, [], []];
+  _s_registry.registerError(exports2.S3ServiceException$, S3ServiceException_1.S3ServiceException);
+  var n0_registry = schema_1.TypeRegistry.for(n0);
+  exports2.AccessDenied$ = [
+    -3,
+    n0,
+    _AD,
+    { [_e]: _c, [_hE]: 403 },
+    [],
+    []
+  ];
+  n0_registry.registerError(exports2.AccessDenied$, errors_1.AccessDenied);
+  exports2.BucketAlreadyExists$ = [
+    -3,
+    n0,
+    _BAE,
+    { [_e]: _c, [_hE]: 409 },
+    [],
+    []
+  ];
+  n0_registry.registerError(exports2.BucketAlreadyExists$, errors_1.BucketAlreadyExists);
+  exports2.BucketAlreadyOwnedByYou$ = [
+    -3,
+    n0,
+    _BAOBY,
+    { [_e]: _c, [_hE]: 409 },
+    [],
+    []
+  ];
+  n0_registry.registerError(exports2.BucketAlreadyOwnedByYou$, errors_1.BucketAlreadyOwnedByYou);
+  exports2.EncryptionTypeMismatch$ = [
+    -3,
+    n0,
+    _ETM,
+    { [_e]: _c, [_hE]: 400 },
+    [],
+    []
+  ];
+  n0_registry.registerError(exports2.EncryptionTypeMismatch$, errors_1.EncryptionTypeMismatch);
+  exports2.IdempotencyParameterMismatch$ = [
+    -3,
+    n0,
+    _IPM,
+    { [_e]: _c, [_hE]: 400 },
+    [],
+    []
+  ];
+  n0_registry.registerError(exports2.IdempotencyParameterMismatch$, errors_1.IdempotencyParameterMismatch);
+  exports2.InvalidObjectState$ = [
+    -3,
+    n0,
+    _IOS,
+    { [_e]: _c, [_hE]: 403 },
+    [_SC, _AT],
+    [0, 0]
+  ];
+  n0_registry.registerError(exports2.InvalidObjectState$, errors_1.InvalidObjectState);
+  exports2.InvalidRequest$ = [
+    -3,
+    n0,
+    _IR,
+    { [_e]: _c, [_hE]: 400 },
+    [],
+    []
+  ];
+  n0_registry.registerError(exports2.InvalidRequest$, errors_1.InvalidRequest);
+  exports2.InvalidWriteOffset$ = [
+    -3,
+    n0,
+    _IWO,
+    { [_e]: _c, [_hE]: 400 },
+    [],
+    []
+  ];
+  n0_registry.registerError(exports2.InvalidWriteOffset$, errors_1.InvalidWriteOffset);
+  exports2.NoSuchBucket$ = [
+    -3,
+    n0,
+    _NSB,
+    { [_e]: _c, [_hE]: 404 },
+    [],
+    []
+  ];
+  n0_registry.registerError(exports2.NoSuchBucket$, errors_1.NoSuchBucket);
+  exports2.NoSuchKey$ = [
+    -3,
+    n0,
+    _NSK,
+    { [_e]: _c, [_hE]: 404 },
+    [],
+    []
+  ];
+  n0_registry.registerError(exports2.NoSuchKey$, errors_1.NoSuchKey);
+  exports2.NoSuchUpload$ = [
+    -3,
+    n0,
+    _NSU,
+    { [_e]: _c, [_hE]: 404 },
+    [],
+    []
+  ];
+  n0_registry.registerError(exports2.NoSuchUpload$, errors_1.NoSuchUpload);
+  exports2.NotFound$ = [
+    -3,
+    n0,
+    _NF,
+    { [_e]: _c },
+    [],
+    []
+  ];
+  n0_registry.registerError(exports2.NotFound$, errors_1.NotFound);
+  exports2.ObjectAlreadyInActiveTierError$ = [
+    -3,
+    n0,
+    _OAIATE,
+    { [_e]: _c, [_hE]: 403 },
+    [],
+    []
+  ];
+  n0_registry.registerError(exports2.ObjectAlreadyInActiveTierError$, errors_1.ObjectAlreadyInActiveTierError);
+  exports2.ObjectNotInActiveTierError$ = [
+    -3,
+    n0,
+    _ONIATE,
+    { [_e]: _c, [_hE]: 403 },
+    [],
+    []
+  ];
+  n0_registry.registerError(exports2.ObjectNotInActiveTierError$, errors_1.ObjectNotInActiveTierError);
+  exports2.TooManyParts$ = [
+    -3,
+    n0,
+    _TMP,
+    { [_e]: _c, [_hE]: 400 },
+    [],
+    []
+  ];
+  n0_registry.registerError(exports2.TooManyParts$, errors_1.TooManyParts);
+  exports2.errorTypeRegistries = [
+    _s_registry,
+    n0_registry
+  ];
+  var CopySourceSSECustomerKey = [0, n0, _CSSSECK, 8, 0];
+  var NonEmptyKmsKeyArnString = [0, n0, _NEKKAS, 8, 0];
+  var SessionCredentialValue = [0, n0, _SCV, 8, 0];
+  var SSECustomerKey = [0, n0, _SSECK, 8, 0];
+  var SSEKMSEncryptionContext = [0, n0, _SSEKMSEC, 8, 0];
+  var SSEKMSKeyId = [0, n0, _SSEKMSKI, 8, 0];
+  var StreamingBlob = [0, n0, _SB, { [_st]: 1 }, 42];
+  exports2.AbacStatus$ = [
+    3,
+    n0,
+    _AS,
+    0,
+    [_S],
+    [0]
+  ];
+  exports2.AbortIncompleteMultipartUpload$ = [
+    3,
+    n0,
+    _AIMU,
+    0,
+    [_DAI],
+    [1]
+  ];
+  exports2.AbortMultipartUploadOutput$ = [
+    3,
+    n0,
+    _AMUO,
+    0,
+    [_RC],
+    [[0, { [_hH]: _xarc }]]
+  ];
+  exports2.AbortMultipartUploadRequest$ = [
+    3,
+    n0,
+    _AMUR,
+    0,
+    [_B, _K, _UI, _RP, _EBO, _IMIT],
+    [[0, 1], [0, 1], [0, { [_hQ]: _uI }], [0, { [_hH]: _xarp }], [0, { [_hH]: _xaebo }], [6, { [_hH]: _xaimit }]],
+    3
+  ];
+  exports2.AccelerateConfiguration$ = [
+    3,
+    n0,
+    _AC,
+    0,
+    [_S],
+    [0]
+  ];
+  exports2.AccessControlPolicy$ = [
+    3,
+    n0,
+    _ACP,
+    0,
+    [_G, _O],
+    [[() => Grants, { [_xN]: _ACL }], () => exports2.Owner$]
+  ];
+  exports2.AccessControlTranslation$ = [
+    3,
+    n0,
+    _ACT,
+    0,
+    [_O],
+    [0],
+    1
+  ];
+  exports2.AnalyticsAndOperator$ = [
+    3,
+    n0,
+    _AAO,
+    0,
+    [_P, _T],
+    [0, [() => TagSet, { [_xF]: 1, [_xN]: _Ta }]]
+  ];
+  exports2.AnalyticsConfiguration$ = [
+    3,
+    n0,
+    _ACn,
+    0,
+    [_I, _SCA, _F],
+    [0, () => exports2.StorageClassAnalysis$, [() => exports2.AnalyticsFilter$, 0]],
+    2
+  ];
+  exports2.AnalyticsExportDestination$ = [
+    3,
+    n0,
+    _AED,
+    0,
+    [_SBD],
+    [() => exports2.AnalyticsS3BucketDestination$],
+    1
+  ];
+  exports2.AnalyticsS3BucketDestination$ = [
+    3,
+    n0,
+    _ASBD,
+    0,
+    [_Fo, _B, _BAI, _P],
+    [0, 0, 0, 0],
+    2
+  ];
+  exports2.BlockedEncryptionTypes$ = [
+    3,
+    n0,
+    _BET,
+    0,
+    [_ET],
+    [[() => EncryptionTypeList, { [_xF]: 1 }]]
+  ];
+  exports2.Bucket$ = [
+    3,
+    n0,
+    _B,
+    0,
+    [_N, _CD, _BR, _BA],
+    [0, 4, 0, 0]
+  ];
+  exports2.BucketInfo$ = [
+    3,
+    n0,
+    _BI,
+    0,
+    [_DR, _Ty],
+    [0, 0]
+  ];
+  exports2.BucketLifecycleConfiguration$ = [
+    3,
+    n0,
+    _BLC,
+    0,
+    [_R],
+    [[() => LifecycleRules, { [_xF]: 1, [_xN]: _Ru }]],
+    1
+  ];
+  exports2.BucketLoggingStatus$ = [
+    3,
+    n0,
+    _BLS,
+    0,
+    [_LE],
+    [[() => exports2.LoggingEnabled$, 0]]
+  ];
+  exports2.Checksum$ = [
+    3,
+    n0,
+    _C,
+    0,
+    [_CCRC, _CCRCC, _CCRCNVME, _CSHA, _CSHAh, _CSHAhe, _CMD, _CXXHASH, _CXXHASHh, _CXXHASHhe, _CT],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  ];
+  exports2.CommonPrefix$ = [
+    3,
+    n0,
+    _CP,
+    0,
+    [_P],
+    [0]
+  ];
+  exports2.CompletedMultipartUpload$ = [
+    3,
+    n0,
+    _CMU,
+    0,
+    [_Pa],
+    [[() => CompletedPartList, { [_xF]: 1, [_xN]: _Par }]]
+  ];
+  exports2.CompletedPart$ = [
+    3,
+    n0,
+    _CPo,
+    0,
+    [_ETa, _CCRC, _CCRCC, _CCRCNVME, _CSHA, _CSHAh, _CSHAhe, _CMD, _CXXHASH, _CXXHASHh, _CXXHASHhe, _PN],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
+  ];
+  exports2.CompleteMultipartUploadOutput$ = [
+    3,
+    n0,
+    _CMUO,
+    { [_xN]: _CMUR },
+    [_L, _B, _K, _E, _ETa, _CCRC, _CCRCC, _CCRCNVME, _CSHA, _CSHAh, _CSHAhe, _CMD, _CXXHASH, _CXXHASHh, _CXXHASHhe, _CT, _SSE, _VI, _SSEKMSKI, _BKE, _RC],
+    [0, 0, 0, [0, { [_hH]: _xae }], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [0, { [_hH]: _xasse }], [0, { [_hH]: _xavi }], [() => SSEKMSKeyId, { [_hH]: _xasseakki }], [2, { [_hH]: _xassebke }], [0, { [_hH]: _xarc }]]
+  ];
+  exports2.CompleteMultipartUploadRequest$ = [
+    3,
+    n0,
+    _CMURo,
+    0,
+    [_B, _K, _UI, _MU, _CCRC, _CCRCC, _CCRCNVME, _CSHA, _CSHAh, _CSHAhe, _CMD, _CXXHASH, _CXXHASHh, _CXXHASHhe, _CT, _MOS, _RP, _EBO, _IM, _INM, _SSECA, _SSECK, _SSECKMD],
+    [[0, 1], [0, 1], [0, { [_hQ]: _uI }], [() => exports2.CompletedMultipartUpload$, { [_hP]: 1, [_xN]: _CMUo }], [0, { [_hH]: _xacc }], [0, { [_hH]: _xacc_ }], [0, { [_hH]: _xacc__ }], [0, { [_hH]: _xacs }], [0, { [_hH]: _xacs_ }], [0, { [_hH]: _xacs__ }], [0, { [_hH]: _xacm }], [0, { [_hH]: _xacx }], [0, { [_hH]: _xacx_ }], [0, { [_hH]: _xacx__ }], [0, { [_hH]: _xact }], [1, { [_hH]: _xamos }], [0, { [_hH]: _xarp }], [0, { [_hH]: _xaebo }], [0, { [_hH]: _IM_ }], [0, { [_hH]: _INM_ }], [0, { [_hH]: _xasseca }], [() => SSECustomerKey, { [_hH]: _xasseck }], [0, { [_hH]: _xasseckM }]],
+    3
+  ];
+  exports2.Condition$ = [
+    3,
+    n0,
+    _Co,
+    0,
+    [_HECRE, _KPE],
+    [0, 0]
+  ];
+  exports2.ContinuationEvent$ = [
+    3,
+    n0,
+    _CE,
+    0,
+    [],
+    []
+  ];
+  exports2.CopyObjectOutput$ = [
+    3,
+    n0,
+    _COO,
+    0,
+    [_COR, _E, _CSVI, _VI, _SSE, _SSECA, _SSECKMD, _SSEKMSKI, _SSEKMSEC, _BKE, _RC],
+    [[() => exports2.CopyObjectResult$, 16], [0, { [_hH]: _xae }], [0, { [_hH]: _xacsvi }], [0, { [_hH]: _xavi }], [0, { [_hH]: _xasse }], [0, { [_hH]: _xasseca }], [0, { [_hH]: _xasseckM }], [() => SSEKMSKeyId, { [_hH]: _xasseakki }], [() => SSEKMSEncryptionContext, { [_hH]: _xassec }], [2, { [_hH]: _xassebke }], [0, { [_hH]: _xarc }]]
+  ];
+  exports2.CopyObjectRequest$ = [
+    3,
+    n0,
+    _CORo,
+    0,
+    [_B, _CS, _K, _ACL_, _CC, _CA, _CDo, _CEo, _CL, _CTo, _CSIM, _CSIMS, _CSINM, _CSIUS, _Ex, _GFC, _GR, _GRACP, _GWACP, _IM, _INM, _M, _MD, _TD, _SSE, _SC, _WRL, _SSECA, _SSECK, _SSECKMD, _SSEKMSKI, _SSEKMSEC, _BKE, _CSSSECA, _CSSSECK, _CSSSECKMD, _RP, _Tag, _OLM, _OLRUD, _OLLHS, _EBO, _ESBO],
+    [[0, 1], [0, { [_hH]: _xacs___ }], [0, 1], [0, { [_hH]: _xaa }], [0, { [_hH]: _CC_ }], [0, { [_hH]: _xaca }], [0, { [_hH]: _CD_ }], [0, { [_hH]: _CE_ }], [0, { [_hH]: _CL_ }], [0, { [_hH]: _CT_ }], [0, { [_hH]: _xacsim }], [4, { [_hH]: _xacsims }], [0, { [_hH]: _xacsinm }], [4, { [_hH]: _xacsius }], [4, { [_hH]: _Ex }], [0, { [_hH]: _xagfc }], [0, { [_hH]: _xagr }], [0, { [_hH]: _xagra }], [0, { [_hH]: _xagwa }], [0, { [_hH]: _IM_ }], [0, { [_hH]: _INM_ }], [128 | 0, { [_hPH]: _xam }], [0, { [_hH]: _xamd }], [0, { [_hH]: _xatd }], [0, { [_hH]: _xasse }], [0, { [_hH]: _xasc }], [0, { [_hH]: _xawrl }], [0, { [_hH]: _xasseca }], [() => SSECustomerKey, { [_hH]: _xasseck }], [0, { [_hH]: _xasseckM }], [() => SSEKMSKeyId, { [_hH]: _xasseakki }], [() => SSEKMSEncryptionContext, { [_hH]: _xassec }], [2, { [_hH]: _xassebke }], [0, { [_hH]: _xacssseca }], [() => CopySourceSSECustomerKey, { [_hH]: _xacssseck }], [0, { [_hH]: _xacssseckM }], [0, { [_hH]: _xarp }], [0, { [_hH]: _xat }], [0, { [_hH]: _xaolm }], [5, { [_hH]: _xaolrud }], [0, { [_hH]: _xaollh }], [0, { [_hH]: _xaebo }], [0, { [_hH]: _xasebo }]],
+    3
+  ];
+  exports2.CopyObjectResult$ = [
+    3,
+    n0,
+    _COR,
+    0,
+    [_ETa, _LM, _CT, _CCRC, _CCRCC, _CCRCNVME, _CSHA, _CSHAh, _CSHAhe, _CMD, _CXXHASH, _CXXHASHh, _CXXHASHhe],
+    [0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  ];
+  exports2.CopyPartResult$ = [
+    3,
+    n0,
+    _CPR,
+    0,
+    [_ETa, _LM, _CCRC, _CCRCC, _CCRCNVME, _CSHA, _CSHAh, _CSHAhe, _CMD, _CXXHASH, _CXXHASHh, _CXXHASHhe],
+    [0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  ];
+  exports2.CORSConfiguration$ = [
+    3,
+    n0,
+    _CORSC,
+    0,
+    [_CORSR],
+    [[() => CORSRules, { [_xF]: 1, [_xN]: _CORSRu }]],
+    1
+  ];
+  exports2.CORSRule$ = [
+    3,
+    n0,
+    _CORSRu,
+    0,
+    [_AM, _AO, _ID, _AH, _EH, _MAS],
+    [[64 | 0, { [_xF]: 1, [_xN]: _AMl }], [64 | 0, { [_xF]: 1, [_xN]: _AOl }], 0, [64 | 0, { [_xF]: 1, [_xN]: _AHl }], [64 | 0, { [_xF]: 1, [_xN]: _EHx }], 1],
+    2
+  ];
+  exports2.CreateBucketConfiguration$ = [
+    3,
+    n0,
+    _CBC,
+    0,
+    [_LC, _L, _B, _T],
+    [0, () => exports2.LocationInfo$, () => exports2.BucketInfo$, [() => TagSet, 0]]
+  ];
+  exports2.CreateBucketMetadataConfigurationRequest$ = [
+    3,
+    n0,
+    _CBMCR,
+    0,
+    [_B, _MC, _CMDo, _CA, _EBO],
+    [[0, 1], [() => exports2.MetadataConfiguration$, { [_hP]: 1, [_xN]: _MC }], [0, { [_hH]: _CM }], [0, { [_hH]: _xasca }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.CreateBucketMetadataTableConfigurationRequest$ = [
+    3,
+    n0,
+    _CBMTCR,
+    0,
+    [_B, _MTC, _CMDo, _CA, _EBO],
+    [[0, 1], [() => exports2.MetadataTableConfiguration$, { [_hP]: 1, [_xN]: _MTC }], [0, { [_hH]: _CM }], [0, { [_hH]: _xasca }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.CreateBucketOutput$ = [
+    3,
+    n0,
+    _CBO,
+    0,
+    [_L, _BA],
+    [[0, { [_hH]: _L }], [0, { [_hH]: _xaba }]]
+  ];
+  exports2.CreateBucketRequest$ = [
+    3,
+    n0,
+    _CBR,
+    0,
+    [_B, _ACL_, _CBC, _GFC, _GR, _GRACP, _GW, _GWACP, _OLEFB, _OO, _BN],
+    [[0, 1], [0, { [_hH]: _xaa }], [() => exports2.CreateBucketConfiguration$, { [_hP]: 1, [_xN]: _CBC }], [0, { [_hH]: _xagfc }], [0, { [_hH]: _xagr }], [0, { [_hH]: _xagra }], [0, { [_hH]: _xagw }], [0, { [_hH]: _xagwa }], [2, { [_hH]: _xabole }], [0, { [_hH]: _xaoo }], [0, { [_hH]: _xabn }]],
+    1
+  ];
+  exports2.CreateMultipartUploadOutput$ = [
+    3,
+    n0,
+    _CMUOr,
+    { [_xN]: _IMUR },
+    [_ADb, _ARI, _B, _K, _UI, _SSE, _SSECA, _SSECKMD, _SSEKMSKI, _SSEKMSEC, _BKE, _RC, _CA, _CT],
+    [[4, { [_hH]: _xaad }], [0, { [_hH]: _xaari }], [0, { [_xN]: _B }], 0, 0, [0, { [_hH]: _xasse }], [0, { [_hH]: _xasseca }], [0, { [_hH]: _xasseckM }], [() => SSEKMSKeyId, { [_hH]: _xasseakki }], [() => SSEKMSEncryptionContext, { [_hH]: _xassec }], [2, { [_hH]: _xassebke }], [0, { [_hH]: _xarc }], [0, { [_hH]: _xaca }], [0, { [_hH]: _xact }]]
+  ];
+  exports2.CreateMultipartUploadRequest$ = [
+    3,
+    n0,
+    _CMURr,
+    0,
+    [_B, _K, _ACL_, _CC, _CDo, _CEo, _CL, _CTo, _Ex, _GFC, _GR, _GRACP, _GWACP, _M, _SSE, _SC, _WRL, _SSECA, _SSECK, _SSECKMD, _SSEKMSKI, _SSEKMSEC, _BKE, _RP, _Tag, _OLM, _OLRUD, _OLLHS, _EBO, _CA, _CT],
+    [[0, 1], [0, 1], [0, { [_hH]: _xaa }], [0, { [_hH]: _CC_ }], [0, { [_hH]: _CD_ }], [0, { [_hH]: _CE_ }], [0, { [_hH]: _CL_ }], [0, { [_hH]: _CT_ }], [4, { [_hH]: _Ex }], [0, { [_hH]: _xagfc }], [0, { [_hH]: _xagr }], [0, { [_hH]: _xagra }], [0, { [_hH]: _xagwa }], [128 | 0, { [_hPH]: _xam }], [0, { [_hH]: _xasse }], [0, { [_hH]: _xasc }], [0, { [_hH]: _xawrl }], [0, { [_hH]: _xasseca }], [() => SSECustomerKey, { [_hH]: _xasseck }], [0, { [_hH]: _xasseckM }], [() => SSEKMSKeyId, { [_hH]: _xasseakki }], [() => SSEKMSEncryptionContext, { [_hH]: _xassec }], [2, { [_hH]: _xassebke }], [0, { [_hH]: _xarp }], [0, { [_hH]: _xat }], [0, { [_hH]: _xaolm }], [5, { [_hH]: _xaolrud }], [0, { [_hH]: _xaollh }], [0, { [_hH]: _xaebo }], [0, { [_hH]: _xaca }], [0, { [_hH]: _xact }]],
+    2
+  ];
+  exports2.CreateSessionOutput$ = [
+    3,
+    n0,
+    _CSO,
+    { [_xN]: _CSR },
+    [_Cr, _SSE, _SSEKMSKI, _SSEKMSEC, _BKE],
+    [[() => exports2.SessionCredentials$, { [_xN]: _Cr }], [0, { [_hH]: _xasse }], [() => SSEKMSKeyId, { [_hH]: _xasseakki }], [() => SSEKMSEncryptionContext, { [_hH]: _xassec }], [2, { [_hH]: _xassebke }]],
+    1
+  ];
+  exports2.CreateSessionRequest$ = [
+    3,
+    n0,
+    _CSRr,
+    0,
+    [_B, _SM, _SSE, _SSEKMSKI, _SSEKMSEC, _BKE],
+    [[0, 1], [0, { [_hH]: _xacsm }], [0, { [_hH]: _xasse }], [() => SSEKMSKeyId, { [_hH]: _xasseakki }], [() => SSEKMSEncryptionContext, { [_hH]: _xassec }], [2, { [_hH]: _xassebke }]],
+    1
+  ];
+  exports2.CSVInput$ = [
+    3,
+    n0,
+    _CSVIn,
+    0,
+    [_FHI, _Com, _QEC, _RD, _FD, _QC, _AQRD],
+    [0, 0, 0, 0, 0, 0, 2]
+  ];
+  exports2.CSVOutput$ = [
+    3,
+    n0,
+    _CSVO,
+    0,
+    [_QF, _QEC, _RD, _FD, _QC],
+    [0, 0, 0, 0, 0]
+  ];
+  exports2.DefaultRetention$ = [
+    3,
+    n0,
+    _DRe,
+    0,
+    [_Mo, _D, _Y],
+    [0, 1, 1]
+  ];
+  exports2.Delete$ = [
+    3,
+    n0,
+    _De,
+    0,
+    [_Ob, _Q],
+    [[() => ObjectIdentifierList, { [_xF]: 1, [_xN]: _Obj }], 2],
+    1
+  ];
+  exports2.DeleteBucketAnalyticsConfigurationRequest$ = [
+    3,
+    n0,
+    _DBACR,
+    0,
+    [_B, _I, _EBO],
+    [[0, 1], [0, { [_hQ]: _i }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.DeleteBucketCorsRequest$ = [
+    3,
+    n0,
+    _DBCR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.DeleteBucketEncryptionRequest$ = [
+    3,
+    n0,
+    _DBER,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.DeleteBucketIntelligentTieringConfigurationRequest$ = [
+    3,
+    n0,
+    _DBITCR,
+    0,
+    [_B, _I, _EBO],
+    [[0, 1], [0, { [_hQ]: _i }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.DeleteBucketInventoryConfigurationRequest$ = [
+    3,
+    n0,
+    _DBICR,
+    0,
+    [_B, _I, _EBO],
+    [[0, 1], [0, { [_hQ]: _i }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.DeleteBucketLifecycleRequest$ = [
+    3,
+    n0,
+    _DBLR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.DeleteBucketMetadataConfigurationRequest$ = [
+    3,
+    n0,
+    _DBMCR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.DeleteBucketMetadataTableConfigurationRequest$ = [
+    3,
+    n0,
+    _DBMTCR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.DeleteBucketMetricsConfigurationRequest$ = [
+    3,
+    n0,
+    _DBMCRe,
+    0,
+    [_B, _I, _EBO],
+    [[0, 1], [0, { [_hQ]: _i }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.DeleteBucketOwnershipControlsRequest$ = [
+    3,
+    n0,
+    _DBOCR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.DeleteBucketPolicyRequest$ = [
+    3,
+    n0,
+    _DBPR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.DeleteBucketReplicationRequest$ = [
+    3,
+    n0,
+    _DBRR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.DeleteBucketRequest$ = [
+    3,
+    n0,
+    _DBR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.DeleteBucketTaggingRequest$ = [
+    3,
+    n0,
+    _DBTR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.DeleteBucketWebsiteRequest$ = [
+    3,
+    n0,
+    _DBWR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.DeletedObject$ = [
+    3,
+    n0,
+    _DO,
+    0,
+    [_K, _VI, _DM, _DMVI],
+    [0, 0, 2, 0]
+  ];
+  exports2.DeleteMarkerEntry$ = [
+    3,
+    n0,
+    _DME,
+    0,
+    [_O, _K, _VI, _IL, _LM],
+    [() => exports2.Owner$, 0, 0, 2, 4]
+  ];
+  exports2.DeleteMarkerReplication$ = [
+    3,
+    n0,
+    _DMR,
+    0,
+    [_S],
+    [0]
+  ];
+  exports2.DeleteObjectOutput$ = [
+    3,
+    n0,
+    _DOO,
+    0,
+    [_DM, _VI, _RC],
+    [[2, { [_hH]: _xadm }], [0, { [_hH]: _xavi }], [0, { [_hH]: _xarc }]]
+  ];
+  exports2.DeleteObjectRequest$ = [
+    3,
+    n0,
+    _DOR,
+    0,
+    [_B, _K, _MFA, _VI, _RP, _BGR, _EBO, _IM, _IMLMT, _IMS],
+    [[0, 1], [0, 1], [0, { [_hH]: _xam_ }], [0, { [_hQ]: _vI }], [0, { [_hH]: _xarp }], [2, { [_hH]: _xabgr }], [0, { [_hH]: _xaebo }], [0, { [_hH]: _IM_ }], [6, { [_hH]: _xaimlmt }], [1, { [_hH]: _xaims }]],
+    2
+  ];
+  exports2.DeleteObjectsOutput$ = [
+    3,
+    n0,
+    _DOOe,
+    { [_xN]: _DRel },
+    [_Del, _RC, _Er],
+    [[() => DeletedObjects, { [_xF]: 1 }], [0, { [_hH]: _xarc }], [() => Errors2, { [_xF]: 1, [_xN]: _Err }]]
+  ];
+  exports2.DeleteObjectsRequest$ = [
+    3,
+    n0,
+    _DORe,
+    0,
+    [_B, _De, _MFA, _RP, _BGR, _EBO, _CA],
+    [[0, 1], [() => exports2.Delete$, { [_hP]: 1, [_xN]: _De }], [0, { [_hH]: _xam_ }], [0, { [_hH]: _xarp }], [2, { [_hH]: _xabgr }], [0, { [_hH]: _xaebo }], [0, { [_hH]: _xasca }]],
+    2
+  ];
+  exports2.DeleteObjectTaggingOutput$ = [
+    3,
+    n0,
+    _DOTO,
+    0,
+    [_VI],
+    [[0, { [_hH]: _xavi }]]
+  ];
+  exports2.DeleteObjectTaggingRequest$ = [
+    3,
+    n0,
+    _DOTR,
+    0,
+    [_B, _K, _VI, _EBO],
+    [[0, 1], [0, 1], [0, { [_hQ]: _vI }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.DeletePublicAccessBlockRequest$ = [
+    3,
+    n0,
+    _DPABR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.Destination$ = [
+    3,
+    n0,
+    _Des,
+    0,
+    [_B, _A, _SC, _ACT, _EC, _RT, _Me],
+    [0, 0, 0, () => exports2.AccessControlTranslation$, () => exports2.EncryptionConfiguration$, () => exports2.ReplicationTime$, () => exports2.Metrics$],
+    1
+  ];
+  exports2.DestinationResult$ = [
+    3,
+    n0,
+    _DRes,
+    0,
+    [_TBT, _TBA, _TN],
+    [0, 0, 0]
+  ];
+  exports2.Encryption$ = [
+    3,
+    n0,
+    _En,
+    0,
+    [_ET, _KMSKI, _KMSC],
+    [0, [() => SSEKMSKeyId, 0], 0],
+    1
+  ];
+  exports2.EncryptionConfiguration$ = [
+    3,
+    n0,
+    _EC,
+    0,
+    [_RKKID],
+    [0]
+  ];
+  exports2.EndEvent$ = [
+    3,
+    n0,
+    _EE,
+    0,
+    [],
+    []
+  ];
+  exports2._Error$ = [
+    3,
+    n0,
+    _Err,
+    0,
+    [_K, _VI, _Cod, _Mes],
+    [0, 0, 0, 0]
+  ];
+  exports2.ErrorDetails$ = [
+    3,
+    n0,
+    _ED,
+    0,
+    [_ECr, _EM],
+    [0, 0]
+  ];
+  exports2.ErrorDocument$ = [
+    3,
+    n0,
+    _EDr,
+    0,
+    [_K],
+    [0],
+    1
+  ];
+  exports2.EventBridgeConfiguration$ = [
+    3,
+    n0,
+    _EBC,
+    0,
+    [],
+    []
+  ];
+  exports2.ExistingObjectReplication$ = [
+    3,
+    n0,
+    _EOR,
+    0,
+    [_S],
+    [0],
+    1
+  ];
+  exports2.FilterRule$ = [
+    3,
+    n0,
+    _FR,
+    0,
+    [_N, _V],
+    [0, 0]
+  ];
+  exports2.GetBucketAbacOutput$ = [
+    3,
+    n0,
+    _GBAO,
+    0,
+    [_AS],
+    [[() => exports2.AbacStatus$, 16]]
+  ];
+  exports2.GetBucketAbacRequest$ = [
+    3,
+    n0,
+    _GBAR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.GetBucketAccelerateConfigurationOutput$ = [
+    3,
+    n0,
+    _GBACO,
+    { [_xN]: _AC },
+    [_S, _RC],
+    [0, [0, { [_hH]: _xarc }]]
+  ];
+  exports2.GetBucketAccelerateConfigurationRequest$ = [
+    3,
+    n0,
+    _GBACR,
+    0,
+    [_B, _EBO, _RP],
+    [[0, 1], [0, { [_hH]: _xaebo }], [0, { [_hH]: _xarp }]],
+    1
+  ];
+  exports2.GetBucketAclOutput$ = [
+    3,
+    n0,
+    _GBAOe,
+    { [_xN]: _ACP },
+    [_O, _G],
+    [() => exports2.Owner$, [() => Grants, { [_xN]: _ACL }]]
+  ];
+  exports2.GetBucketAclRequest$ = [
+    3,
+    n0,
+    _GBARe,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.GetBucketAnalyticsConfigurationOutput$ = [
+    3,
+    n0,
+    _GBACOe,
+    0,
+    [_ACn],
+    [[() => exports2.AnalyticsConfiguration$, 16]]
+  ];
+  exports2.GetBucketAnalyticsConfigurationRequest$ = [
+    3,
+    n0,
+    _GBACRe,
+    0,
+    [_B, _I, _EBO],
+    [[0, 1], [0, { [_hQ]: _i }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.GetBucketCorsOutput$ = [
+    3,
+    n0,
+    _GBCO,
+    { [_xN]: _CORSC },
+    [_CORSR],
+    [[() => CORSRules, { [_xF]: 1, [_xN]: _CORSRu }]]
+  ];
+  exports2.GetBucketCorsRequest$ = [
+    3,
+    n0,
+    _GBCR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.GetBucketEncryptionOutput$ = [
+    3,
+    n0,
+    _GBEO,
+    0,
+    [_SSEC],
+    [[() => exports2.ServerSideEncryptionConfiguration$, 16]]
+  ];
+  exports2.GetBucketEncryptionRequest$ = [
+    3,
+    n0,
+    _GBER,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.GetBucketIntelligentTieringConfigurationOutput$ = [
+    3,
+    n0,
+    _GBITCO,
+    0,
+    [_ITC],
+    [[() => exports2.IntelligentTieringConfiguration$, 16]]
+  ];
+  exports2.GetBucketIntelligentTieringConfigurationRequest$ = [
+    3,
+    n0,
+    _GBITCR,
+    0,
+    [_B, _I, _EBO],
+    [[0, 1], [0, { [_hQ]: _i }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.GetBucketInventoryConfigurationOutput$ = [
+    3,
+    n0,
+    _GBICO,
+    0,
+    [_IC],
+    [[() => exports2.InventoryConfiguration$, 16]]
+  ];
+  exports2.GetBucketInventoryConfigurationRequest$ = [
+    3,
+    n0,
+    _GBICR,
+    0,
+    [_B, _I, _EBO],
+    [[0, 1], [0, { [_hQ]: _i }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.GetBucketLifecycleConfigurationOutput$ = [
+    3,
+    n0,
+    _GBLCO,
+    { [_xN]: _LCi },
+    [_R, _TDMOS],
+    [[() => LifecycleRules, { [_xF]: 1, [_xN]: _Ru }], [0, { [_hH]: _xatdmos }]]
+  ];
+  exports2.GetBucketLifecycleConfigurationRequest$ = [
+    3,
+    n0,
+    _GBLCR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.GetBucketLocationOutput$ = [
+    3,
+    n0,
+    _GBLO,
+    { [_xN]: _LC },
+    [_LC],
+    [0]
+  ];
+  exports2.GetBucketLocationRequest$ = [
+    3,
+    n0,
+    _GBLR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.GetBucketLoggingOutput$ = [
+    3,
+    n0,
+    _GBLOe,
+    { [_xN]: _BLS },
+    [_LE],
+    [[() => exports2.LoggingEnabled$, 0]]
+  ];
+  exports2.GetBucketLoggingRequest$ = [
+    3,
+    n0,
+    _GBLRe,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.GetBucketMetadataConfigurationOutput$ = [
+    3,
+    n0,
+    _GBMCO,
+    0,
+    [_GBMCR],
+    [[() => exports2.GetBucketMetadataConfigurationResult$, 16]]
+  ];
+  exports2.GetBucketMetadataConfigurationRequest$ = [
+    3,
+    n0,
+    _GBMCRe,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.GetBucketMetadataConfigurationResult$ = [
+    3,
+    n0,
+    _GBMCR,
+    0,
+    [_MCR],
+    [() => exports2.MetadataConfigurationResult$],
+    1
+  ];
+  exports2.GetBucketMetadataTableConfigurationOutput$ = [
+    3,
+    n0,
+    _GBMTCO,
+    0,
+    [_GBMTCR],
+    [[() => exports2.GetBucketMetadataTableConfigurationResult$, 16]]
+  ];
+  exports2.GetBucketMetadataTableConfigurationRequest$ = [
+    3,
+    n0,
+    _GBMTCRe,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.GetBucketMetadataTableConfigurationResult$ = [
+    3,
+    n0,
+    _GBMTCR,
+    0,
+    [_MTCR, _S, _Err],
+    [() => exports2.MetadataTableConfigurationResult$, 0, () => exports2.ErrorDetails$],
+    2
+  ];
+  exports2.GetBucketMetricsConfigurationOutput$ = [
+    3,
+    n0,
+    _GBMCOe,
+    0,
+    [_MCe],
+    [[() => exports2.MetricsConfiguration$, 16]]
+  ];
+  exports2.GetBucketMetricsConfigurationRequest$ = [
+    3,
+    n0,
+    _GBMCRet,
+    0,
+    [_B, _I, _EBO],
+    [[0, 1], [0, { [_hQ]: _i }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.GetBucketNotificationConfigurationRequest$ = [
+    3,
+    n0,
+    _GBNCR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.GetBucketOwnershipControlsOutput$ = [
+    3,
+    n0,
+    _GBOCO,
+    0,
+    [_OC],
+    [[() => exports2.OwnershipControls$, 16]]
+  ];
+  exports2.GetBucketOwnershipControlsRequest$ = [
+    3,
+    n0,
+    _GBOCR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.GetBucketPolicyOutput$ = [
+    3,
+    n0,
+    _GBPO,
+    0,
+    [_Po],
+    [[0, 16]]
+  ];
+  exports2.GetBucketPolicyRequest$ = [
+    3,
+    n0,
+    _GBPR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.GetBucketPolicyStatusOutput$ = [
+    3,
+    n0,
+    _GBPSO,
+    0,
+    [_PS],
+    [[() => exports2.PolicyStatus$, 16]]
+  ];
+  exports2.GetBucketPolicyStatusRequest$ = [
+    3,
+    n0,
+    _GBPSR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.GetBucketReplicationOutput$ = [
+    3,
+    n0,
+    _GBRO,
+    0,
+    [_RCe],
+    [[() => exports2.ReplicationConfiguration$, 16]]
+  ];
+  exports2.GetBucketReplicationRequest$ = [
+    3,
+    n0,
+    _GBRR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.GetBucketRequestPaymentOutput$ = [
+    3,
+    n0,
+    _GBRPO,
+    { [_xN]: _RPC },
+    [_Pay],
+    [0]
+  ];
+  exports2.GetBucketRequestPaymentRequest$ = [
+    3,
+    n0,
+    _GBRPR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.GetBucketTaggingOutput$ = [
+    3,
+    n0,
+    _GBTO,
+    { [_xN]: _Tag },
+    [_TS],
+    [[() => TagSet, 0]],
+    1
+  ];
+  exports2.GetBucketTaggingRequest$ = [
+    3,
+    n0,
+    _GBTR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.GetBucketVersioningOutput$ = [
+    3,
+    n0,
+    _GBVO,
+    { [_xN]: _VC },
+    [_S, _MFAD],
+    [0, [0, { [_xN]: _MDf }]]
+  ];
+  exports2.GetBucketVersioningRequest$ = [
+    3,
+    n0,
+    _GBVR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.GetBucketWebsiteOutput$ = [
+    3,
+    n0,
+    _GBWO,
+    { [_xN]: _WC },
+    [_RART, _IDn, _EDr, _RR],
+    [() => exports2.RedirectAllRequestsTo$, () => exports2.IndexDocument$, () => exports2.ErrorDocument$, [() => RoutingRules, 0]]
+  ];
+  exports2.GetBucketWebsiteRequest$ = [
+    3,
+    n0,
+    _GBWR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.GetObjectAclOutput$ = [
+    3,
+    n0,
+    _GOAO,
+    { [_xN]: _ACP },
+    [_O, _G, _RC],
+    [() => exports2.Owner$, [() => Grants, { [_xN]: _ACL }], [0, { [_hH]: _xarc }]]
+  ];
+  exports2.GetObjectAclRequest$ = [
+    3,
+    n0,
+    _GOAR,
+    0,
+    [_B, _K, _VI, _RP, _EBO],
+    [[0, 1], [0, 1], [0, { [_hQ]: _vI }], [0, { [_hH]: _xarp }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.GetObjectAttributesOutput$ = [
+    3,
+    n0,
+    _GOAOe,
+    { [_xN]: _GOARe },
+    [_DM, _LM, _VI, _RC, _ETa, _C, _OP, _SC, _OS],
+    [[2, { [_hH]: _xadm }], [4, { [_hH]: _LM_ }], [0, { [_hH]: _xavi }], [0, { [_hH]: _xarc }], 0, () => exports2.Checksum$, [() => exports2.GetObjectAttributesParts$, 0], 0, 1]
+  ];
+  exports2.GetObjectAttributesParts$ = [
+    3,
+    n0,
+    _GOAP,
+    0,
+    [_TPC, _PNM, _NPNM, _MP, _IT, _Pa],
+    [[1, { [_xN]: _PC }], 0, 0, 1, 2, [() => PartsList, { [_xF]: 1, [_xN]: _Par }]]
+  ];
+  exports2.GetObjectAttributesRequest$ = [
+    3,
+    n0,
+    _GOARet,
+    0,
+    [_B, _K, _OA, _VI, _MP, _PNM, _SSECA, _SSECK, _SSECKMD, _RP, _EBO],
+    [[0, 1], [0, 1], [64 | 0, { [_hH]: _xaoa }], [0, { [_hQ]: _vI }], [1, { [_hH]: _xamp }], [0, { [_hH]: _xapnm }], [0, { [_hH]: _xasseca }], [() => SSECustomerKey, { [_hH]: _xasseck }], [0, { [_hH]: _xasseckM }], [0, { [_hH]: _xarp }], [0, { [_hH]: _xaebo }]],
+    3
+  ];
+  exports2.GetObjectLegalHoldOutput$ = [
+    3,
+    n0,
+    _GOLHO,
+    0,
+    [_LH],
+    [[() => exports2.ObjectLockLegalHold$, { [_hP]: 1, [_xN]: _LH }]]
+  ];
+  exports2.GetObjectLegalHoldRequest$ = [
+    3,
+    n0,
+    _GOLHR,
+    0,
+    [_B, _K, _VI, _RP, _EBO],
+    [[0, 1], [0, 1], [0, { [_hQ]: _vI }], [0, { [_hH]: _xarp }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.GetObjectLockConfigurationOutput$ = [
+    3,
+    n0,
+    _GOLCO,
+    0,
+    [_OLC],
+    [[() => exports2.ObjectLockConfiguration$, 16]]
+  ];
+  exports2.GetObjectLockConfigurationRequest$ = [
+    3,
+    n0,
+    _GOLCR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.GetObjectOutput$ = [
+    3,
+    n0,
+    _GOO,
+    0,
+    [_Bo, _DM, _AR, _E, _Re, _LM, _CLo, _ETa, _CCRC, _CCRCC, _CCRCNVME, _CSHA, _CSHAh, _CSHAhe, _CMD, _CXXHASH, _CXXHASHh, _CXXHASHhe, _CT, _MM, _VI, _CC, _CDo, _CEo, _CL, _CR, _CTo, _Ex, _ES, _WRL, _SSE, _M, _SSECA, _SSECKMD, _SSEKMSKI, _BKE, _SC, _RC, _RS, _PC, _TC, _OLM, _OLRUD, _OLLHS],
+    [[() => StreamingBlob, 16], [2, { [_hH]: _xadm }], [0, { [_hH]: _ar }], [0, { [_hH]: _xae }], [0, { [_hH]: _xar }], [4, { [_hH]: _LM_ }], [1, { [_hH]: _CL__ }], [0, { [_hH]: _ETa }], [0, { [_hH]: _xacc }], [0, { [_hH]: _xacc_ }], [0, { [_hH]: _xacc__ }], [0, { [_hH]: _xacs }], [0, { [_hH]: _xacs_ }], [0, { [_hH]: _xacs__ }], [0, { [_hH]: _xacm }], [0, { [_hH]: _xacx }], [0, { [_hH]: _xacx_ }], [0, { [_hH]: _xacx__ }], [0, { [_hH]: _xact }], [1, { [_hH]: _xamm }], [0, { [_hH]: _xavi }], [0, { [_hH]: _CC_ }], [0, { [_hH]: _CD_ }], [0, { [_hH]: _CE_ }], [0, { [_hH]: _CL_ }], [0, { [_hH]: _CR_ }], [0, { [_hH]: _CT_ }], [4, { [_hH]: _Ex }], [0, { [_hH]: _ES }], [0, { [_hH]: _xawrl }], [0, { [_hH]: _xasse }], [128 | 0, { [_hPH]: _xam }], [0, { [_hH]: _xasseca }], [0, { [_hH]: _xasseckM }], [() => SSEKMSKeyId, { [_hH]: _xasseakki }], [2, { [_hH]: _xassebke }], [0, { [_hH]: _xasc }], [0, { [_hH]: _xarc }], [0, { [_hH]: _xars }], [1, { [_hH]: _xampc }], [1, { [_hH]: _xatc }], [0, { [_hH]: _xaolm }], [5, { [_hH]: _xaolrud }], [0, { [_hH]: _xaollh }]]
+  ];
+  exports2.GetObjectRequest$ = [
+    3,
+    n0,
+    _GOR,
+    0,
+    [_B, _K, _IM, _IMSf, _INM, _IUS, _Ra, _RCC, _RCD, _RCE, _RCL, _RCT, _RE, _VI, _SSECA, _SSECK, _SSECKMD, _RP, _PN, _EBO, _CMh],
+    [[0, 1], [0, 1], [0, { [_hH]: _IM_ }], [4, { [_hH]: _IMS_ }], [0, { [_hH]: _INM_ }], [4, { [_hH]: _IUS_ }], [0, { [_hH]: _Ra }], [0, { [_hQ]: _rcc }], [0, { [_hQ]: _rcd }], [0, { [_hQ]: _rce }], [0, { [_hQ]: _rcl }], [0, { [_hQ]: _rct }], [6, { [_hQ]: _re }], [0, { [_hQ]: _vI }], [0, { [_hH]: _xasseca }], [() => SSECustomerKey, { [_hH]: _xasseck }], [0, { [_hH]: _xasseckM }], [0, { [_hH]: _xarp }], [1, { [_hQ]: _pN }], [0, { [_hH]: _xaebo }], [0, { [_hH]: _xacm_ }]],
+    2
+  ];
+  exports2.GetObjectRetentionOutput$ = [
+    3,
+    n0,
+    _GORO,
+    0,
+    [_Ret],
+    [[() => exports2.ObjectLockRetention$, { [_hP]: 1, [_xN]: _Ret }]]
+  ];
+  exports2.GetObjectRetentionRequest$ = [
+    3,
+    n0,
+    _GORR,
+    0,
+    [_B, _K, _VI, _RP, _EBO],
+    [[0, 1], [0, 1], [0, { [_hQ]: _vI }], [0, { [_hH]: _xarp }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.GetObjectTaggingOutput$ = [
+    3,
+    n0,
+    _GOTO,
+    { [_xN]: _Tag },
+    [_TS, _VI],
+    [[() => TagSet, 0], [0, { [_hH]: _xavi }]],
+    1
+  ];
+  exports2.GetObjectTaggingRequest$ = [
+    3,
+    n0,
+    _GOTR,
+    0,
+    [_B, _K, _VI, _EBO, _RP],
+    [[0, 1], [0, 1], [0, { [_hQ]: _vI }], [0, { [_hH]: _xaebo }], [0, { [_hH]: _xarp }]],
+    2
+  ];
+  exports2.GetObjectTorrentOutput$ = [
+    3,
+    n0,
+    _GOTOe,
+    0,
+    [_Bo, _RC],
+    [[() => StreamingBlob, 16], [0, { [_hH]: _xarc }]]
+  ];
+  exports2.GetObjectTorrentRequest$ = [
+    3,
+    n0,
+    _GOTRe,
+    0,
+    [_B, _K, _RP, _EBO],
+    [[0, 1], [0, 1], [0, { [_hH]: _xarp }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.GetPublicAccessBlockOutput$ = [
+    3,
+    n0,
+    _GPABO,
+    0,
+    [_PABC],
+    [[() => exports2.PublicAccessBlockConfiguration$, 16]]
+  ];
+  exports2.GetPublicAccessBlockRequest$ = [
+    3,
+    n0,
+    _GPABR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.GlacierJobParameters$ = [
+    3,
+    n0,
+    _GJP,
+    0,
+    [_Ti],
+    [0],
+    1
+  ];
+  exports2.Grant$ = [
+    3,
+    n0,
+    _Gr,
+    0,
+    [_Gra, _Pe],
+    [[() => exports2.Grantee$, { [_xNm]: [_x, _hi] }], 0]
+  ];
+  exports2.Grantee$ = [
+    3,
+    n0,
+    _Gra,
+    0,
+    [_Ty, _DN, _EA, _ID, _URI],
+    [[0, { [_xA]: 1, [_xN]: _xs }], 0, 0, 0, 0],
+    1
+  ];
+  exports2.HeadBucketOutput$ = [
+    3,
+    n0,
+    _HBO,
+    0,
+    [_BA, _BLT, _BLN, _BR, _APA],
+    [[0, { [_hH]: _xaba }], [0, { [_hH]: _xablt }], [0, { [_hH]: _xabln }], [0, { [_hH]: _xabr }], [2, { [_hH]: _xaapa }]]
+  ];
+  exports2.HeadBucketRequest$ = [
+    3,
+    n0,
+    _HBR,
+    0,
+    [_B, _EBO],
+    [[0, 1], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.HeadObjectOutput$ = [
+    3,
+    n0,
+    _HOO,
+    0,
+    [_DM, _AR, _E, _Re, _ASr, _LM, _CLo, _CCRC, _CCRCC, _CCRCNVME, _CSHA, _CSHAh, _CSHAhe, _CMD, _CXXHASH, _CXXHASHh, _CXXHASHhe, _CT, _ETa, _MM, _VI, _CC, _CDo, _CEo, _CL, _CTo, _CR, _Ex, _ES, _WRL, _SSE, _M, _SSECA, _SSECKMD, _SSEKMSKI, _BKE, _SC, _RC, _RS, _PC, _TC, _OLM, _OLRUD, _OLLHS],
+    [[2, { [_hH]: _xadm }], [0, { [_hH]: _ar }], [0, { [_hH]: _xae }], [0, { [_hH]: _xar }], [0, { [_hH]: _xaas }], [4, { [_hH]: _LM_ }], [1, { [_hH]: _CL__ }], [0, { [_hH]: _xacc }], [0, { [_hH]: _xacc_ }], [0, { [_hH]: _xacc__ }], [0, { [_hH]: _xacs }], [0, { [_hH]: _xacs_ }], [0, { [_hH]: _xacs__ }], [0, { [_hH]: _xacm }], [0, { [_hH]: _xacx }], [0, { [_hH]: _xacx_ }], [0, { [_hH]: _xacx__ }], [0, { [_hH]: _xact }], [0, { [_hH]: _ETa }], [1, { [_hH]: _xamm }], [0, { [_hH]: _xavi }], [0, { [_hH]: _CC_ }], [0, { [_hH]: _CD_ }], [0, { [_hH]: _CE_ }], [0, { [_hH]: _CL_ }], [0, { [_hH]: _CT_ }], [0, { [_hH]: _CR_ }], [4, { [_hH]: _Ex }], [0, { [_hH]: _ES }], [0, { [_hH]: _xawrl }], [0, { [_hH]: _xasse }], [128 | 0, { [_hPH]: _xam }], [0, { [_hH]: _xasseca }], [0, { [_hH]: _xasseckM }], [() => SSEKMSKeyId, { [_hH]: _xasseakki }], [2, { [_hH]: _xassebke }], [0, { [_hH]: _xasc }], [0, { [_hH]: _xarc }], [0, { [_hH]: _xars }], [1, { [_hH]: _xampc }], [1, { [_hH]: _xatc }], [0, { [_hH]: _xaolm }], [5, { [_hH]: _xaolrud }], [0, { [_hH]: _xaollh }]]
+  ];
+  exports2.HeadObjectRequest$ = [
+    3,
+    n0,
+    _HOR,
+    0,
+    [_B, _K, _IM, _IMSf, _INM, _IUS, _Ra, _RCC, _RCD, _RCE, _RCL, _RCT, _RE, _VI, _SSECA, _SSECK, _SSECKMD, _RP, _PN, _EBO, _CMh],
+    [[0, 1], [0, 1], [0, { [_hH]: _IM_ }], [4, { [_hH]: _IMS_ }], [0, { [_hH]: _INM_ }], [4, { [_hH]: _IUS_ }], [0, { [_hH]: _Ra }], [0, { [_hQ]: _rcc }], [0, { [_hQ]: _rcd }], [0, { [_hQ]: _rce }], [0, { [_hQ]: _rcl }], [0, { [_hQ]: _rct }], [6, { [_hQ]: _re }], [0, { [_hQ]: _vI }], [0, { [_hH]: _xasseca }], [() => SSECustomerKey, { [_hH]: _xasseck }], [0, { [_hH]: _xasseckM }], [0, { [_hH]: _xarp }], [1, { [_hQ]: _pN }], [0, { [_hH]: _xaebo }], [0, { [_hH]: _xacm_ }]],
+    2
+  ];
+  exports2.IndexDocument$ = [
+    3,
+    n0,
+    _IDn,
+    0,
+    [_Su],
+    [0],
+    1
+  ];
+  exports2.Initiator$ = [
+    3,
+    n0,
+    _In,
+    0,
+    [_ID, _DN],
+    [0, 0]
+  ];
+  exports2.InputSerialization$ = [
+    3,
+    n0,
+    _IS,
+    0,
+    [_CSV, _CTom, _JSON, _Parq],
+    [() => exports2.CSVInput$, 0, () => exports2.JSONInput$, () => exports2.ParquetInput$]
+  ];
+  exports2.IntelligentTieringAndOperator$ = [
+    3,
+    n0,
+    _ITAO,
+    0,
+    [_P, _T],
+    [0, [() => TagSet, { [_xF]: 1, [_xN]: _Ta }]]
+  ];
+  exports2.IntelligentTieringConfiguration$ = [
+    3,
+    n0,
+    _ITC,
+    0,
+    [_I, _S, _Tie, _F],
+    [0, 0, [() => TieringList, { [_xF]: 1, [_xN]: _Tier }], [() => exports2.IntelligentTieringFilter$, 0]],
+    3
+  ];
+  exports2.IntelligentTieringFilter$ = [
+    3,
+    n0,
+    _ITF,
+    0,
+    [_P, _Ta, _An],
+    [0, () => exports2.Tag$, [() => exports2.IntelligentTieringAndOperator$, 0]]
+  ];
+  exports2.InventoryConfiguration$ = [
+    3,
+    n0,
+    _IC,
+    0,
+    [_Des, _IE, _I, _IOV, _Sc, _F, _OF],
+    [[() => exports2.InventoryDestination$, 0], 2, 0, 0, () => exports2.InventorySchedule$, () => exports2.InventoryFilter$, [() => InventoryOptionalFields, 0]],
+    5
+  ];
+  exports2.InventoryDestination$ = [
+    3,
+    n0,
+    _IDnv,
+    0,
+    [_SBD],
+    [[() => exports2.InventoryS3BucketDestination$, 0]],
+    1
+  ];
+  exports2.InventoryEncryption$ = [
+    3,
+    n0,
+    _IEn,
+    0,
+    [_SSES, _SSEKMS],
+    [[() => exports2.SSES3$, { [_xN]: _SS }], [() => exports2.SSEKMS$, { [_xN]: _SK }]]
+  ];
+  exports2.InventoryFilter$ = [
+    3,
+    n0,
+    _IF,
+    0,
+    [_P],
+    [0],
+    1
+  ];
+  exports2.InventoryS3BucketDestination$ = [
+    3,
+    n0,
+    _ISBD,
+    0,
+    [_B, _Fo, _AI, _P, _En],
+    [0, 0, 0, 0, [() => exports2.InventoryEncryption$, 0]],
+    2
+  ];
+  exports2.InventorySchedule$ = [
+    3,
+    n0,
+    _ISn,
+    0,
+    [_Fr],
+    [0],
+    1
+  ];
+  exports2.InventoryTableConfiguration$ = [
+    3,
+    n0,
+    _ITCn,
+    0,
+    [_CSo, _EC],
+    [0, () => exports2.MetadataTableEncryptionConfiguration$],
+    1
+  ];
+  exports2.InventoryTableConfigurationResult$ = [
+    3,
+    n0,
+    _ITCR,
+    0,
+    [_CSo, _TSa, _Err, _TNa, _TA],
+    [0, 0, () => exports2.ErrorDetails$, 0, 0],
+    1
+  ];
+  exports2.InventoryTableConfigurationUpdates$ = [
+    3,
+    n0,
+    _ITCU,
+    0,
+    [_CSo, _EC],
+    [0, () => exports2.MetadataTableEncryptionConfiguration$],
+    1
+  ];
+  exports2.JournalTableConfiguration$ = [
+    3,
+    n0,
+    _JTC,
+    0,
+    [_REe, _EC],
+    [() => exports2.RecordExpiration$, () => exports2.MetadataTableEncryptionConfiguration$],
+    1
+  ];
+  exports2.JournalTableConfigurationResult$ = [
+    3,
+    n0,
+    _JTCR,
+    0,
+    [_TSa, _TNa, _REe, _Err, _TA],
+    [0, 0, () => exports2.RecordExpiration$, () => exports2.ErrorDetails$, 0],
+    3
+  ];
+  exports2.JournalTableConfigurationUpdates$ = [
+    3,
+    n0,
+    _JTCU,
+    0,
+    [_REe],
+    [() => exports2.RecordExpiration$],
+    1
+  ];
+  exports2.JSONInput$ = [
+    3,
+    n0,
+    _JSONI,
+    0,
+    [_Ty],
+    [0]
+  ];
+  exports2.JSONOutput$ = [
+    3,
+    n0,
+    _JSONO,
+    0,
+    [_RD],
+    [0]
+  ];
+  exports2.LambdaFunctionConfiguration$ = [
+    3,
+    n0,
+    _LFC,
+    0,
+    [_LFA, _Ev, _I, _F],
+    [[0, { [_xN]: _CF }], [64 | 0, { [_xF]: 1, [_xN]: _Eve }], 0, [() => exports2.NotificationConfigurationFilter$, 0]],
+    2
+  ];
+  exports2.LifecycleExpiration$ = [
+    3,
+    n0,
+    _LEi,
+    0,
+    [_Da, _D, _EODM],
+    [5, 1, 2]
+  ];
+  exports2.LifecycleRule$ = [
+    3,
+    n0,
+    _LR,
+    0,
+    [_S, _E, _ID, _P, _F, _Tr, _NVT, _NVE, _AIMU],
+    [0, () => exports2.LifecycleExpiration$, 0, 0, [() => exports2.LifecycleRuleFilter$, 0], [() => TransitionList, { [_xF]: 1, [_xN]: _Tra }], [() => NoncurrentVersionTransitionList, { [_xF]: 1, [_xN]: _NVTo }], () => exports2.NoncurrentVersionExpiration$, () => exports2.AbortIncompleteMultipartUpload$],
+    1
+  ];
+  exports2.LifecycleRuleAndOperator$ = [
+    3,
+    n0,
+    _LRAO,
+    0,
+    [_P, _T, _OSGT, _OSLT],
+    [0, [() => TagSet, { [_xF]: 1, [_xN]: _Ta }], 1, 1]
+  ];
+  exports2.LifecycleRuleFilter$ = [
+    3,
+    n0,
+    _LRF,
+    0,
+    [_P, _Ta, _OSGT, _OSLT, _An],
+    [0, () => exports2.Tag$, 1, 1, [() => exports2.LifecycleRuleAndOperator$, 0]]
+  ];
+  exports2.ListBucketAnalyticsConfigurationsOutput$ = [
+    3,
+    n0,
+    _LBACO,
+    { [_xN]: _LBACR },
+    [_IT, _CTon, _NCT, _ACLn],
+    [2, 0, 0, [() => AnalyticsConfigurationList, { [_xF]: 1, [_xN]: _ACn }]]
+  ];
+  exports2.ListBucketAnalyticsConfigurationsRequest$ = [
+    3,
+    n0,
+    _LBACRi,
+    0,
+    [_B, _CTon, _EBO],
+    [[0, 1], [0, { [_hQ]: _ct }], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.ListBucketIntelligentTieringConfigurationsOutput$ = [
+    3,
+    n0,
+    _LBITCO,
+    0,
+    [_IT, _CTon, _NCT, _ITCL],
+    [2, 0, 0, [() => IntelligentTieringConfigurationList, { [_xF]: 1, [_xN]: _ITC }]]
+  ];
+  exports2.ListBucketIntelligentTieringConfigurationsRequest$ = [
+    3,
+    n0,
+    _LBITCR,
+    0,
+    [_B, _CTon, _EBO],
+    [[0, 1], [0, { [_hQ]: _ct }], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.ListBucketInventoryConfigurationsOutput$ = [
+    3,
+    n0,
+    _LBICO,
+    { [_xN]: _LICR },
+    [_CTon, _ICL, _IT, _NCT],
+    [0, [() => InventoryConfigurationList, { [_xF]: 1, [_xN]: _IC }], 2, 0]
+  ];
+  exports2.ListBucketInventoryConfigurationsRequest$ = [
+    3,
+    n0,
+    _LBICR,
+    0,
+    [_B, _CTon, _EBO],
+    [[0, 1], [0, { [_hQ]: _ct }], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.ListBucketMetricsConfigurationsOutput$ = [
+    3,
+    n0,
+    _LBMCO,
+    { [_xN]: _LMCR },
+    [_IT, _CTon, _NCT, _MCL],
+    [2, 0, 0, [() => MetricsConfigurationList, { [_xF]: 1, [_xN]: _MCe }]]
+  ];
+  exports2.ListBucketMetricsConfigurationsRequest$ = [
+    3,
+    n0,
+    _LBMCR,
+    0,
+    [_B, _CTon, _EBO],
+    [[0, 1], [0, { [_hQ]: _ct }], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.ListBucketsOutput$ = [
+    3,
+    n0,
+    _LBO,
+    { [_xN]: _LAMBR },
+    [_Bu, _O, _CTon, _P],
+    [[() => Buckets, 0], () => exports2.Owner$, 0, 0]
+  ];
+  exports2.ListBucketsRequest$ = [
+    3,
+    n0,
+    _LBR,
+    0,
+    [_MB, _CTon, _P, _BR],
+    [[1, { [_hQ]: _mb }], [0, { [_hQ]: _ct }], [0, { [_hQ]: _p }], [0, { [_hQ]: _br }]]
+  ];
+  exports2.ListDirectoryBucketsOutput$ = [
+    3,
+    n0,
+    _LDBO,
+    { [_xN]: _LAMDBR },
+    [_Bu, _CTon],
+    [[() => Buckets, 0], 0]
+  ];
+  exports2.ListDirectoryBucketsRequest$ = [
+    3,
+    n0,
+    _LDBR,
+    0,
+    [_CTon, _MDB],
+    [[0, { [_hQ]: _ct }], [1, { [_hQ]: _mdb }]]
+  ];
+  exports2.ListMultipartUploadsOutput$ = [
+    3,
+    n0,
+    _LMUO,
+    { [_xN]: _LMUR },
+    [_B, _KM, _UIM, _NKM, _P, _Deli, _NUIM, _MUa, _IT, _U, _CPom, _ETn, _RC],
+    [0, 0, 0, 0, 0, 0, 0, 1, 2, [() => MultipartUploadList, { [_xF]: 1, [_xN]: _Up }], [() => CommonPrefixList, { [_xF]: 1 }], 0, [0, { [_hH]: _xarc }]]
+  ];
+  exports2.ListMultipartUploadsRequest$ = [
+    3,
+    n0,
+    _LMURi,
+    0,
+    [_B, _Deli, _ETn, _KM, _MUa, _P, _UIM, _EBO, _RP],
+    [[0, 1], [0, { [_hQ]: _d }], [0, { [_hQ]: _et }], [0, { [_hQ]: _km }], [1, { [_hQ]: _mu }], [0, { [_hQ]: _p }], [0, { [_hQ]: _uim }], [0, { [_hH]: _xaebo }], [0, { [_hH]: _xarp }]],
+    1
+  ];
+  exports2.ListObjectsOutput$ = [
+    3,
+    n0,
+    _LOO,
+    { [_xN]: _LBRi },
+    [_IT, _Ma, _NM, _Con, _N, _P, _Deli, _MK, _CPom, _ETn, _RC],
+    [2, 0, 0, [() => ObjectList, { [_xF]: 1 }], 0, 0, 0, 1, [() => CommonPrefixList, { [_xF]: 1 }], 0, [0, { [_hH]: _xarc }]]
+  ];
+  exports2.ListObjectsRequest$ = [
+    3,
+    n0,
+    _LOR,
+    0,
+    [_B, _Deli, _ETn, _Ma, _MK, _P, _RP, _EBO, _OOA],
+    [[0, 1], [0, { [_hQ]: _d }], [0, { [_hQ]: _et }], [0, { [_hQ]: _m }], [1, { [_hQ]: _mk }], [0, { [_hQ]: _p }], [0, { [_hH]: _xarp }], [0, { [_hH]: _xaebo }], [64 | 0, { [_hH]: _xaooa }]],
+    1
+  ];
+  exports2.ListObjectsV2Output$ = [
+    3,
+    n0,
+    _LOVO,
+    { [_xN]: _LBRi },
+    [_IT, _Con, _N, _P, _Deli, _MK, _CPom, _ETn, _KC, _CTon, _NCT, _SA, _RC],
+    [2, [() => ObjectList, { [_xF]: 1 }], 0, 0, 0, 1, [() => CommonPrefixList, { [_xF]: 1 }], 0, 1, 0, 0, 0, [0, { [_hH]: _xarc }]]
+  ];
+  exports2.ListObjectsV2Request$ = [
+    3,
+    n0,
+    _LOVR,
+    0,
+    [_B, _Deli, _ETn, _MK, _P, _CTon, _FO, _SA, _RP, _EBO, _OOA],
+    [[0, 1], [0, { [_hQ]: _d }], [0, { [_hQ]: _et }], [1, { [_hQ]: _mk }], [0, { [_hQ]: _p }], [0, { [_hQ]: _ct }], [2, { [_hQ]: _fo }], [0, { [_hQ]: _sa }], [0, { [_hH]: _xarp }], [0, { [_hH]: _xaebo }], [64 | 0, { [_hH]: _xaooa }]],
+    1
+  ];
+  exports2.ListObjectVersionsOutput$ = [
+    3,
+    n0,
+    _LOVOi,
+    { [_xN]: _LVR },
+    [_IT, _KM, _VIM, _NKM, _NVIM, _Ve, _DMe, _N, _P, _Deli, _MK, _CPom, _ETn, _RC],
+    [2, 0, 0, 0, 0, [() => ObjectVersionList, { [_xF]: 1, [_xN]: _Ver }], [() => DeleteMarkers, { [_xF]: 1, [_xN]: _DM }], 0, 0, 0, 1, [() => CommonPrefixList, { [_xF]: 1 }], 0, [0, { [_hH]: _xarc }]]
+  ];
+  exports2.ListObjectVersionsRequest$ = [
+    3,
+    n0,
+    _LOVRi,
+    0,
+    [_B, _Deli, _ETn, _KM, _MK, _P, _VIM, _EBO, _RP, _OOA],
+    [[0, 1], [0, { [_hQ]: _d }], [0, { [_hQ]: _et }], [0, { [_hQ]: _km }], [1, { [_hQ]: _mk }], [0, { [_hQ]: _p }], [0, { [_hQ]: _vim }], [0, { [_hH]: _xaebo }], [0, { [_hH]: _xarp }], [64 | 0, { [_hH]: _xaooa }]],
+    1
+  ];
+  exports2.ListPartsOutput$ = [
+    3,
+    n0,
+    _LPO,
+    { [_xN]: _LPR },
+    [_ADb, _ARI, _B, _K, _UI, _PNM, _NPNM, _MP, _IT, _Pa, _In, _O, _SC, _RC, _CA, _CT],
+    [[4, { [_hH]: _xaad }], [0, { [_hH]: _xaari }], 0, 0, 0, 0, 0, 1, 2, [() => Parts, { [_xF]: 1, [_xN]: _Par }], () => exports2.Initiator$, () => exports2.Owner$, 0, [0, { [_hH]: _xarc }], 0, 0]
+  ];
+  exports2.ListPartsRequest$ = [
+    3,
+    n0,
+    _LPRi,
+    0,
+    [_B, _K, _UI, _MP, _PNM, _RP, _EBO, _SSECA, _SSECK, _SSECKMD],
+    [[0, 1], [0, 1], [0, { [_hQ]: _uI }], [1, { [_hQ]: _mp }], [0, { [_hQ]: _pnm }], [0, { [_hH]: _xarp }], [0, { [_hH]: _xaebo }], [0, { [_hH]: _xasseca }], [() => SSECustomerKey, { [_hH]: _xasseck }], [0, { [_hH]: _xasseckM }]],
+    3
+  ];
+  exports2.LocationInfo$ = [
+    3,
+    n0,
+    _LI,
+    0,
+    [_Ty, _N],
+    [0, 0]
+  ];
+  exports2.LoggingEnabled$ = [
+    3,
+    n0,
+    _LE,
+    0,
+    [_TB, _TP, _TG, _TOKF],
+    [0, 0, [() => TargetGrants, 0], [() => exports2.TargetObjectKeyFormat$, 0]],
+    2
+  ];
+  exports2.MetadataConfiguration$ = [
+    3,
+    n0,
+    _MC,
+    0,
+    [_JTC, _ITCn],
+    [() => exports2.JournalTableConfiguration$, () => exports2.InventoryTableConfiguration$],
+    1
+  ];
+  exports2.MetadataConfigurationResult$ = [
+    3,
+    n0,
+    _MCR,
+    0,
+    [_DRes, _JTCR, _ITCR],
+    [() => exports2.DestinationResult$, () => exports2.JournalTableConfigurationResult$, () => exports2.InventoryTableConfigurationResult$],
+    1
+  ];
+  exports2.MetadataEntry$ = [
+    3,
+    n0,
+    _ME,
+    0,
+    [_N, _V],
+    [0, 0]
+  ];
+  exports2.MetadataTableConfiguration$ = [
+    3,
+    n0,
+    _MTC,
+    0,
+    [_STD],
+    [() => exports2.S3TablesDestination$],
+    1
+  ];
+  exports2.MetadataTableConfigurationResult$ = [
+    3,
+    n0,
+    _MTCR,
+    0,
+    [_STDR],
+    [() => exports2.S3TablesDestinationResult$],
+    1
+  ];
+  exports2.MetadataTableEncryptionConfiguration$ = [
+    3,
+    n0,
+    _MTEC,
+    0,
+    [_SAs, _KKA],
+    [0, 0],
+    1
+  ];
+  exports2.Metrics$ = [
+    3,
+    n0,
+    _Me,
+    0,
+    [_S, _ETv],
+    [0, () => exports2.ReplicationTimeValue$],
+    1
+  ];
+  exports2.MetricsAndOperator$ = [
+    3,
+    n0,
+    _MAO,
+    0,
+    [_P, _T, _APAc],
+    [0, [() => TagSet, { [_xF]: 1, [_xN]: _Ta }], 0]
+  ];
+  exports2.MetricsConfiguration$ = [
+    3,
+    n0,
+    _MCe,
+    0,
+    [_I, _F],
+    [0, [() => exports2.MetricsFilter$, 0]],
+    1
+  ];
+  exports2.MultipartUpload$ = [
+    3,
+    n0,
+    _MU,
+    0,
+    [_UI, _K, _Ini, _SC, _O, _In, _CA, _CT],
+    [0, 0, 4, 0, () => exports2.Owner$, () => exports2.Initiator$, 0, 0]
+  ];
+  exports2.NoncurrentVersionExpiration$ = [
+    3,
+    n0,
+    _NVE,
+    0,
+    [_ND, _NNV],
+    [1, 1]
+  ];
+  exports2.NoncurrentVersionTransition$ = [
+    3,
+    n0,
+    _NVTo,
+    0,
+    [_ND, _SC, _NNV],
+    [1, 0, 1]
+  ];
+  exports2.NotificationConfiguration$ = [
+    3,
+    n0,
+    _NC,
+    0,
+    [_TCo, _QCu, _LFCa, _EBC],
+    [[() => TopicConfigurationList, { [_xF]: 1, [_xN]: _TCop }], [() => QueueConfigurationList, { [_xF]: 1, [_xN]: _QCue }], [() => LambdaFunctionConfigurationList, { [_xF]: 1, [_xN]: _CFC }], () => exports2.EventBridgeConfiguration$]
+  ];
+  exports2.NotificationConfigurationFilter$ = [
+    3,
+    n0,
+    _NCF,
+    0,
+    [_K],
+    [[() => exports2.S3KeyFilter$, { [_xN]: _SKe }]]
+  ];
+  exports2._Object$ = [
+    3,
+    n0,
+    _Obj,
+    0,
+    [_K, _LM, _ETa, _CA, _CT, _Si, _SC, _O, _RSe],
+    [0, 4, 0, [64 | 0, { [_xF]: 1 }], 0, 1, 0, () => exports2.Owner$, () => exports2.RestoreStatus$]
+  ];
+  exports2.ObjectIdentifier$ = [
+    3,
+    n0,
+    _OI,
+    0,
+    [_K, _VI, _ETa, _LMT, _Si],
+    [0, 0, 0, 6, 1],
+    1
+  ];
+  exports2.ObjectLockConfiguration$ = [
+    3,
+    n0,
+    _OLC,
+    0,
+    [_OLE, _Ru],
+    [0, () => exports2.ObjectLockRule$]
+  ];
+  exports2.ObjectLockLegalHold$ = [
+    3,
+    n0,
+    _OLLH,
+    0,
+    [_S],
+    [0]
+  ];
+  exports2.ObjectLockRetention$ = [
+    3,
+    n0,
+    _OLR,
+    0,
+    [_Mo, _RUD],
+    [0, 5]
+  ];
+  exports2.ObjectLockRule$ = [
+    3,
+    n0,
+    _OLRb,
+    0,
+    [_DRe],
+    [() => exports2.DefaultRetention$]
+  ];
+  exports2.ObjectPart$ = [
+    3,
+    n0,
+    _OPb,
+    0,
+    [_PN, _Si, _CCRC, _CCRCC, _CCRCNVME, _CSHA, _CSHAh, _CSHAhe, _CMD, _CXXHASH, _CXXHASHh, _CXXHASHhe],
+    [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  ];
+  exports2.ObjectVersion$ = [
+    3,
+    n0,
+    _OV,
+    0,
+    [_ETa, _CA, _CT, _Si, _SC, _K, _VI, _IL, _LM, _O, _RSe],
+    [0, [64 | 0, { [_xF]: 1 }], 0, 1, 0, 0, 0, 2, 4, () => exports2.Owner$, () => exports2.RestoreStatus$]
+  ];
+  exports2.OutputLocation$ = [
+    3,
+    n0,
+    _OL,
+    0,
+    [_S_],
+    [[() => exports2.S3Location$, 0]]
+  ];
+  exports2.OutputSerialization$ = [
+    3,
+    n0,
+    _OSu,
+    0,
+    [_CSV, _JSON],
+    [() => exports2.CSVOutput$, () => exports2.JSONOutput$]
+  ];
+  exports2.Owner$ = [
+    3,
+    n0,
+    _O,
+    0,
+    [_DN, _ID],
+    [0, 0]
+  ];
+  exports2.OwnershipControls$ = [
+    3,
+    n0,
+    _OC,
+    0,
+    [_R],
+    [[() => OwnershipControlsRules, { [_xF]: 1, [_xN]: _Ru }]],
+    1
+  ];
+  exports2.OwnershipControlsRule$ = [
+    3,
+    n0,
+    _OCR,
+    0,
+    [_OO],
+    [0],
+    1
+  ];
+  exports2.ParquetInput$ = [
+    3,
+    n0,
+    _PI,
+    0,
+    [],
+    []
+  ];
+  exports2.Part$ = [
+    3,
+    n0,
+    _Par,
+    0,
+    [_PN, _LM, _ETa, _Si, _CCRC, _CCRCC, _CCRCNVME, _CSHA, _CSHAh, _CSHAhe, _CMD, _CXXHASH, _CXXHASHh, _CXXHASHhe],
+    [1, 4, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  ];
+  exports2.PartitionedPrefix$ = [
+    3,
+    n0,
+    _PP,
+    { [_xN]: _PP },
+    [_PDS],
+    [0]
+  ];
+  exports2.PolicyStatus$ = [
+    3,
+    n0,
+    _PS,
+    0,
+    [_IP],
+    [[2, { [_xN]: _IP }]]
+  ];
+  exports2.Progress$ = [
+    3,
+    n0,
+    _Pr,
+    0,
+    [_BS, _BP, _BRy],
+    [1, 1, 1]
+  ];
+  exports2.ProgressEvent$ = [
+    3,
+    n0,
+    _PE,
+    0,
+    [_Det],
+    [[() => exports2.Progress$, { [_eP]: 1 }]]
+  ];
+  exports2.PublicAccessBlockConfiguration$ = [
+    3,
+    n0,
+    _PABC,
+    0,
+    [_BPA, _IPA, _BPP, _RPB],
+    [[2, { [_xN]: _BPA }], [2, { [_xN]: _IPA }], [2, { [_xN]: _BPP }], [2, { [_xN]: _RPB }]]
+  ];
+  exports2.PutBucketAbacRequest$ = [
+    3,
+    n0,
+    _PBAR,
+    0,
+    [_B, _AS, _CMDo, _CA, _EBO],
+    [[0, 1], [() => exports2.AbacStatus$, { [_hP]: 1, [_xN]: _AS }], [0, { [_hH]: _CM }], [0, { [_hH]: _xasca }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.PutBucketAccelerateConfigurationRequest$ = [
+    3,
+    n0,
+    _PBACR,
+    0,
+    [_B, _AC, _EBO, _CA],
+    [[0, 1], [() => exports2.AccelerateConfiguration$, { [_hP]: 1, [_xN]: _AC }], [0, { [_hH]: _xaebo }], [0, { [_hH]: _xasca }]],
+    2
+  ];
+  exports2.PutBucketAclRequest$ = [
+    3,
+    n0,
+    _PBARu,
+    0,
+    [_B, _ACL_, _ACP, _CMDo, _CA, _GFC, _GR, _GRACP, _GW, _GWACP, _EBO],
+    [[0, 1], [0, { [_hH]: _xaa }], [() => exports2.AccessControlPolicy$, { [_hP]: 1, [_xN]: _ACP }], [0, { [_hH]: _CM }], [0, { [_hH]: _xasca }], [0, { [_hH]: _xagfc }], [0, { [_hH]: _xagr }], [0, { [_hH]: _xagra }], [0, { [_hH]: _xagw }], [0, { [_hH]: _xagwa }], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.PutBucketAnalyticsConfigurationRequest$ = [
+    3,
+    n0,
+    _PBACRu,
+    0,
+    [_B, _I, _ACn, _EBO],
+    [[0, 1], [0, { [_hQ]: _i }], [() => exports2.AnalyticsConfiguration$, { [_hP]: 1, [_xN]: _ACn }], [0, { [_hH]: _xaebo }]],
+    3
+  ];
+  exports2.PutBucketCorsRequest$ = [
+    3,
+    n0,
+    _PBCR,
+    0,
+    [_B, _CORSC, _CMDo, _CA, _EBO],
+    [[0, 1], [() => exports2.CORSConfiguration$, { [_hP]: 1, [_xN]: _CORSC }], [0, { [_hH]: _CM }], [0, { [_hH]: _xasca }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.PutBucketEncryptionRequest$ = [
+    3,
+    n0,
+    _PBER,
+    0,
+    [_B, _SSEC, _CMDo, _CA, _EBO],
+    [[0, 1], [() => exports2.ServerSideEncryptionConfiguration$, { [_hP]: 1, [_xN]: _SSEC }], [0, { [_hH]: _CM }], [0, { [_hH]: _xasca }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.PutBucketIntelligentTieringConfigurationRequest$ = [
+    3,
+    n0,
+    _PBITCR,
+    0,
+    [_B, _I, _ITC, _EBO],
+    [[0, 1], [0, { [_hQ]: _i }], [() => exports2.IntelligentTieringConfiguration$, { [_hP]: 1, [_xN]: _ITC }], [0, { [_hH]: _xaebo }]],
+    3
+  ];
+  exports2.PutBucketInventoryConfigurationRequest$ = [
+    3,
+    n0,
+    _PBICR,
+    0,
+    [_B, _I, _IC, _EBO],
+    [[0, 1], [0, { [_hQ]: _i }], [() => exports2.InventoryConfiguration$, { [_hP]: 1, [_xN]: _IC }], [0, { [_hH]: _xaebo }]],
+    3
+  ];
+  exports2.PutBucketLifecycleConfigurationOutput$ = [
+    3,
+    n0,
+    _PBLCO,
+    0,
+    [_TDMOS],
+    [[0, { [_hH]: _xatdmos }]]
+  ];
+  exports2.PutBucketLifecycleConfigurationRequest$ = [
+    3,
+    n0,
+    _PBLCR,
+    0,
+    [_B, _CA, _LCi, _EBO, _TDMOS],
+    [[0, 1], [0, { [_hH]: _xasca }], [() => exports2.BucketLifecycleConfiguration$, { [_hP]: 1, [_xN]: _LCi }], [0, { [_hH]: _xaebo }], [0, { [_hH]: _xatdmos }]],
+    1
+  ];
+  exports2.PutBucketLoggingRequest$ = [
+    3,
+    n0,
+    _PBLR,
+    0,
+    [_B, _BLS, _CMDo, _CA, _EBO],
+    [[0, 1], [() => exports2.BucketLoggingStatus$, { [_hP]: 1, [_xN]: _BLS }], [0, { [_hH]: _CM }], [0, { [_hH]: _xasca }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.PutBucketMetricsConfigurationRequest$ = [
+    3,
+    n0,
+    _PBMCR,
+    0,
+    [_B, _I, _MCe, _EBO],
+    [[0, 1], [0, { [_hQ]: _i }], [() => exports2.MetricsConfiguration$, { [_hP]: 1, [_xN]: _MCe }], [0, { [_hH]: _xaebo }]],
+    3
+  ];
+  exports2.PutBucketNotificationConfigurationRequest$ = [
+    3,
+    n0,
+    _PBNCR,
+    0,
+    [_B, _NC, _EBO, _SDV],
+    [[0, 1], [() => exports2.NotificationConfiguration$, { [_hP]: 1, [_xN]: _NC }], [0, { [_hH]: _xaebo }], [2, { [_hH]: _xasdv }]],
+    2
+  ];
+  exports2.PutBucketOwnershipControlsRequest$ = [
+    3,
+    n0,
+    _PBOCR,
+    0,
+    [_B, _OC, _CMDo, _EBO, _CA],
+    [[0, 1], [() => exports2.OwnershipControls$, { [_hP]: 1, [_xN]: _OC }], [0, { [_hH]: _CM }], [0, { [_hH]: _xaebo }], [0, { [_hH]: _xasca }]],
+    2
+  ];
+  exports2.PutBucketPolicyRequest$ = [
+    3,
+    n0,
+    _PBPR,
+    0,
+    [_B, _Po, _CMDo, _CA, _CRSBA, _EBO],
+    [[0, 1], [0, 16], [0, { [_hH]: _CM }], [0, { [_hH]: _xasca }], [2, { [_hH]: _xacrsba }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.PutBucketReplicationRequest$ = [
+    3,
+    n0,
+    _PBRR,
+    0,
+    [_B, _RCe, _CMDo, _CA, _To, _EBO],
+    [[0, 1], [() => exports2.ReplicationConfiguration$, { [_hP]: 1, [_xN]: _RCe }], [0, { [_hH]: _CM }], [0, { [_hH]: _xasca }], [0, { [_hH]: _xabolt }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.PutBucketRequestPaymentRequest$ = [
+    3,
+    n0,
+    _PBRPR,
+    0,
+    [_B, _RPC, _CMDo, _CA, _EBO],
+    [[0, 1], [() => exports2.RequestPaymentConfiguration$, { [_hP]: 1, [_xN]: _RPC }], [0, { [_hH]: _CM }], [0, { [_hH]: _xasca }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.PutBucketTaggingRequest$ = [
+    3,
+    n0,
+    _PBTR,
+    0,
+    [_B, _Tag, _CMDo, _CA, _EBO],
+    [[0, 1], [() => exports2.Tagging$, { [_hP]: 1, [_xN]: _Tag }], [0, { [_hH]: _CM }], [0, { [_hH]: _xasca }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.PutBucketVersioningRequest$ = [
+    3,
+    n0,
+    _PBVR,
+    0,
+    [_B, _VC, _CMDo, _CA, _MFA, _EBO],
+    [[0, 1], [() => exports2.VersioningConfiguration$, { [_hP]: 1, [_xN]: _VC }], [0, { [_hH]: _CM }], [0, { [_hH]: _xasca }], [0, { [_hH]: _xam_ }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.PutBucketWebsiteRequest$ = [
+    3,
+    n0,
+    _PBWR,
+    0,
+    [_B, _WC, _CMDo, _CA, _EBO],
+    [[0, 1], [() => exports2.WebsiteConfiguration$, { [_hP]: 1, [_xN]: _WC }], [0, { [_hH]: _CM }], [0, { [_hH]: _xasca }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.PutObjectAclOutput$ = [
+    3,
+    n0,
+    _POAO,
+    0,
+    [_RC],
+    [[0, { [_hH]: _xarc }]]
+  ];
+  exports2.PutObjectAclRequest$ = [
+    3,
+    n0,
+    _POAR,
+    0,
+    [_B, _K, _ACL_, _ACP, _CMDo, _CA, _GFC, _GR, _GRACP, _GW, _GWACP, _RP, _VI, _EBO],
+    [[0, 1], [0, 1], [0, { [_hH]: _xaa }], [() => exports2.AccessControlPolicy$, { [_hP]: 1, [_xN]: _ACP }], [0, { [_hH]: _CM }], [0, { [_hH]: _xasca }], [0, { [_hH]: _xagfc }], [0, { [_hH]: _xagr }], [0, { [_hH]: _xagra }], [0, { [_hH]: _xagw }], [0, { [_hH]: _xagwa }], [0, { [_hH]: _xarp }], [0, { [_hQ]: _vI }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.PutObjectLegalHoldOutput$ = [
+    3,
+    n0,
+    _POLHO,
+    0,
+    [_RC],
+    [[0, { [_hH]: _xarc }]]
+  ];
+  exports2.PutObjectLegalHoldRequest$ = [
+    3,
+    n0,
+    _POLHR,
+    0,
+    [_B, _K, _LH, _RP, _VI, _CMDo, _CA, _EBO],
+    [[0, 1], [0, 1], [() => exports2.ObjectLockLegalHold$, { [_hP]: 1, [_xN]: _LH }], [0, { [_hH]: _xarp }], [0, { [_hQ]: _vI }], [0, { [_hH]: _CM }], [0, { [_hH]: _xasca }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.PutObjectLockConfigurationOutput$ = [
+    3,
+    n0,
+    _POLCO,
+    0,
+    [_RC],
+    [[0, { [_hH]: _xarc }]]
+  ];
+  exports2.PutObjectLockConfigurationRequest$ = [
+    3,
+    n0,
+    _POLCR,
+    0,
+    [_B, _OLC, _RP, _To, _CMDo, _CA, _EBO],
+    [[0, 1], [() => exports2.ObjectLockConfiguration$, { [_hP]: 1, [_xN]: _OLC }], [0, { [_hH]: _xarp }], [0, { [_hH]: _xabolt }], [0, { [_hH]: _CM }], [0, { [_hH]: _xasca }], [0, { [_hH]: _xaebo }]],
+    1
+  ];
+  exports2.PutObjectOutput$ = [
+    3,
+    n0,
+    _POO,
+    0,
+    [_E, _ETa, _CCRC, _CCRCC, _CCRCNVME, _CSHA, _CSHAh, _CSHAhe, _CMD, _CXXHASH, _CXXHASHh, _CXXHASHhe, _CT, _SSE, _VI, _SSECA, _SSECKMD, _SSEKMSKI, _SSEKMSEC, _BKE, _Si, _RC],
+    [[0, { [_hH]: _xae }], [0, { [_hH]: _ETa }], [0, { [_hH]: _xacc }], [0, { [_hH]: _xacc_ }], [0, { [_hH]: _xacc__ }], [0, { [_hH]: _xacs }], [0, { [_hH]: _xacs_ }], [0, { [_hH]: _xacs__ }], [0, { [_hH]: _xacm }], [0, { [_hH]: _xacx }], [0, { [_hH]: _xacx_ }], [0, { [_hH]: _xacx__ }], [0, { [_hH]: _xact }], [0, { [_hH]: _xasse }], [0, { [_hH]: _xavi }], [0, { [_hH]: _xasseca }], [0, { [_hH]: _xasseckM }], [() => SSEKMSKeyId, { [_hH]: _xasseakki }], [() => SSEKMSEncryptionContext, { [_hH]: _xassec }], [2, { [_hH]: _xassebke }], [1, { [_hH]: _xaos }], [0, { [_hH]: _xarc }]]
+  ];
+  exports2.PutObjectRequest$ = [
+    3,
+    n0,
+    _POR,
+    0,
+    [_B, _K, _ACL_, _Bo, _CC, _CDo, _CEo, _CL, _CLo, _CMDo, _CTo, _CA, _CCRC, _CCRCC, _CCRCNVME, _CSHA, _CSHAh, _CSHAhe, _CMD, _CXXHASH, _CXXHASHh, _CXXHASHhe, _Ex, _IM, _INM, _GFC, _GR, _GRACP, _GWACP, _WOB, _M, _SSE, _SC, _WRL, _SSECA, _SSECK, _SSECKMD, _SSEKMSKI, _SSEKMSEC, _BKE, _RP, _Tag, _OLM, _OLRUD, _OLLHS, _EBO],
+    [[0, 1], [0, 1], [0, { [_hH]: _xaa }], [() => StreamingBlob, 16], [0, { [_hH]: _CC_ }], [0, { [_hH]: _CD_ }], [0, { [_hH]: _CE_ }], [0, { [_hH]: _CL_ }], [1, { [_hH]: _CL__ }], [0, { [_hH]: _CM }], [0, { [_hH]: _CT_ }], [0, { [_hH]: _xasca }], [0, { [_hH]: _xacc }], [0, { [_hH]: _xacc_ }], [0, { [_hH]: _xacc__ }], [0, { [_hH]: _xacs }], [0, { [_hH]: _xacs_ }], [0, { [_hH]: _xacs__ }], [0, { [_hH]: _xacm }], [0, { [_hH]: _xacx }], [0, { [_hH]: _xacx_ }], [0, { [_hH]: _xacx__ }], [4, { [_hH]: _Ex }], [0, { [_hH]: _IM_ }], [0, { [_hH]: _INM_ }], [0, { [_hH]: _xagfc }], [0, { [_hH]: _xagr }], [0, { [_hH]: _xagra }], [0, { [_hH]: _xagwa }], [1, { [_hH]: _xawob }], [128 | 0, { [_hPH]: _xam }], [0, { [_hH]: _xasse }], [0, { [_hH]: _xasc }], [0, { [_hH]: _xawrl }], [0, { [_hH]: _xasseca }], [() => SSECustomerKey, { [_hH]: _xasseck }], [0, { [_hH]: _xasseckM }], [() => SSEKMSKeyId, { [_hH]: _xasseakki }], [() => SSEKMSEncryptionContext, { [_hH]: _xassec }], [2, { [_hH]: _xassebke }], [0, { [_hH]: _xarp }], [0, { [_hH]: _xat }], [0, { [_hH]: _xaolm }], [5, { [_hH]: _xaolrud }], [0, { [_hH]: _xaollh }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.PutObjectRetentionOutput$ = [
+    3,
+    n0,
+    _PORO,
+    0,
+    [_RC],
+    [[0, { [_hH]: _xarc }]]
+  ];
+  exports2.PutObjectRetentionRequest$ = [
+    3,
+    n0,
+    _PORR,
+    0,
+    [_B, _K, _Ret, _RP, _VI, _BGR, _CMDo, _CA, _EBO],
+    [[0, 1], [0, 1], [() => exports2.ObjectLockRetention$, { [_hP]: 1, [_xN]: _Ret }], [0, { [_hH]: _xarp }], [0, { [_hQ]: _vI }], [2, { [_hH]: _xabgr }], [0, { [_hH]: _CM }], [0, { [_hH]: _xasca }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.PutObjectTaggingOutput$ = [
+    3,
+    n0,
+    _POTO,
+    0,
+    [_VI],
+    [[0, { [_hH]: _xavi }]]
+  ];
+  exports2.PutObjectTaggingRequest$ = [
+    3,
+    n0,
+    _POTR,
+    0,
+    [_B, _K, _Tag, _VI, _CMDo, _CA, _EBO, _RP],
+    [[0, 1], [0, 1], [() => exports2.Tagging$, { [_hP]: 1, [_xN]: _Tag }], [0, { [_hQ]: _vI }], [0, { [_hH]: _CM }], [0, { [_hH]: _xasca }], [0, { [_hH]: _xaebo }], [0, { [_hH]: _xarp }]],
+    3
+  ];
+  exports2.PutPublicAccessBlockRequest$ = [
+    3,
+    n0,
+    _PPABR,
+    0,
+    [_B, _PABC, _CMDo, _CA, _EBO],
+    [[0, 1], [() => exports2.PublicAccessBlockConfiguration$, { [_hP]: 1, [_xN]: _PABC }], [0, { [_hH]: _CM }], [0, { [_hH]: _xasca }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.QueueConfiguration$ = [
+    3,
+    n0,
+    _QCue,
+    0,
+    [_QA, _Ev, _I, _F],
+    [[0, { [_xN]: _Qu }], [64 | 0, { [_xF]: 1, [_xN]: _Eve }], 0, [() => exports2.NotificationConfigurationFilter$, 0]],
+    2
+  ];
+  exports2.RecordExpiration$ = [
+    3,
+    n0,
+    _REe,
+    0,
+    [_E, _D],
+    [0, 1],
+    1
+  ];
+  exports2.RecordsEvent$ = [
+    3,
+    n0,
+    _REec,
+    0,
+    [_Payl],
+    [[21, { [_eP]: 1 }]]
+  ];
+  exports2.Redirect$ = [
+    3,
+    n0,
+    _Red,
+    0,
+    [_HN, _HRC, _Pro, _RKPW, _RKW],
+    [0, 0, 0, 0, 0]
+  ];
+  exports2.RedirectAllRequestsTo$ = [
+    3,
+    n0,
+    _RART,
+    0,
+    [_HN, _Pro],
+    [0, 0],
+    1
+  ];
+  exports2.RenameObjectOutput$ = [
+    3,
+    n0,
+    _ROO,
+    0,
+    [],
+    []
+  ];
+  exports2.RenameObjectRequest$ = [
+    3,
+    n0,
+    _ROR,
+    0,
+    [_B, _K, _RSen, _DIM, _DINM, _DIMS, _DIUS, _SIM, _SINM, _SIMS, _SIUS, _CTl],
+    [[0, 1], [0, 1], [0, { [_hH]: _xars_ }], [0, { [_hH]: _IM_ }], [0, { [_hH]: _INM_ }], [4, { [_hH]: _IMS_ }], [4, { [_hH]: _IUS_ }], [0, { [_hH]: _xarsim }], [0, { [_hH]: _xarsinm }], [6, { [_hH]: _xarsims }], [6, { [_hH]: _xarsius }], [0, { [_hH]: _xact_, [_iT]: 1 }]],
+    3
+  ];
+  exports2.ReplicaModifications$ = [
+    3,
+    n0,
+    _RM,
+    0,
+    [_S],
+    [0],
+    1
+  ];
+  exports2.ReplicationConfiguration$ = [
+    3,
+    n0,
+    _RCe,
+    0,
+    [_Ro, _R],
+    [0, [() => ReplicationRules, { [_xF]: 1, [_xN]: _Ru }]],
+    2
+  ];
+  exports2.ReplicationRule$ = [
+    3,
+    n0,
+    _RRe,
+    0,
+    [_S, _Des, _ID, _Pri, _P, _F, _SSC, _EOR, _DMR],
+    [0, () => exports2.Destination$, 0, 1, 0, [() => exports2.ReplicationRuleFilter$, 0], () => exports2.SourceSelectionCriteria$, () => exports2.ExistingObjectReplication$, () => exports2.DeleteMarkerReplication$],
+    2
+  ];
+  exports2.ReplicationRuleAndOperator$ = [
+    3,
+    n0,
+    _RRAO,
+    0,
+    [_P, _T],
+    [0, [() => TagSet, { [_xF]: 1, [_xN]: _Ta }]]
+  ];
+  exports2.ReplicationRuleFilter$ = [
+    3,
+    n0,
+    _RRF,
+    0,
+    [_P, _Ta, _An],
+    [0, () => exports2.Tag$, [() => exports2.ReplicationRuleAndOperator$, 0]]
+  ];
+  exports2.ReplicationTime$ = [
+    3,
+    n0,
+    _RT,
+    0,
+    [_S, _Tim],
+    [0, () => exports2.ReplicationTimeValue$],
+    2
+  ];
+  exports2.ReplicationTimeValue$ = [
+    3,
+    n0,
+    _RTV,
+    0,
+    [_Mi],
+    [1]
+  ];
+  exports2.RequestPaymentConfiguration$ = [
+    3,
+    n0,
+    _RPC,
+    0,
+    [_Pay],
+    [0],
+    1
+  ];
+  exports2.RequestProgress$ = [
+    3,
+    n0,
+    _RPe,
+    0,
+    [_Ena],
+    [2]
+  ];
+  exports2.RestoreObjectOutput$ = [
+    3,
+    n0,
+    _ROOe,
+    0,
+    [_RC, _ROP],
+    [[0, { [_hH]: _xarc }], [0, { [_hH]: _xarop }]]
+  ];
+  exports2.RestoreObjectRequest$ = [
+    3,
+    n0,
+    _RORe,
+    0,
+    [_B, _K, _VI, _RRes, _RP, _CA, _EBO],
+    [[0, 1], [0, 1], [0, { [_hQ]: _vI }], [() => exports2.RestoreRequest$, { [_hP]: 1, [_xN]: _RRes }], [0, { [_hH]: _xarp }], [0, { [_hH]: _xasca }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.RestoreRequest$ = [
+    3,
+    n0,
+    _RRes,
+    0,
+    [_D, _GJP, _Ty, _Ti, _Desc, _SP, _OL],
+    [1, () => exports2.GlacierJobParameters$, 0, 0, 0, () => exports2.SelectParameters$, [() => exports2.OutputLocation$, 0]]
+  ];
+  exports2.RestoreStatus$ = [
+    3,
+    n0,
+    _RSe,
+    0,
+    [_IRIP, _RED],
+    [2, 4]
+  ];
+  exports2.RoutingRule$ = [
+    3,
+    n0,
+    _RRo,
+    0,
+    [_Red, _Co],
+    [() => exports2.Redirect$, () => exports2.Condition$],
+    1
+  ];
+  exports2.S3KeyFilter$ = [
+    3,
+    n0,
+    _SKF,
+    0,
+    [_FRi],
+    [[() => FilterRuleList, { [_xF]: 1, [_xN]: _FR }]]
+  ];
+  exports2.S3Location$ = [
+    3,
+    n0,
+    _SL,
+    0,
+    [_BNu, _P, _En, _CACL, _ACL, _Tag, _UM, _SC],
+    [0, 0, [() => exports2.Encryption$, 0], 0, [() => Grants, 0], [() => exports2.Tagging$, 0], [() => UserMetadata, 0], 0],
+    2
+  ];
+  exports2.S3TablesDestination$ = [
+    3,
+    n0,
+    _STD,
+    0,
+    [_TBA, _TNa],
+    [0, 0],
+    2
+  ];
+  exports2.S3TablesDestinationResult$ = [
+    3,
+    n0,
+    _STDR,
+    0,
+    [_TBA, _TNa, _TA, _TN],
+    [0, 0, 0, 0],
+    4
+  ];
+  exports2.ScanRange$ = [
+    3,
+    n0,
+    _SR,
+    0,
+    [_St, _End],
+    [1, 1]
+  ];
+  exports2.SelectObjectContentOutput$ = [
+    3,
+    n0,
+    _SOCO,
+    0,
+    [_Payl],
+    [[() => exports2.SelectObjectContentEventStream$, 16]]
+  ];
+  exports2.SelectObjectContentRequest$ = [
+    3,
+    n0,
+    _SOCR,
+    0,
+    [_B, _K, _Exp, _ETx, _IS, _OSu, _SSECA, _SSECK, _SSECKMD, _RPe, _SR, _EBO],
+    [[0, 1], [0, 1], 0, 0, () => exports2.InputSerialization$, () => exports2.OutputSerialization$, [0, { [_hH]: _xasseca }], [() => SSECustomerKey, { [_hH]: _xasseck }], [0, { [_hH]: _xasseckM }], () => exports2.RequestProgress$, () => exports2.ScanRange$, [0, { [_hH]: _xaebo }]],
+    6
+  ];
+  exports2.SelectParameters$ = [
+    3,
+    n0,
+    _SP,
+    0,
+    [_IS, _ETx, _Exp, _OSu],
+    [() => exports2.InputSerialization$, 0, 0, () => exports2.OutputSerialization$],
+    4
+  ];
+  exports2.ServerSideEncryptionByDefault$ = [
+    3,
+    n0,
+    _SSEBD,
+    0,
+    [_SSEA, _KMSMKID],
+    [0, [() => SSEKMSKeyId, 0]],
+    1
+  ];
+  exports2.ServerSideEncryptionConfiguration$ = [
+    3,
+    n0,
+    _SSEC,
+    0,
+    [_R],
+    [[() => ServerSideEncryptionRules, { [_xF]: 1, [_xN]: _Ru }]],
+    1
+  ];
+  exports2.ServerSideEncryptionRule$ = [
+    3,
+    n0,
+    _SSER,
+    0,
+    [_ASSEBD, _BKE, _BET],
+    [[() => exports2.ServerSideEncryptionByDefault$, 0], 2, [() => exports2.BlockedEncryptionTypes$, 0]]
+  ];
+  exports2.SessionCredentials$ = [
+    3,
+    n0,
+    _SCe,
+    0,
+    [_AKI, _SAK, _ST, _E],
+    [[0, { [_xN]: _AKI }], [() => SessionCredentialValue, { [_xN]: _SAK }], [() => SessionCredentialValue, { [_xN]: _ST }], [4, { [_xN]: _E }]],
+    4
+  ];
+  exports2.SimplePrefix$ = [
+    3,
+    n0,
+    _SPi,
+    { [_xN]: _SPi },
+    [],
+    []
+  ];
+  exports2.SourceSelectionCriteria$ = [
+    3,
+    n0,
+    _SSC,
+    0,
+    [_SKEO, _RM],
+    [() => exports2.SseKmsEncryptedObjects$, () => exports2.ReplicaModifications$]
+  ];
+  exports2.SSEKMS$ = [
+    3,
+    n0,
+    _SSEKMS,
+    { [_xN]: _SK },
+    [_KI],
+    [[() => SSEKMSKeyId, 0]],
+    1
+  ];
+  exports2.SseKmsEncryptedObjects$ = [
+    3,
+    n0,
+    _SKEO,
+    0,
+    [_S],
+    [0],
+    1
+  ];
+  exports2.SSEKMSEncryption$ = [
+    3,
+    n0,
+    _SSEKMSE,
+    { [_xN]: _SK },
+    [_KMSKA, _BKE],
+    [[() => NonEmptyKmsKeyArnString, 0], 2],
+    1
+  ];
+  exports2.SSES3$ = [
+    3,
+    n0,
+    _SSES,
+    { [_xN]: _SS },
+    [],
+    []
+  ];
+  exports2.Stats$ = [
+    3,
+    n0,
+    _Sta,
+    0,
+    [_BS, _BP, _BRy],
+    [1, 1, 1]
+  ];
+  exports2.StatsEvent$ = [
+    3,
+    n0,
+    _SE,
+    0,
+    [_Det],
+    [[() => exports2.Stats$, { [_eP]: 1 }]]
+  ];
+  exports2.StorageClassAnalysis$ = [
+    3,
+    n0,
+    _SCA,
+    0,
+    [_DE],
+    [() => exports2.StorageClassAnalysisDataExport$]
+  ];
+  exports2.StorageClassAnalysisDataExport$ = [
+    3,
+    n0,
+    _SCADE,
+    0,
+    [_OSV, _Des],
+    [0, () => exports2.AnalyticsExportDestination$],
+    2
+  ];
+  exports2.Tag$ = [
+    3,
+    n0,
+    _Ta,
+    0,
+    [_K, _V],
+    [0, 0],
+    2
+  ];
+  exports2.Tagging$ = [
+    3,
+    n0,
+    _Tag,
+    0,
+    [_TS],
+    [[() => TagSet, 0]],
+    1
+  ];
+  exports2.TargetGrant$ = [
+    3,
+    n0,
+    _TGa,
+    0,
+    [_Gra, _Pe],
+    [[() => exports2.Grantee$, { [_xNm]: [_x, _hi] }], 0]
+  ];
+  exports2.TargetObjectKeyFormat$ = [
+    3,
+    n0,
+    _TOKF,
+    0,
+    [_SPi, _PP],
+    [[() => exports2.SimplePrefix$, { [_xN]: _SPi }], [() => exports2.PartitionedPrefix$, { [_xN]: _PP }]]
+  ];
+  exports2.Tiering$ = [
+    3,
+    n0,
+    _Tier,
+    0,
+    [_D, _AT],
+    [1, 0],
+    2
+  ];
+  exports2.TopicConfiguration$ = [
+    3,
+    n0,
+    _TCop,
+    0,
+    [_TAo, _Ev, _I, _F],
+    [[0, { [_xN]: _Top }], [64 | 0, { [_xF]: 1, [_xN]: _Eve }], 0, [() => exports2.NotificationConfigurationFilter$, 0]],
+    2
+  ];
+  exports2.Transition$ = [
+    3,
+    n0,
+    _Tra,
+    0,
+    [_Da, _D, _SC],
+    [5, 1, 0]
+  ];
+  exports2.UpdateBucketMetadataInventoryTableConfigurationRequest$ = [
+    3,
+    n0,
+    _UBMITCR,
+    0,
+    [_B, _ITCn, _CMDo, _CA, _EBO],
+    [[0, 1], [() => exports2.InventoryTableConfigurationUpdates$, { [_hP]: 1, [_xN]: _ITCn }], [0, { [_hH]: _CM }], [0, { [_hH]: _xasca }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.UpdateBucketMetadataJournalTableConfigurationRequest$ = [
+    3,
+    n0,
+    _UBMJTCR,
+    0,
+    [_B, _JTC, _CMDo, _CA, _EBO],
+    [[0, 1], [() => exports2.JournalTableConfigurationUpdates$, { [_hP]: 1, [_xN]: _JTC }], [0, { [_hH]: _CM }], [0, { [_hH]: _xasca }], [0, { [_hH]: _xaebo }]],
+    2
+  ];
+  exports2.UpdateObjectEncryptionRequest$ = [
+    3,
+    n0,
+    _UOER,
+    0,
+    [_B, _K, _OE, _VI, _RP, _EBO, _CMDo, _CA],
+    [[0, 1], [0, 1], [() => exports2.ObjectEncryption$, 16], [0, { [_hQ]: _vI }], [0, { [_hH]: _xarp }], [0, { [_hH]: _xaebo }], [0, { [_hH]: _CM }], [0, { [_hH]: _xasca }]],
+    3
+  ];
+  exports2.UpdateObjectEncryptionResponse$ = [
+    3,
+    n0,
+    _UOERp,
+    0,
+    [_RC],
+    [[0, { [_hH]: _xarc }]]
+  ];
+  exports2.UploadPartCopyOutput$ = [
+    3,
+    n0,
+    _UPCO,
+    0,
+    [_CSVI, _CPR, _SSE, _SSECA, _SSECKMD, _SSEKMSKI, _BKE, _RC],
+    [[0, { [_hH]: _xacsvi }], [() => exports2.CopyPartResult$, 16], [0, { [_hH]: _xasse }], [0, { [_hH]: _xasseca }], [0, { [_hH]: _xasseckM }], [() => SSEKMSKeyId, { [_hH]: _xasseakki }], [2, { [_hH]: _xassebke }], [0, { [_hH]: _xarc }]]
+  ];
+  exports2.UploadPartCopyRequest$ = [
+    3,
+    n0,
+    _UPCR,
+    0,
+    [_B, _CS, _K, _PN, _UI, _CSIM, _CSIMS, _CSINM, _CSIUS, _CSRo, _SSECA, _SSECK, _SSECKMD, _CSSSECA, _CSSSECK, _CSSSECKMD, _RP, _EBO, _ESBO],
+    [[0, 1], [0, { [_hH]: _xacs___ }], [0, 1], [1, { [_hQ]: _pN }], [0, { [_hQ]: _uI }], [0, { [_hH]: _xacsim }], [4, { [_hH]: _xacsims }], [0, { [_hH]: _xacsinm }], [4, { [_hH]: _xacsius }], [0, { [_hH]: _xacsr }], [0, { [_hH]: _xasseca }], [() => SSECustomerKey, { [_hH]: _xasseck }], [0, { [_hH]: _xasseckM }], [0, { [_hH]: _xacssseca }], [() => CopySourceSSECustomerKey, { [_hH]: _xacssseck }], [0, { [_hH]: _xacssseckM }], [0, { [_hH]: _xarp }], [0, { [_hH]: _xaebo }], [0, { [_hH]: _xasebo }]],
+    5
+  ];
+  exports2.UploadPartOutput$ = [
+    3,
+    n0,
+    _UPO,
+    0,
+    [_SSE, _ETa, _CCRC, _CCRCC, _CCRCNVME, _CSHA, _CSHAh, _CSHAhe, _CMD, _CXXHASH, _CXXHASHh, _CXXHASHhe, _SSECA, _SSECKMD, _SSEKMSKI, _BKE, _RC],
+    [[0, { [_hH]: _xasse }], [0, { [_hH]: _ETa }], [0, { [_hH]: _xacc }], [0, { [_hH]: _xacc_ }], [0, { [_hH]: _xacc__ }], [0, { [_hH]: _xacs }], [0, { [_hH]: _xacs_ }], [0, { [_hH]: _xacs__ }], [0, { [_hH]: _xacm }], [0, { [_hH]: _xacx }], [0, { [_hH]: _xacx_ }], [0, { [_hH]: _xacx__ }], [0, { [_hH]: _xasseca }], [0, { [_hH]: _xasseckM }], [() => SSEKMSKeyId, { [_hH]: _xasseakki }], [2, { [_hH]: _xassebke }], [0, { [_hH]: _xarc }]]
+  ];
+  exports2.UploadPartRequest$ = [
+    3,
+    n0,
+    _UPR,
+    0,
+    [_B, _K, _PN, _UI, _Bo, _CLo, _CMDo, _CA, _CCRC, _CCRCC, _CCRCNVME, _CSHA, _CSHAh, _CSHAhe, _CMD, _CXXHASH, _CXXHASHh, _CXXHASHhe, _SSECA, _SSECK, _SSECKMD, _RP, _EBO],
+    [[0, 1], [0, 1], [1, { [_hQ]: _pN }], [0, { [_hQ]: _uI }], [() => StreamingBlob, 16], [1, { [_hH]: _CL__ }], [0, { [_hH]: _CM }], [0, { [_hH]: _xasca }], [0, { [_hH]: _xacc }], [0, { [_hH]: _xacc_ }], [0, { [_hH]: _xacc__ }], [0, { [_hH]: _xacs }], [0, { [_hH]: _xacs_ }], [0, { [_hH]: _xacs__ }], [0, { [_hH]: _xacm }], [0, { [_hH]: _xacx }], [0, { [_hH]: _xacx_ }], [0, { [_hH]: _xacx__ }], [0, { [_hH]: _xasseca }], [() => SSECustomerKey, { [_hH]: _xasseck }], [0, { [_hH]: _xasseckM }], [0, { [_hH]: _xarp }], [0, { [_hH]: _xaebo }]],
+    4
+  ];
+  exports2.VersioningConfiguration$ = [
+    3,
+    n0,
+    _VC,
+    0,
+    [_MFAD, _S],
+    [[0, { [_xN]: _MDf }], 0]
+  ];
+  exports2.WebsiteConfiguration$ = [
+    3,
+    n0,
+    _WC,
+    0,
+    [_EDr, _IDn, _RART, _RR],
+    [() => exports2.ErrorDocument$, () => exports2.IndexDocument$, () => exports2.RedirectAllRequestsTo$, [() => RoutingRules, 0]]
+  ];
+  exports2.WriteGetObjectResponseRequest$ = [
+    3,
+    n0,
+    _WGORR,
+    0,
+    [_RReq, _RTe, _Bo, _SCt, _ECr, _EM, _AR, _CC, _CDo, _CEo, _CL, _CLo, _CR, _CTo, _CCRC, _CCRCC, _CCRCNVME, _CSHA, _CSHAh, _CSHAhe, _CMD, _CXXHASH, _CXXHASHh, _CXXHASHhe, _DM, _ETa, _Ex, _E, _LM, _MM, _M, _OLM, _OLLHS, _OLRUD, _PC, _RS, _RC, _Re, _SSE, _SSECA, _SSEKMSKI, _SSECKMD, _SC, _TC, _VI, _BKE],
+    [[0, { [_hL]: 1, [_hH]: _xarr }], [0, { [_hH]: _xart }], [() => StreamingBlob, 16], [1, { [_hH]: _xafs }], [0, { [_hH]: _xafec }], [0, { [_hH]: _xafem }], [0, { [_hH]: _xafhar }], [0, { [_hH]: _xafhCC }], [0, { [_hH]: _xafhCD }], [0, { [_hH]: _xafhCE }], [0, { [_hH]: _xafhCL }], [1, { [_hH]: _CL__ }], [0, { [_hH]: _xafhCR }], [0, { [_hH]: _xafhCT }], [0, { [_hH]: _xafhxacc }], [0, { [_hH]: _xafhxacc_ }], [0, { [_hH]: _xafhxacc__ }], [0, { [_hH]: _xafhxacs }], [0, { [_hH]: _xafhxacs_ }], [0, { [_hH]: _xafhxacs__ }], [0, { [_hH]: _xafhxacm }], [0, { [_hH]: _xafhxacx }], [0, { [_hH]: _xafhxacx_ }], [0, { [_hH]: _xafhxacx__ }], [2, { [_hH]: _xafhxadm }], [0, { [_hH]: _xafhE }], [4, { [_hH]: _xafhE_ }], [0, { [_hH]: _xafhxae }], [4, { [_hH]: _xafhLM }], [1, { [_hH]: _xafhxamm }], [128 | 0, { [_hPH]: _xam }], [0, { [_hH]: _xafhxaolm }], [0, { [_hH]: _xafhxaollh }], [5, { [_hH]: _xafhxaolrud }], [1, { [_hH]: _xafhxampc }], [0, { [_hH]: _xafhxars }], [0, { [_hH]: _xafhxarc }], [0, { [_hH]: _xafhxar }], [0, { [_hH]: _xafhxasse }], [0, { [_hH]: _xafhxasseca }], [() => SSEKMSKeyId, { [_hH]: _xafhxasseakki }], [0, { [_hH]: _xafhxasseckM }], [0, { [_hH]: _xafhxasc }], [1, { [_hH]: _xafhxatc }], [0, { [_hH]: _xafhxavi }], [2, { [_hH]: _xafhxassebke }]],
+    2
+  ];
+  var __Unit = "unit";
+  var AllowedHeaders = 64 | 0;
+  var AllowedMethods = 64 | 0;
+  var AllowedOrigins = 64 | 0;
+  var AnalyticsConfigurationList = [
+    1,
+    n0,
+    _ACLn,
+    0,
+    [
+      () => exports2.AnalyticsConfiguration$,
+      0
+    ]
+  ];
+  var Buckets = [
+    1,
+    n0,
+    _Bu,
+    0,
+    [
+      () => exports2.Bucket$,
+      { [_xN]: _B }
+    ]
+  ];
+  var ChecksumAlgorithmList = 64 | 0;
+  var CommonPrefixList = [
+    1,
+    n0,
+    _CPL,
+    0,
+    () => exports2.CommonPrefix$
+  ];
+  var CompletedPartList = [
+    1,
+    n0,
+    _CPLo,
+    0,
+    () => exports2.CompletedPart$
+  ];
+  var CORSRules = [
+    1,
+    n0,
+    _CORSR,
+    0,
+    [
+      () => exports2.CORSRule$,
+      0
+    ]
+  ];
+  var DeletedObjects = [
+    1,
+    n0,
+    _DOe,
+    0,
+    () => exports2.DeletedObject$
+  ];
+  var DeleteMarkers = [
+    1,
+    n0,
+    _DMe,
+    0,
+    () => exports2.DeleteMarkerEntry$
+  ];
+  var EncryptionTypeList = [
+    1,
+    n0,
+    _ETL,
+    0,
+    [
+      0,
+      { [_xN]: _ET }
+    ]
+  ];
+  var Errors2 = [
+    1,
+    n0,
+    _Er,
+    0,
+    () => exports2._Error$
+  ];
+  var EventList = 64 | 0;
+  var ExposeHeaders = 64 | 0;
+  var FilterRuleList = [
+    1,
+    n0,
+    _FRL,
+    0,
+    () => exports2.FilterRule$
+  ];
+  var Grants = [
+    1,
+    n0,
+    _G,
+    0,
+    [
+      () => exports2.Grant$,
+      { [_xN]: _Gr }
+    ]
+  ];
+  var IntelligentTieringConfigurationList = [
+    1,
+    n0,
+    _ITCL,
+    0,
+    [
+      () => exports2.IntelligentTieringConfiguration$,
+      0
+    ]
+  ];
+  var InventoryConfigurationList = [
+    1,
+    n0,
+    _ICL,
+    0,
+    [
+      () => exports2.InventoryConfiguration$,
+      0
+    ]
+  ];
+  var InventoryOptionalFields = [
+    1,
+    n0,
+    _IOF,
+    0,
+    [
+      0,
+      { [_xN]: _Fi }
+    ]
+  ];
+  var LambdaFunctionConfigurationList = [
+    1,
+    n0,
+    _LFCL,
+    0,
+    [
+      () => exports2.LambdaFunctionConfiguration$,
+      0
+    ]
+  ];
+  var LifecycleRules = [
+    1,
+    n0,
+    _LRi,
+    0,
+    [
+      () => exports2.LifecycleRule$,
+      0
+    ]
+  ];
+  var MetricsConfigurationList = [
+    1,
+    n0,
+    _MCL,
+    0,
+    [
+      () => exports2.MetricsConfiguration$,
+      0
+    ]
+  ];
+  var MultipartUploadList = [
+    1,
+    n0,
+    _MUL,
+    0,
+    () => exports2.MultipartUpload$
+  ];
+  var NoncurrentVersionTransitionList = [
+    1,
+    n0,
+    _NVTL,
+    0,
+    () => exports2.NoncurrentVersionTransition$
+  ];
+  var ObjectAttributesList = 64 | 0;
+  var ObjectIdentifierList = [
+    1,
+    n0,
+    _OIL,
+    0,
+    () => exports2.ObjectIdentifier$
+  ];
+  var ObjectList = [
+    1,
+    n0,
+    _OLb,
+    0,
+    [
+      () => exports2._Object$,
+      0
+    ]
+  ];
+  var ObjectVersionList = [
+    1,
+    n0,
+    _OVL,
+    0,
+    [
+      () => exports2.ObjectVersion$,
+      0
+    ]
+  ];
+  var OptionalObjectAttributesList = 64 | 0;
+  var OwnershipControlsRules = [
+    1,
+    n0,
+    _OCRw,
+    0,
+    () => exports2.OwnershipControlsRule$
+  ];
+  var Parts = [
+    1,
+    n0,
+    _Pa,
+    0,
+    () => exports2.Part$
+  ];
+  var PartsList = [
+    1,
+    n0,
+    _PL,
+    0,
+    () => exports2.ObjectPart$
+  ];
+  var QueueConfigurationList = [
+    1,
+    n0,
+    _QCL,
+    0,
+    [
+      () => exports2.QueueConfiguration$,
+      0
+    ]
+  ];
+  var ReplicationRules = [
+    1,
+    n0,
+    _RRep,
+    0,
+    [
+      () => exports2.ReplicationRule$,
+      0
+    ]
+  ];
+  var RoutingRules = [
+    1,
+    n0,
+    _RR,
+    0,
+    [
+      () => exports2.RoutingRule$,
+      { [_xN]: _RRo }
+    ]
+  ];
+  var ServerSideEncryptionRules = [
+    1,
+    n0,
+    _SSERe,
+    0,
+    [
+      () => exports2.ServerSideEncryptionRule$,
+      0
+    ]
+  ];
+  var TagSet = [
+    1,
+    n0,
+    _TS,
+    0,
+    [
+      () => exports2.Tag$,
+      { [_xN]: _Ta }
+    ]
+  ];
+  var TargetGrants = [
+    1,
+    n0,
+    _TG,
+    0,
+    [
+      () => exports2.TargetGrant$,
+      { [_xN]: _Gr }
+    ]
+  ];
+  var TieringList = [
+    1,
+    n0,
+    _TL,
+    0,
+    () => exports2.Tiering$
+  ];
+  var TopicConfigurationList = [
+    1,
+    n0,
+    _TCL,
+    0,
+    [
+      () => exports2.TopicConfiguration$,
+      0
+    ]
+  ];
+  var TransitionList = [
+    1,
+    n0,
+    _TLr,
+    0,
+    () => exports2.Transition$
+  ];
+  var UserMetadata = [
+    1,
+    n0,
+    _UM,
+    0,
+    [
+      () => exports2.MetadataEntry$,
+      { [_xN]: _ME }
+    ]
+  ];
+  var Metadata = 128 | 0;
+  exports2.AnalyticsFilter$ = [
+    4,
+    n0,
+    _AF,
+    0,
+    [_P, _Ta, _An],
+    [0, () => exports2.Tag$, [() => exports2.AnalyticsAndOperator$, 0]]
+  ];
+  exports2.MetricsFilter$ = [
+    4,
+    n0,
+    _MF,
+    0,
+    [_P, _Ta, _APAc, _An],
+    [0, () => exports2.Tag$, 0, [() => exports2.MetricsAndOperator$, 0]]
+  ];
+  exports2.ObjectEncryption$ = [
+    4,
+    n0,
+    _OE,
+    0,
+    [_SSEKMS],
+    [[() => exports2.SSEKMSEncryption$, { [_xN]: _SK }]]
+  ];
+  exports2.SelectObjectContentEventStream$ = [
+    4,
+    n0,
+    _SOCES,
+    { [_st]: 1 },
+    [_Rec, _Sta, _Pr, _Cont, _End],
+    [[() => exports2.RecordsEvent$, 0], [() => exports2.StatsEvent$, 0], [() => exports2.ProgressEvent$, 0], () => exports2.ContinuationEvent$, () => exports2.EndEvent$]
+  ];
+  exports2.AbortMultipartUpload$ = [
+    9,
+    n0,
+    _AMU,
+    { [_h]: ["DELETE", "/{Key+}?x-id=AbortMultipartUpload", 204] },
+    () => exports2.AbortMultipartUploadRequest$,
+    () => exports2.AbortMultipartUploadOutput$
+  ];
+  exports2.CompleteMultipartUpload$ = [
+    9,
+    n0,
+    _CMUo,
+    { [_h]: ["POST", "/{Key+}", 200] },
+    () => exports2.CompleteMultipartUploadRequest$,
+    () => exports2.CompleteMultipartUploadOutput$
+  ];
+  exports2.CopyObject$ = [
+    9,
+    n0,
+    _CO,
+    { [_h]: ["PUT", "/{Key+}?x-id=CopyObject", 200] },
+    () => exports2.CopyObjectRequest$,
+    () => exports2.CopyObjectOutput$
+  ];
+  exports2.CreateBucket$ = [
+    9,
+    n0,
+    _CB,
+    { [_h]: ["PUT", "/", 200] },
+    () => exports2.CreateBucketRequest$,
+    () => exports2.CreateBucketOutput$
+  ];
+  exports2.CreateBucketMetadataConfiguration$ = [
+    9,
+    n0,
+    _CBMC,
+    { [_hC]: "-", [_h]: ["POST", "/?metadataConfiguration", 200] },
+    () => exports2.CreateBucketMetadataConfigurationRequest$,
+    () => __Unit
+  ];
+  exports2.CreateBucketMetadataTableConfiguration$ = [
+    9,
+    n0,
+    _CBMTC,
+    { [_hC]: "-", [_h]: ["POST", "/?metadataTable", 200] },
+    () => exports2.CreateBucketMetadataTableConfigurationRequest$,
+    () => __Unit
+  ];
+  exports2.CreateMultipartUpload$ = [
+    9,
+    n0,
+    _CMUr,
+    { [_h]: ["POST", "/{Key+}?uploads", 200] },
+    () => exports2.CreateMultipartUploadRequest$,
+    () => exports2.CreateMultipartUploadOutput$
+  ];
+  exports2.CreateSession$ = [
+    9,
+    n0,
+    _CSr,
+    { [_h]: ["GET", "/?session", 200] },
+    () => exports2.CreateSessionRequest$,
+    () => exports2.CreateSessionOutput$
+  ];
+  exports2.DeleteBucket$ = [
+    9,
+    n0,
+    _DB,
+    { [_h]: ["DELETE", "/", 204] },
+    () => exports2.DeleteBucketRequest$,
+    () => __Unit
+  ];
+  exports2.DeleteBucketAnalyticsConfiguration$ = [
+    9,
+    n0,
+    _DBAC,
+    { [_h]: ["DELETE", "/?analytics", 204] },
+    () => exports2.DeleteBucketAnalyticsConfigurationRequest$,
+    () => __Unit
+  ];
+  exports2.DeleteBucketCors$ = [
+    9,
+    n0,
+    _DBC,
+    { [_h]: ["DELETE", "/?cors", 204] },
+    () => exports2.DeleteBucketCorsRequest$,
+    () => __Unit
+  ];
+  exports2.DeleteBucketEncryption$ = [
+    9,
+    n0,
+    _DBE,
+    { [_h]: ["DELETE", "/?encryption", 204] },
+    () => exports2.DeleteBucketEncryptionRequest$,
+    () => __Unit
+  ];
+  exports2.DeleteBucketIntelligentTieringConfiguration$ = [
+    9,
+    n0,
+    _DBITC,
+    { [_h]: ["DELETE", "/?intelligent-tiering", 204] },
+    () => exports2.DeleteBucketIntelligentTieringConfigurationRequest$,
+    () => __Unit
+  ];
+  exports2.DeleteBucketInventoryConfiguration$ = [
+    9,
+    n0,
+    _DBIC,
+    { [_h]: ["DELETE", "/?inventory", 204] },
+    () => exports2.DeleteBucketInventoryConfigurationRequest$,
+    () => __Unit
+  ];
+  exports2.DeleteBucketLifecycle$ = [
+    9,
+    n0,
+    _DBL,
+    { [_h]: ["DELETE", "/?lifecycle", 204] },
+    () => exports2.DeleteBucketLifecycleRequest$,
+    () => __Unit
+  ];
+  exports2.DeleteBucketMetadataConfiguration$ = [
+    9,
+    n0,
+    _DBMC,
+    { [_h]: ["DELETE", "/?metadataConfiguration", 204] },
+    () => exports2.DeleteBucketMetadataConfigurationRequest$,
+    () => __Unit
+  ];
+  exports2.DeleteBucketMetadataTableConfiguration$ = [
+    9,
+    n0,
+    _DBMTC,
+    { [_h]: ["DELETE", "/?metadataTable", 204] },
+    () => exports2.DeleteBucketMetadataTableConfigurationRequest$,
+    () => __Unit
+  ];
+  exports2.DeleteBucketMetricsConfiguration$ = [
+    9,
+    n0,
+    _DBMCe,
+    { [_h]: ["DELETE", "/?metrics", 204] },
+    () => exports2.DeleteBucketMetricsConfigurationRequest$,
+    () => __Unit
+  ];
+  exports2.DeleteBucketOwnershipControls$ = [
+    9,
+    n0,
+    _DBOC,
+    { [_h]: ["DELETE", "/?ownershipControls", 204] },
+    () => exports2.DeleteBucketOwnershipControlsRequest$,
+    () => __Unit
+  ];
+  exports2.DeleteBucketPolicy$ = [
+    9,
+    n0,
+    _DBP,
+    { [_h]: ["DELETE", "/?policy", 204] },
+    () => exports2.DeleteBucketPolicyRequest$,
+    () => __Unit
+  ];
+  exports2.DeleteBucketReplication$ = [
+    9,
+    n0,
+    _DBRe,
+    { [_h]: ["DELETE", "/?replication", 204] },
+    () => exports2.DeleteBucketReplicationRequest$,
+    () => __Unit
+  ];
+  exports2.DeleteBucketTagging$ = [
+    9,
+    n0,
+    _DBT,
+    { [_h]: ["DELETE", "/?tagging", 204] },
+    () => exports2.DeleteBucketTaggingRequest$,
+    () => __Unit
+  ];
+  exports2.DeleteBucketWebsite$ = [
+    9,
+    n0,
+    _DBW,
+    { [_h]: ["DELETE", "/?website", 204] },
+    () => exports2.DeleteBucketWebsiteRequest$,
+    () => __Unit
+  ];
+  exports2.DeleteObject$ = [
+    9,
+    n0,
+    _DOel,
+    { [_h]: ["DELETE", "/{Key+}?x-id=DeleteObject", 204] },
+    () => exports2.DeleteObjectRequest$,
+    () => exports2.DeleteObjectOutput$
+  ];
+  exports2.DeleteObjects$ = [
+    9,
+    n0,
+    _DOele,
+    { [_hC]: "-", [_h]: ["POST", "/?delete", 200] },
+    () => exports2.DeleteObjectsRequest$,
+    () => exports2.DeleteObjectsOutput$
+  ];
+  exports2.DeleteObjectTagging$ = [
+    9,
+    n0,
+    _DOT,
+    { [_h]: ["DELETE", "/{Key+}?tagging", 204] },
+    () => exports2.DeleteObjectTaggingRequest$,
+    () => exports2.DeleteObjectTaggingOutput$
+  ];
+  exports2.DeletePublicAccessBlock$ = [
+    9,
+    n0,
+    _DPAB,
+    { [_h]: ["DELETE", "/?publicAccessBlock", 204] },
+    () => exports2.DeletePublicAccessBlockRequest$,
+    () => __Unit
+  ];
+  exports2.GetBucketAbac$ = [
+    9,
+    n0,
+    _GBA,
+    { [_h]: ["GET", "/?abac", 200] },
+    () => exports2.GetBucketAbacRequest$,
+    () => exports2.GetBucketAbacOutput$
+  ];
+  exports2.GetBucketAccelerateConfiguration$ = [
+    9,
+    n0,
+    _GBAC,
+    { [_h]: ["GET", "/?accelerate", 200] },
+    () => exports2.GetBucketAccelerateConfigurationRequest$,
+    () => exports2.GetBucketAccelerateConfigurationOutput$
+  ];
+  exports2.GetBucketAcl$ = [
+    9,
+    n0,
+    _GBAe,
+    { [_h]: ["GET", "/?acl", 200] },
+    () => exports2.GetBucketAclRequest$,
+    () => exports2.GetBucketAclOutput$
+  ];
+  exports2.GetBucketAnalyticsConfiguration$ = [
+    9,
+    n0,
+    _GBACe,
+    { [_h]: ["GET", "/?analytics&x-id=GetBucketAnalyticsConfiguration", 200] },
+    () => exports2.GetBucketAnalyticsConfigurationRequest$,
+    () => exports2.GetBucketAnalyticsConfigurationOutput$
+  ];
+  exports2.GetBucketCors$ = [
+    9,
+    n0,
+    _GBC,
+    { [_h]: ["GET", "/?cors", 200] },
+    () => exports2.GetBucketCorsRequest$,
+    () => exports2.GetBucketCorsOutput$
+  ];
+  exports2.GetBucketEncryption$ = [
+    9,
+    n0,
+    _GBE,
+    { [_h]: ["GET", "/?encryption", 200] },
+    () => exports2.GetBucketEncryptionRequest$,
+    () => exports2.GetBucketEncryptionOutput$
+  ];
+  exports2.GetBucketIntelligentTieringConfiguration$ = [
+    9,
+    n0,
+    _GBITC,
+    { [_h]: ["GET", "/?intelligent-tiering&x-id=GetBucketIntelligentTieringConfiguration", 200] },
+    () => exports2.GetBucketIntelligentTieringConfigurationRequest$,
+    () => exports2.GetBucketIntelligentTieringConfigurationOutput$
+  ];
+  exports2.GetBucketInventoryConfiguration$ = [
+    9,
+    n0,
+    _GBIC,
+    { [_h]: ["GET", "/?inventory&x-id=GetBucketInventoryConfiguration", 200] },
+    () => exports2.GetBucketInventoryConfigurationRequest$,
+    () => exports2.GetBucketInventoryConfigurationOutput$
+  ];
+  exports2.GetBucketLifecycleConfiguration$ = [
+    9,
+    n0,
+    _GBLC,
+    { [_h]: ["GET", "/?lifecycle", 200] },
+    () => exports2.GetBucketLifecycleConfigurationRequest$,
+    () => exports2.GetBucketLifecycleConfigurationOutput$
+  ];
+  exports2.GetBucketLocation$ = [
+    9,
+    n0,
+    _GBL,
+    { [_h]: ["GET", "/?location", 200] },
+    () => exports2.GetBucketLocationRequest$,
+    () => exports2.GetBucketLocationOutput$
+  ];
+  exports2.GetBucketLogging$ = [
+    9,
+    n0,
+    _GBLe,
+    { [_h]: ["GET", "/?logging", 200] },
+    () => exports2.GetBucketLoggingRequest$,
+    () => exports2.GetBucketLoggingOutput$
+  ];
+  exports2.GetBucketMetadataConfiguration$ = [
+    9,
+    n0,
+    _GBMC,
+    { [_h]: ["GET", "/?metadataConfiguration", 200] },
+    () => exports2.GetBucketMetadataConfigurationRequest$,
+    () => exports2.GetBucketMetadataConfigurationOutput$
+  ];
+  exports2.GetBucketMetadataTableConfiguration$ = [
+    9,
+    n0,
+    _GBMTC,
+    { [_h]: ["GET", "/?metadataTable", 200] },
+    () => exports2.GetBucketMetadataTableConfigurationRequest$,
+    () => exports2.GetBucketMetadataTableConfigurationOutput$
+  ];
+  exports2.GetBucketMetricsConfiguration$ = [
+    9,
+    n0,
+    _GBMCe,
+    { [_h]: ["GET", "/?metrics&x-id=GetBucketMetricsConfiguration", 200] },
+    () => exports2.GetBucketMetricsConfigurationRequest$,
+    () => exports2.GetBucketMetricsConfigurationOutput$
+  ];
+  exports2.GetBucketNotificationConfiguration$ = [
+    9,
+    n0,
+    _GBNC,
+    { [_h]: ["GET", "/?notification", 200] },
+    () => exports2.GetBucketNotificationConfigurationRequest$,
+    () => exports2.NotificationConfiguration$
+  ];
+  exports2.GetBucketOwnershipControls$ = [
+    9,
+    n0,
+    _GBOC,
+    { [_h]: ["GET", "/?ownershipControls", 200] },
+    () => exports2.GetBucketOwnershipControlsRequest$,
+    () => exports2.GetBucketOwnershipControlsOutput$
+  ];
+  exports2.GetBucketPolicy$ = [
+    9,
+    n0,
+    _GBP,
+    { [_h]: ["GET", "/?policy", 200] },
+    () => exports2.GetBucketPolicyRequest$,
+    () => exports2.GetBucketPolicyOutput$
+  ];
+  exports2.GetBucketPolicyStatus$ = [
+    9,
+    n0,
+    _GBPS,
+    { [_h]: ["GET", "/?policyStatus", 200] },
+    () => exports2.GetBucketPolicyStatusRequest$,
+    () => exports2.GetBucketPolicyStatusOutput$
+  ];
+  exports2.GetBucketReplication$ = [
+    9,
+    n0,
+    _GBR,
+    { [_h]: ["GET", "/?replication", 200] },
+    () => exports2.GetBucketReplicationRequest$,
+    () => exports2.GetBucketReplicationOutput$
+  ];
+  exports2.GetBucketRequestPayment$ = [
+    9,
+    n0,
+    _GBRP,
+    { [_h]: ["GET", "/?requestPayment", 200] },
+    () => exports2.GetBucketRequestPaymentRequest$,
+    () => exports2.GetBucketRequestPaymentOutput$
+  ];
+  exports2.GetBucketTagging$ = [
+    9,
+    n0,
+    _GBT,
+    { [_h]: ["GET", "/?tagging", 200] },
+    () => exports2.GetBucketTaggingRequest$,
+    () => exports2.GetBucketTaggingOutput$
+  ];
+  exports2.GetBucketVersioning$ = [
+    9,
+    n0,
+    _GBV,
+    { [_h]: ["GET", "/?versioning", 200] },
+    () => exports2.GetBucketVersioningRequest$,
+    () => exports2.GetBucketVersioningOutput$
+  ];
+  exports2.GetBucketWebsite$ = [
+    9,
+    n0,
+    _GBW,
+    { [_h]: ["GET", "/?website", 200] },
+    () => exports2.GetBucketWebsiteRequest$,
+    () => exports2.GetBucketWebsiteOutput$
+  ];
+  exports2.GetObject$ = [
+    9,
+    n0,
+    _GO,
+    { [_hC]: "-", [_h]: ["GET", "/{Key+}?x-id=GetObject", 200] },
+    () => exports2.GetObjectRequest$,
+    () => exports2.GetObjectOutput$
+  ];
+  exports2.GetObjectAcl$ = [
+    9,
+    n0,
+    _GOA,
+    { [_h]: ["GET", "/{Key+}?acl", 200] },
+    () => exports2.GetObjectAclRequest$,
+    () => exports2.GetObjectAclOutput$
+  ];
+  exports2.GetObjectAttributes$ = [
+    9,
+    n0,
+    _GOAe,
+    { [_h]: ["GET", "/{Key+}?attributes", 200] },
+    () => exports2.GetObjectAttributesRequest$,
+    () => exports2.GetObjectAttributesOutput$
+  ];
+  exports2.GetObjectLegalHold$ = [
+    9,
+    n0,
+    _GOLH,
+    { [_h]: ["GET", "/{Key+}?legal-hold", 200] },
+    () => exports2.GetObjectLegalHoldRequest$,
+    () => exports2.GetObjectLegalHoldOutput$
+  ];
+  exports2.GetObjectLockConfiguration$ = [
+    9,
+    n0,
+    _GOLC,
+    { [_h]: ["GET", "/?object-lock", 200] },
+    () => exports2.GetObjectLockConfigurationRequest$,
+    () => exports2.GetObjectLockConfigurationOutput$
+  ];
+  exports2.GetObjectRetention$ = [
+    9,
+    n0,
+    _GORe,
+    { [_h]: ["GET", "/{Key+}?retention", 200] },
+    () => exports2.GetObjectRetentionRequest$,
+    () => exports2.GetObjectRetentionOutput$
+  ];
+  exports2.GetObjectTagging$ = [
+    9,
+    n0,
+    _GOT,
+    { [_h]: ["GET", "/{Key+}?tagging", 200] },
+    () => exports2.GetObjectTaggingRequest$,
+    () => exports2.GetObjectTaggingOutput$
+  ];
+  exports2.GetObjectTorrent$ = [
+    9,
+    n0,
+    _GOTe,
+    { [_h]: ["GET", "/{Key+}?torrent", 200] },
+    () => exports2.GetObjectTorrentRequest$,
+    () => exports2.GetObjectTorrentOutput$
+  ];
+  exports2.GetPublicAccessBlock$ = [
+    9,
+    n0,
+    _GPAB,
+    { [_h]: ["GET", "/?publicAccessBlock", 200] },
+    () => exports2.GetPublicAccessBlockRequest$,
+    () => exports2.GetPublicAccessBlockOutput$
+  ];
+  exports2.HeadBucket$ = [
+    9,
+    n0,
+    _HB,
+    { [_h]: ["HEAD", "/", 200] },
+    () => exports2.HeadBucketRequest$,
+    () => exports2.HeadBucketOutput$
+  ];
+  exports2.HeadObject$ = [
+    9,
+    n0,
+    _HO,
+    { [_h]: ["HEAD", "/{Key+}", 200] },
+    () => exports2.HeadObjectRequest$,
+    () => exports2.HeadObjectOutput$
+  ];
+  exports2.ListBucketAnalyticsConfigurations$ = [
+    9,
+    n0,
+    _LBAC,
+    { [_h]: ["GET", "/?analytics&x-id=ListBucketAnalyticsConfigurations", 200] },
+    () => exports2.ListBucketAnalyticsConfigurationsRequest$,
+    () => exports2.ListBucketAnalyticsConfigurationsOutput$
+  ];
+  exports2.ListBucketIntelligentTieringConfigurations$ = [
+    9,
+    n0,
+    _LBITC,
+    { [_h]: ["GET", "/?intelligent-tiering&x-id=ListBucketIntelligentTieringConfigurations", 200] },
+    () => exports2.ListBucketIntelligentTieringConfigurationsRequest$,
+    () => exports2.ListBucketIntelligentTieringConfigurationsOutput$
+  ];
+  exports2.ListBucketInventoryConfigurations$ = [
+    9,
+    n0,
+    _LBIC,
+    { [_h]: ["GET", "/?inventory&x-id=ListBucketInventoryConfigurations", 200] },
+    () => exports2.ListBucketInventoryConfigurationsRequest$,
+    () => exports2.ListBucketInventoryConfigurationsOutput$
+  ];
+  exports2.ListBucketMetricsConfigurations$ = [
+    9,
+    n0,
+    _LBMC,
+    { [_h]: ["GET", "/?metrics&x-id=ListBucketMetricsConfigurations", 200] },
+    () => exports2.ListBucketMetricsConfigurationsRequest$,
+    () => exports2.ListBucketMetricsConfigurationsOutput$
+  ];
+  exports2.ListBuckets$ = [
+    9,
+    n0,
+    _LB,
+    { [_h]: ["GET", "/?x-id=ListBuckets", 200] },
+    () => exports2.ListBucketsRequest$,
+    () => exports2.ListBucketsOutput$
+  ];
+  exports2.ListDirectoryBuckets$ = [
+    9,
+    n0,
+    _LDB,
+    { [_h]: ["GET", "/?x-id=ListDirectoryBuckets", 200] },
+    () => exports2.ListDirectoryBucketsRequest$,
+    () => exports2.ListDirectoryBucketsOutput$
+  ];
+  exports2.ListMultipartUploads$ = [
+    9,
+    n0,
+    _LMU,
+    { [_h]: ["GET", "/?uploads", 200] },
+    () => exports2.ListMultipartUploadsRequest$,
+    () => exports2.ListMultipartUploadsOutput$
+  ];
+  exports2.ListObjects$ = [
+    9,
+    n0,
+    _LO,
+    { [_h]: ["GET", "/", 200] },
+    () => exports2.ListObjectsRequest$,
+    () => exports2.ListObjectsOutput$
+  ];
+  exports2.ListObjectsV2$ = [
+    9,
+    n0,
+    _LOV,
+    { [_h]: ["GET", "/?list-type=2", 200] },
+    () => exports2.ListObjectsV2Request$,
+    () => exports2.ListObjectsV2Output$
+  ];
+  exports2.ListObjectVersions$ = [
+    9,
+    n0,
+    _LOVi,
+    { [_h]: ["GET", "/?versions", 200] },
+    () => exports2.ListObjectVersionsRequest$,
+    () => exports2.ListObjectVersionsOutput$
+  ];
+  exports2.ListParts$ = [
+    9,
+    n0,
+    _LP,
+    { [_h]: ["GET", "/{Key+}?x-id=ListParts", 200] },
+    () => exports2.ListPartsRequest$,
+    () => exports2.ListPartsOutput$
+  ];
+  exports2.PutBucketAbac$ = [
+    9,
+    n0,
+    _PBA,
+    { [_hC]: "-", [_h]: ["PUT", "/?abac", 200] },
+    () => exports2.PutBucketAbacRequest$,
+    () => __Unit
+  ];
+  exports2.PutBucketAccelerateConfiguration$ = [
+    9,
+    n0,
+    _PBAC,
+    { [_hC]: "-", [_h]: ["PUT", "/?accelerate", 200] },
+    () => exports2.PutBucketAccelerateConfigurationRequest$,
+    () => __Unit
+  ];
+  exports2.PutBucketAcl$ = [
+    9,
+    n0,
+    _PBAu,
+    { [_hC]: "-", [_h]: ["PUT", "/?acl", 200] },
+    () => exports2.PutBucketAclRequest$,
+    () => __Unit
+  ];
+  exports2.PutBucketAnalyticsConfiguration$ = [
+    9,
+    n0,
+    _PBACu,
+    { [_h]: ["PUT", "/?analytics", 200] },
+    () => exports2.PutBucketAnalyticsConfigurationRequest$,
+    () => __Unit
+  ];
+  exports2.PutBucketCors$ = [
+    9,
+    n0,
+    _PBC,
+    { [_hC]: "-", [_h]: ["PUT", "/?cors", 200] },
+    () => exports2.PutBucketCorsRequest$,
+    () => __Unit
+  ];
+  exports2.PutBucketEncryption$ = [
+    9,
+    n0,
+    _PBE,
+    { [_hC]: "-", [_h]: ["PUT", "/?encryption", 200] },
+    () => exports2.PutBucketEncryptionRequest$,
+    () => __Unit
+  ];
+  exports2.PutBucketIntelligentTieringConfiguration$ = [
+    9,
+    n0,
+    _PBITC,
+    { [_h]: ["PUT", "/?intelligent-tiering", 200] },
+    () => exports2.PutBucketIntelligentTieringConfigurationRequest$,
+    () => __Unit
+  ];
+  exports2.PutBucketInventoryConfiguration$ = [
+    9,
+    n0,
+    _PBIC,
+    { [_h]: ["PUT", "/?inventory", 200] },
+    () => exports2.PutBucketInventoryConfigurationRequest$,
+    () => __Unit
+  ];
+  exports2.PutBucketLifecycleConfiguration$ = [
+    9,
+    n0,
+    _PBLC,
+    { [_hC]: "-", [_h]: ["PUT", "/?lifecycle", 200] },
+    () => exports2.PutBucketLifecycleConfigurationRequest$,
+    () => exports2.PutBucketLifecycleConfigurationOutput$
+  ];
+  exports2.PutBucketLogging$ = [
+    9,
+    n0,
+    _PBL,
+    { [_hC]: "-", [_h]: ["PUT", "/?logging", 200] },
+    () => exports2.PutBucketLoggingRequest$,
+    () => __Unit
+  ];
+  exports2.PutBucketMetricsConfiguration$ = [
+    9,
+    n0,
+    _PBMC,
+    { [_h]: ["PUT", "/?metrics", 200] },
+    () => exports2.PutBucketMetricsConfigurationRequest$,
+    () => __Unit
+  ];
+  exports2.PutBucketNotificationConfiguration$ = [
+    9,
+    n0,
+    _PBNC,
+    { [_h]: ["PUT", "/?notification", 200] },
+    () => exports2.PutBucketNotificationConfigurationRequest$,
+    () => __Unit
+  ];
+  exports2.PutBucketOwnershipControls$ = [
+    9,
+    n0,
+    _PBOC,
+    { [_hC]: "-", [_h]: ["PUT", "/?ownershipControls", 200] },
+    () => exports2.PutBucketOwnershipControlsRequest$,
+    () => __Unit
+  ];
+  exports2.PutBucketPolicy$ = [
+    9,
+    n0,
+    _PBP,
+    { [_hC]: "-", [_h]: ["PUT", "/?policy", 200] },
+    () => exports2.PutBucketPolicyRequest$,
+    () => __Unit
+  ];
+  exports2.PutBucketReplication$ = [
+    9,
+    n0,
+    _PBR,
+    { [_hC]: "-", [_h]: ["PUT", "/?replication", 200] },
+    () => exports2.PutBucketReplicationRequest$,
+    () => __Unit
+  ];
+  exports2.PutBucketRequestPayment$ = [
+    9,
+    n0,
+    _PBRP,
+    { [_hC]: "-", [_h]: ["PUT", "/?requestPayment", 200] },
+    () => exports2.PutBucketRequestPaymentRequest$,
+    () => __Unit
+  ];
+  exports2.PutBucketTagging$ = [
+    9,
+    n0,
+    _PBT,
+    { [_hC]: "-", [_h]: ["PUT", "/?tagging", 200] },
+    () => exports2.PutBucketTaggingRequest$,
+    () => __Unit
+  ];
+  exports2.PutBucketVersioning$ = [
+    9,
+    n0,
+    _PBV,
+    { [_hC]: "-", [_h]: ["PUT", "/?versioning", 200] },
+    () => exports2.PutBucketVersioningRequest$,
+    () => __Unit
+  ];
+  exports2.PutBucketWebsite$ = [
+    9,
+    n0,
+    _PBW,
+    { [_hC]: "-", [_h]: ["PUT", "/?website", 200] },
+    () => exports2.PutBucketWebsiteRequest$,
+    () => __Unit
+  ];
+  exports2.PutObject$ = [
+    9,
+    n0,
+    _PO,
+    { [_hC]: "-", [_h]: ["PUT", "/{Key+}?x-id=PutObject", 200] },
+    () => exports2.PutObjectRequest$,
+    () => exports2.PutObjectOutput$
+  ];
+  exports2.PutObjectAcl$ = [
+    9,
+    n0,
+    _POA,
+    { [_hC]: "-", [_h]: ["PUT", "/{Key+}?acl", 200] },
+    () => exports2.PutObjectAclRequest$,
+    () => exports2.PutObjectAclOutput$
+  ];
+  exports2.PutObjectLegalHold$ = [
+    9,
+    n0,
+    _POLH,
+    { [_hC]: "-", [_h]: ["PUT", "/{Key+}?legal-hold", 200] },
+    () => exports2.PutObjectLegalHoldRequest$,
+    () => exports2.PutObjectLegalHoldOutput$
+  ];
+  exports2.PutObjectLockConfiguration$ = [
+    9,
+    n0,
+    _POLC,
+    { [_hC]: "-", [_h]: ["PUT", "/?object-lock", 200] },
+    () => exports2.PutObjectLockConfigurationRequest$,
+    () => exports2.PutObjectLockConfigurationOutput$
+  ];
+  exports2.PutObjectRetention$ = [
+    9,
+    n0,
+    _PORu,
+    { [_hC]: "-", [_h]: ["PUT", "/{Key+}?retention", 200] },
+    () => exports2.PutObjectRetentionRequest$,
+    () => exports2.PutObjectRetentionOutput$
+  ];
+  exports2.PutObjectTagging$ = [
+    9,
+    n0,
+    _POT,
+    { [_hC]: "-", [_h]: ["PUT", "/{Key+}?tagging", 200] },
+    () => exports2.PutObjectTaggingRequest$,
+    () => exports2.PutObjectTaggingOutput$
+  ];
+  exports2.PutPublicAccessBlock$ = [
+    9,
+    n0,
+    _PPAB,
+    { [_hC]: "-", [_h]: ["PUT", "/?publicAccessBlock", 200] },
+    () => exports2.PutPublicAccessBlockRequest$,
+    () => __Unit
+  ];
+  exports2.RenameObject$ = [
+    9,
+    n0,
+    _RO,
+    { [_h]: ["PUT", "/{Key+}?renameObject", 200] },
+    () => exports2.RenameObjectRequest$,
+    () => exports2.RenameObjectOutput$
+  ];
+  exports2.RestoreObject$ = [
+    9,
+    n0,
+    _ROe,
+    { [_hC]: "-", [_h]: ["POST", "/{Key+}?restore", 200] },
+    () => exports2.RestoreObjectRequest$,
+    () => exports2.RestoreObjectOutput$
+  ];
+  exports2.SelectObjectContent$ = [
+    9,
+    n0,
+    _SOC,
+    { [_h]: ["POST", "/{Key+}?select&select-type=2", 200] },
+    () => exports2.SelectObjectContentRequest$,
+    () => exports2.SelectObjectContentOutput$
+  ];
+  exports2.UpdateBucketMetadataInventoryTableConfiguration$ = [
+    9,
+    n0,
+    _UBMITC,
+    { [_hC]: "-", [_h]: ["PUT", "/?metadataInventoryTable", 200] },
+    () => exports2.UpdateBucketMetadataInventoryTableConfigurationRequest$,
+    () => __Unit
+  ];
+  exports2.UpdateBucketMetadataJournalTableConfiguration$ = [
+    9,
+    n0,
+    _UBMJTC,
+    { [_hC]: "-", [_h]: ["PUT", "/?metadataJournalTable", 200] },
+    () => exports2.UpdateBucketMetadataJournalTableConfigurationRequest$,
+    () => __Unit
+  ];
+  exports2.UpdateObjectEncryption$ = [
+    9,
+    n0,
+    _UOE,
+    { [_hC]: "-", [_h]: ["PUT", "/{Key+}?encryption", 200] },
+    () => exports2.UpdateObjectEncryptionRequest$,
+    () => exports2.UpdateObjectEncryptionResponse$
+  ];
+  exports2.UploadPart$ = [
+    9,
+    n0,
+    _UP,
+    { [_hC]: "-", [_h]: ["PUT", "/{Key+}?x-id=UploadPart", 200] },
+    () => exports2.UploadPartRequest$,
+    () => exports2.UploadPartOutput$
+  ];
+  exports2.UploadPartCopy$ = [
+    9,
+    n0,
+    _UPC,
+    { [_h]: ["PUT", "/{Key+}?x-id=UploadPartCopy", 200] },
+    () => exports2.UploadPartCopyRequest$,
+    () => exports2.UploadPartCopyOutput$
+  ];
+  exports2.WriteGetObjectResponse$ = [
+    9,
+    n0,
+    _WGOR,
+    { [_en]: ["{RequestRoute}."], [_h]: ["POST", "/WriteGetObjectResponse", 200] },
+    () => exports2.WriteGetObjectResponseRequest$,
+    () => __Unit
+  ];
+});
+
+// ../../node_modules/.bun/@aws-sdk+client-s3@3.1053.0/node_modules/@aws-sdk/client-s3/package.json
+var require_package = __commonJS((exports2, module2) => {
+  module2.exports = {
+    name: "@aws-sdk/client-s3",
+    description: "AWS SDK for JavaScript S3 Client for Node.js, Browser and React Native",
+    version: "3.1053.0",
+    scripts: {
+      build: "concurrently 'yarn:build:types' 'yarn:build:es' && yarn build:cjs",
+      "build:cjs": "node ../../scripts/compilation/inline client-s3",
+      "build:es": "tsc -p tsconfig.es.json",
+      "build:include:deps": 'yarn g:turbo run build -F="$npm_package_name"',
+      "build:types": "tsc -p tsconfig.types.json",
+      "build:types:downlevel": "downlevel-dts dist-types dist-types/ts3.4",
+      clean: "premove dist-cjs dist-es dist-types tsconfig.cjs.tsbuildinfo tsconfig.es.tsbuildinfo tsconfig.types.tsbuildinfo",
+      "extract:docs": "api-extractor run --local",
+      "generate:client": "node ../../scripts/generate-clients/single-service --solo s3",
+      test: "yarn g:vitest run",
+      "test:browser": "node ./test/browser-build/esbuild && yarn g:vitest run -c vitest.config.browser.mts",
+      "test:browser:watch": "node ./test/browser-build/esbuild && yarn g:vitest watch -c vitest.config.browser.mts",
+      "test:e2e": "yarn g:vitest run -c vitest.config.e2e.mts && yarn test:browser",
+      "test:e2e:watch": "yarn g:vitest watch -c vitest.config.e2e.mts",
+      "test:index": "tsc --noEmit ./test/index-types.ts && node ./test/index-objects.spec.mjs",
+      "test:integration": "yarn g:vitest run -c vitest.config.integ.mts",
+      "test:integration:watch": "yarn g:vitest watch -c vitest.config.integ.mts",
+      "test:watch": "yarn g:vitest watch"
+    },
+    main: "./dist-cjs/index.js",
+    types: "./dist-types/index.d.ts",
+    module: "./dist-es/index.js",
+    sideEffects: false,
+    dependencies: {
+      "@aws-crypto/sha1-browser": "5.2.0",
+      "@aws-crypto/sha256-browser": "5.2.0",
+      "@aws-crypto/sha256-js": "5.2.0",
+      "@aws-sdk/core": "^3.974.13",
+      "@aws-sdk/credential-provider-node": "^3.972.44",
+      "@aws-sdk/middleware-bucket-endpoint": "^3.972.15",
+      "@aws-sdk/middleware-expect-continue": "^3.972.13",
+      "@aws-sdk/middleware-flexible-checksums": "^3.974.21",
+      "@aws-sdk/middleware-location-constraint": "^3.972.11",
+      "@aws-sdk/middleware-sdk-s3": "^3.972.42",
+      "@aws-sdk/middleware-ssec": "^3.972.11",
+      "@aws-sdk/signature-v4-multi-region": "^3.996.28",
+      "@aws-sdk/types": "^3.973.9",
+      "@smithy/core": "^3.24.3",
+      "@smithy/fetch-http-handler": "^5.4.3",
+      "@smithy/node-http-handler": "^4.7.3",
+      "@smithy/types": "^4.14.2",
+      tslib: "^2.6.2"
+    },
+    devDependencies: {
+      "@aws-sdk/signature-v4-crt": "3.1053.0",
+      "@smithy/snapshot-testing": "^2.1.3",
+      "@tsconfig/node20": "20.1.8",
+      "@types/node": "^20.14.8",
+      concurrently: "7.0.0",
+      "downlevel-dts": "0.10.1",
+      premove: "4.0.0",
+      typescript: "~5.8.3",
+      vitest: "^4.0.17"
+    },
+    engines: {
+      node: ">=20.0.0"
+    },
+    typesVersions: {
+      "<4.5": {
+        "dist-types/*": [
+          "dist-types/ts3.4/*"
+        ]
+      }
+    },
+    files: [
+      "dist-*/**"
+    ],
+    author: {
+      name: "AWS SDK for JavaScript Team",
+      url: "https://aws.amazon.com/javascript/"
+    },
+    license: "Apache-2.0",
+    browser: {
+      "./dist-es/runtimeConfig": "./dist-es/runtimeConfig.browser"
+    },
+    "react-native": {
+      "./dist-es/runtimeConfig": "./dist-es/runtimeConfig.native"
+    },
+    homepage: "https://github.com/aws/aws-sdk-js-v3/tree/main/clients/client-s3",
+    repository: {
+      type: "git",
+      url: "https://github.com/aws/aws-sdk-js-v3.git",
+      directory: "clients/client-s3"
+    }
+  };
+});
+
+// ../../node_modules/.bun/@aws-sdk+credential-provider-env@3.972.39/node_modules/@aws-sdk/credential-provider-env/dist-cjs/index.js
+var require_dist_cjs13 = __commonJS((exports2) => {
+  var client = require_client2();
+  var config = require_config();
+  var ENV_KEY = "AWS_ACCESS_KEY_ID";
+  var ENV_SECRET = "AWS_SECRET_ACCESS_KEY";
+  var ENV_SESSION = "AWS_SESSION_TOKEN";
+  var ENV_EXPIRATION = "AWS_CREDENTIAL_EXPIRATION";
+  var ENV_CREDENTIAL_SCOPE = "AWS_CREDENTIAL_SCOPE";
+  var ENV_ACCOUNT_ID = "AWS_ACCOUNT_ID";
+  var fromEnv = (init) => async () => {
+    init?.logger?.debug("@aws-sdk/credential-provider-env - fromEnv");
+    const accessKeyId = process.env[ENV_KEY];
+    const secretAccessKey = process.env[ENV_SECRET];
+    const sessionToken = process.env[ENV_SESSION];
+    const expiry = process.env[ENV_EXPIRATION];
+    const credentialScope = process.env[ENV_CREDENTIAL_SCOPE];
+    const accountId = process.env[ENV_ACCOUNT_ID];
+    if (accessKeyId && secretAccessKey) {
+      const credentials = {
+        accessKeyId,
+        secretAccessKey,
+        ...sessionToken && { sessionToken },
+        ...expiry && { expiration: new Date(expiry) },
+        ...credentialScope && { credentialScope },
+        ...accountId && { accountId }
+      };
+      client.setCredentialFeature(credentials, "CREDENTIALS_ENV_VARS", "g");
+      return credentials;
+    }
+    throw new config.CredentialsProviderError("Unable to find environment variable credentials.", { logger: init?.logger });
+  };
+  exports2.ENV_ACCOUNT_ID = ENV_ACCOUNT_ID;
+  exports2.ENV_CREDENTIAL_SCOPE = ENV_CREDENTIAL_SCOPE;
+  exports2.ENV_EXPIRATION = ENV_EXPIRATION;
+  exports2.ENV_KEY = ENV_KEY;
+  exports2.ENV_SECRET = ENV_SECRET;
+  exports2.ENV_SESSION = ENV_SESSION;
+  exports2.fromEnv = fromEnv;
+});
+
+// ../../node_modules/.bun/@smithy+credential-provider-imds@4.3.4/node_modules/@smithy/credential-provider-imds/dist-cjs/index.js
+var require_dist_cjs14 = __commonJS((exports2) => {
+  var node_url = require("node:url");
+  var config = require_config();
+  var node_http = require("node:http");
+  var protocols = require_protocols();
+  var isImdsCredentials = (arg) => Boolean(arg) && typeof arg === "object" && typeof arg.AccessKeyId === "string" && typeof arg.SecretAccessKey === "string" && typeof arg.Token === "string" && typeof arg.Expiration === "string";
+  var fromImdsCredentials = (creds) => ({
+    accessKeyId: creds.AccessKeyId,
+    secretAccessKey: creds.SecretAccessKey,
+    sessionToken: creds.Token,
+    expiration: new Date(creds.Expiration),
+    ...creds.AccountId && { accountId: creds.AccountId }
+  });
+  var DEFAULT_TIMEOUT = 1000;
+  var DEFAULT_MAX_RETRIES = 0;
+  var providerConfigFromInit = ({ maxRetries = DEFAULT_MAX_RETRIES, timeout = DEFAULT_TIMEOUT }) => ({ maxRetries, timeout });
+  function httpRequest(options) {
+    return new Promise((resolve, reject) => {
+      const req = node_http.request({
+        method: "GET",
+        ...options,
+        hostname: options.hostname?.replace(/^\[(.+)\]$/, "$1")
+      });
+      req.on("error", (err) => {
+        reject(Object.assign(new config.ProviderError("Unable to connect to instance metadata service"), err));
+        req.destroy();
+      });
+      req.on("timeout", () => {
+        reject(new config.ProviderError("TimeoutError from instance metadata service"));
+        req.destroy();
+      });
+      req.on("response", (res) => {
+        const { statusCode = 400 } = res;
+        if (statusCode < 200 || 300 <= statusCode) {
+          reject(Object.assign(new config.ProviderError("Error response received from instance metadata service"), { statusCode }));
+          req.destroy();
+        }
+        const chunks = [];
+        res.on("data", (chunk) => {
+          chunks.push(chunk);
+        });
+        res.on("end", () => {
+          resolve(Buffer.concat(chunks));
+          req.destroy();
+        });
+      });
+      req.end();
+    });
+  }
+  var retry = (toRetry, maxRetries) => {
+    let promise = toRetry();
+    for (let i = 0;i < maxRetries; i++) {
+      promise = promise.catch(toRetry);
+    }
+    return promise;
+  };
+  var ENV_CMDS_FULL_URI = "AWS_CONTAINER_CREDENTIALS_FULL_URI";
+  var ENV_CMDS_RELATIVE_URI = "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI";
+  var ENV_CMDS_AUTH_TOKEN = "AWS_CONTAINER_AUTHORIZATION_TOKEN";
+  var fromContainerMetadata = (init = {}) => {
+    const { timeout, maxRetries } = providerConfigFromInit(init);
+    return () => retry(async () => {
+      const requestOptions = await getCmdsUri({ logger: init.logger });
+      const credsResponse = JSON.parse(await requestFromEcsImds(timeout, requestOptions));
+      if (!isImdsCredentials(credsResponse)) {
+        throw new config.CredentialsProviderError("Invalid response received from instance metadata service.", {
+          logger: init.logger
+        });
+      }
+      return fromImdsCredentials(credsResponse);
+    }, maxRetries);
+  };
+  var requestFromEcsImds = async (timeout, options) => {
+    if (process.env[ENV_CMDS_AUTH_TOKEN]) {
+      options.headers = {
+        ...options.headers,
+        Authorization: process.env[ENV_CMDS_AUTH_TOKEN]
+      };
+    }
+    const buffer = await httpRequest({
+      ...options,
+      timeout
+    });
+    return buffer.toString();
+  };
+  var CMDS_IP = "169.254.170.2";
+  var GREENGRASS_HOSTS = {
+    localhost: true,
+    "127.0.0.1": true
+  };
+  var GREENGRASS_PROTOCOLS = {
+    "http:": true,
+    "https:": true
+  };
+  var getCmdsUri = async ({ logger }) => {
+    if (process.env[ENV_CMDS_RELATIVE_URI]) {
+      return {
+        hostname: CMDS_IP,
+        path: process.env[ENV_CMDS_RELATIVE_URI]
+      };
+    }
+    if (process.env[ENV_CMDS_FULL_URI]) {
+      const parsed = node_url.parse(process.env[ENV_CMDS_FULL_URI]);
+      if (!parsed.hostname || !(parsed.hostname in GREENGRASS_HOSTS)) {
+        throw new config.CredentialsProviderError(`${parsed.hostname} is not a valid container metadata service hostname`, {
+          tryNextLink: false,
+          logger
+        });
+      }
+      if (!parsed.protocol || !(parsed.protocol in GREENGRASS_PROTOCOLS)) {
+        throw new config.CredentialsProviderError(`${parsed.protocol} is not a valid container metadata service protocol`, {
+          tryNextLink: false,
+          logger
+        });
+      }
+      return {
+        ...parsed,
+        port: parsed.port ? parseInt(parsed.port, 10) : undefined
+      };
+    }
+    throw new config.CredentialsProviderError("The container metadata credential provider cannot be used unless" + ` the ${ENV_CMDS_RELATIVE_URI} or ${ENV_CMDS_FULL_URI} environment` + " variable is set", {
+      tryNextLink: false,
+      logger
+    });
+  };
+
+  class InstanceMetadataV1FallbackError extends config.CredentialsProviderError {
+    tryNextLink;
+    name = "InstanceMetadataV1FallbackError";
+    constructor(message2, tryNextLink = true) {
+      super(message2, tryNextLink);
+      this.tryNextLink = tryNextLink;
+      Object.setPrototypeOf(this, InstanceMetadataV1FallbackError.prototype);
+    }
+  }
+  exports2.Endpoint = undefined;
+  (function(Endpoint) {
+    Endpoint["IPv4"] = "http://169.254.169.254";
+    Endpoint["IPv6"] = "http://[fd00:ec2::254]";
+  })(exports2.Endpoint || (exports2.Endpoint = {}));
+  var ENV_ENDPOINT_NAME = "AWS_EC2_METADATA_SERVICE_ENDPOINT";
+  var CONFIG_ENDPOINT_NAME = "ec2_metadata_service_endpoint";
+  var ENDPOINT_CONFIG_OPTIONS = {
+    environmentVariableSelector: (env4) => env4[ENV_ENDPOINT_NAME],
+    configFileSelector: (profile) => profile[CONFIG_ENDPOINT_NAME],
+    default: undefined
+  };
+  var EndpointMode;
+  (function(EndpointMode2) {
+    EndpointMode2["IPv4"] = "IPv4";
+    EndpointMode2["IPv6"] = "IPv6";
+  })(EndpointMode || (EndpointMode = {}));
+  var ENV_ENDPOINT_MODE_NAME = "AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE";
+  var CONFIG_ENDPOINT_MODE_NAME = "ec2_metadata_service_endpoint_mode";
+  var ENDPOINT_MODE_CONFIG_OPTIONS = {
+    environmentVariableSelector: (env4) => env4[ENV_ENDPOINT_MODE_NAME],
+    configFileSelector: (profile) => profile[CONFIG_ENDPOINT_MODE_NAME],
+    default: EndpointMode.IPv4
+  };
+  var getInstanceMetadataEndpoint = async () => protocols.parseUrl(await getFromEndpointConfig() || await getFromEndpointModeConfig());
+  var getFromEndpointConfig = async () => config.loadConfig(ENDPOINT_CONFIG_OPTIONS)();
+  var getFromEndpointModeConfig = async () => {
+    const endpointMode = await config.loadConfig(ENDPOINT_MODE_CONFIG_OPTIONS)();
+    switch (endpointMode) {
+      case EndpointMode.IPv4:
+        return exports2.Endpoint.IPv4;
+      case EndpointMode.IPv6:
+        return exports2.Endpoint.IPv6;
+      default:
+        throw new Error(`Unsupported endpoint mode: ${endpointMode}.` + ` Select from ${Object.values(EndpointMode)}`);
+    }
+  };
+  var STATIC_STABILITY_REFRESH_INTERVAL_SECONDS = 5 * 60;
+  var STATIC_STABILITY_REFRESH_INTERVAL_JITTER_WINDOW_SECONDS = 5 * 60;
+  var STATIC_STABILITY_DOC_URL = "https://docs.aws.amazon.com/sdkref/latest/guide/feature-static-credentials.html";
+  var getExtendedInstanceMetadataCredentials = (credentials, logger) => {
+    const refreshInterval = STATIC_STABILITY_REFRESH_INTERVAL_SECONDS + Math.floor(Math.random() * STATIC_STABILITY_REFRESH_INTERVAL_JITTER_WINDOW_SECONDS);
+    const newExpiration = new Date(Date.now() + refreshInterval * 1000);
+    logger.warn("Attempting credential expiration extension due to a credential service availability issue. A refresh of these " + `credentials will be attempted after ${new Date(newExpiration)}.
+For more information, please visit: ` + STATIC_STABILITY_DOC_URL);
+    const originalExpiration = credentials.originalExpiration ?? credentials.expiration;
+    return {
+      ...credentials,
+      ...originalExpiration ? { originalExpiration } : {},
+      expiration: newExpiration
+    };
+  };
+  var staticStabilityProvider = (provider, options = {}) => {
+    const logger = options?.logger || console;
+    let pastCredentials;
+    return async () => {
+      let credentials;
+      try {
+        credentials = await provider();
+        if (credentials.expiration && credentials.expiration.getTime() < Date.now()) {
+          credentials = getExtendedInstanceMetadataCredentials(credentials, logger);
+        }
+      } catch (e) {
+        if (pastCredentials) {
+          logger.warn("Credential renew failed: ", e);
+          credentials = getExtendedInstanceMetadataCredentials(pastCredentials, logger);
+        } else {
+          throw e;
+        }
+      }
+      pastCredentials = credentials;
+      return credentials;
+    };
+  };
+  var IMDS_PATH = "/latest/meta-data/iam/security-credentials/";
+  var IMDS_TOKEN_PATH = "/latest/api/token";
+  var AWS_EC2_METADATA_V1_DISABLED = "AWS_EC2_METADATA_V1_DISABLED";
+  var PROFILE_AWS_EC2_METADATA_V1_DISABLED = "ec2_metadata_v1_disabled";
+  var X_AWS_EC2_METADATA_TOKEN = "x-aws-ec2-metadata-token";
+  var fromInstanceMetadata = (init = {}) => staticStabilityProvider(getInstanceMetadataProvider(init), { logger: init.logger });
+  var getInstanceMetadataProvider = (init = {}) => {
+    let disableFetchToken = false;
+    const { logger, profile } = init;
+    const { timeout, maxRetries } = providerConfigFromInit(init);
+    const getCredentials = async (maxRetries2, options) => {
+      const isImdsV1Fallback = disableFetchToken || options.headers?.[X_AWS_EC2_METADATA_TOKEN] == null;
+      if (isImdsV1Fallback) {
+        let fallbackBlockedFromProfile = false;
+        let fallbackBlockedFromProcessEnv = false;
+        const configValue = await config.loadConfig({
+          environmentVariableSelector: (env4) => {
+            const envValue = env4[AWS_EC2_METADATA_V1_DISABLED];
+            fallbackBlockedFromProcessEnv = !!envValue && envValue !== "false";
+            if (envValue === undefined) {
+              throw new config.CredentialsProviderError(`${AWS_EC2_METADATA_V1_DISABLED} not set in env, checking config file next.`, { logger: init.logger });
+            }
+            return fallbackBlockedFromProcessEnv;
+          },
+          configFileSelector: (profile2) => {
+            const profileValue = profile2[PROFILE_AWS_EC2_METADATA_V1_DISABLED];
+            fallbackBlockedFromProfile = !!profileValue && profileValue !== "false";
+            return fallbackBlockedFromProfile;
+          },
+          default: false
+        }, {
+          profile
+        })();
+        if (init.ec2MetadataV1Disabled || configValue) {
+          const causes = [];
+          if (init.ec2MetadataV1Disabled)
+            causes.push("credential provider initialization (runtime option ec2MetadataV1Disabled)");
+          if (fallbackBlockedFromProfile)
+            causes.push(`config file profile (${PROFILE_AWS_EC2_METADATA_V1_DISABLED})`);
+          if (fallbackBlockedFromProcessEnv)
+            causes.push(`process environment variable (${AWS_EC2_METADATA_V1_DISABLED})`);
+          throw new InstanceMetadataV1FallbackError(`AWS EC2 Metadata v1 fallback has been blocked by AWS SDK configuration in the following: [${causes.join(", ")}].`);
+        }
+      }
+      const imdsProfile = (await retry(async () => {
+        let profile2;
+        try {
+          profile2 = await getProfile(options);
+        } catch (err) {
+          if (err.statusCode === 401) {
+            disableFetchToken = false;
+          }
+          throw err;
+        }
+        return profile2;
+      }, maxRetries2)).trim();
+      return retry(async () => {
+        let creds;
+        try {
+          creds = await getCredentialsFromProfile(imdsProfile, options, init);
+        } catch (err) {
+          if (err.statusCode === 401) {
+            disableFetchToken = false;
+          }
+          throw err;
+        }
+        return creds;
+      }, maxRetries2);
+    };
+    return async () => {
+      const endpoint = await getInstanceMetadataEndpoint();
+      if (disableFetchToken) {
+        logger?.debug("AWS SDK Instance Metadata", "using v1 fallback (no token fetch)");
+        return getCredentials(maxRetries, { ...endpoint, timeout });
+      } else {
+        let token;
+        try {
+          token = (await getMetadataToken({ ...endpoint, timeout })).toString();
+        } catch (error) {
+          if (error?.statusCode === 400) {
+            throw Object.assign(error, {
+              message: "EC2 Metadata token request returned error"
+            });
+          } else if (error.message === "TimeoutError" || [403, 404, 405].includes(error.statusCode)) {
+            disableFetchToken = true;
+          }
+          logger?.debug("AWS SDK Instance Metadata", "using v1 fallback (initial)");
+          return getCredentials(maxRetries, { ...endpoint, timeout });
+        }
+        return getCredentials(maxRetries, {
+          ...endpoint,
+          headers: {
+            [X_AWS_EC2_METADATA_TOKEN]: token
+          },
+          timeout
+        });
+      }
+    };
+  };
+  var getMetadataToken = async (options) => httpRequest({
+    ...options,
+    path: IMDS_TOKEN_PATH,
+    method: "PUT",
+    headers: {
+      "x-aws-ec2-metadata-token-ttl-seconds": "21600"
+    }
+  });
+  var getProfile = async (options) => (await httpRequest({ ...options, path: IMDS_PATH })).toString();
+  var getCredentialsFromProfile = async (profile, options, init) => {
+    const credentialsResponse = JSON.parse((await httpRequest({
+      ...options,
+      path: IMDS_PATH + profile
+    })).toString());
+    if (!isImdsCredentials(credentialsResponse)) {
+      throw new config.CredentialsProviderError("Invalid response received from instance metadata service.", {
+        logger: init.logger
+      });
+    }
+    return fromImdsCredentials(credentialsResponse);
+  };
+  exports2.DEFAULT_MAX_RETRIES = DEFAULT_MAX_RETRIES;
+  exports2.DEFAULT_TIMEOUT = DEFAULT_TIMEOUT;
+  exports2.ENV_CMDS_AUTH_TOKEN = ENV_CMDS_AUTH_TOKEN;
+  exports2.ENV_CMDS_FULL_URI = ENV_CMDS_FULL_URI;
+  exports2.ENV_CMDS_RELATIVE_URI = ENV_CMDS_RELATIVE_URI;
+  exports2.fromContainerMetadata = fromContainerMetadata;
+  exports2.fromInstanceMetadata = fromInstanceMetadata;
+  exports2.getInstanceMetadataEndpoint = getInstanceMetadataEndpoint;
+  exports2.httpRequest = httpRequest;
+  exports2.providerConfigFromInit = providerConfigFromInit;
+});
+
+// ../../node_modules/.bun/@smithy+node-http-handler@4.7.4/node_modules/@smithy/node-http-handler/dist-cjs/index.js
+var require_dist_cjs15 = __commonJS((exports2) => {
+  var node_https = require("node:https");
+  var protocols = require_protocols();
+  var node_stream = require("node:stream");
+  var http2 = require("node:http2");
+  function buildAbortError(abortSignal) {
+    const reason = abortSignal && typeof abortSignal === "object" && "reason" in abortSignal ? abortSignal.reason : undefined;
+    if (reason) {
+      if (reason instanceof Error) {
+        const abortError3 = new Error("Request aborted");
+        abortError3.name = "AbortError";
+        abortError3.cause = reason;
+        return abortError3;
+      }
+      const abortError2 = new Error(String(reason));
+      abortError2.name = "AbortError";
+      return abortError2;
+    }
+    const abortError = new Error("Request aborted");
+    abortError.name = "AbortError";
+    return abortError;
+  }
+  var NODEJS_TIMEOUT_ERROR_CODES = ["ECONNRESET", "EPIPE", "ETIMEDOUT"];
+  var getTransformedHeaders = (headers) => {
+    const transformedHeaders = {};
+    for (const name in headers) {
+      const headerValues = headers[name];
+      transformedHeaders[name] = Array.isArray(headerValues) ? headerValues.join(",") : headerValues;
+    }
+    return transformedHeaders;
+  };
+  var timing = {
+    setTimeout: (cb, ms) => setTimeout(cb, ms),
+    clearTimeout: (timeoutId) => clearTimeout(timeoutId)
+  };
+  var DEFER_EVENT_LISTENER_TIME$2 = 1000;
+  var setConnectionTimeout = (request, reject, timeoutInMs = 0) => {
+    if (!timeoutInMs) {
+      return -1;
+    }
+    const registerTimeout = (offset) => {
+      const timeoutId = timing.setTimeout(() => {
+        request.destroy();
+        reject(Object.assign(new Error(`@smithy/node-http-handler - the request socket did not establish a connection with the server within the configured timeout of ${timeoutInMs} ms.`), {
+          name: "TimeoutError"
+        }));
+      }, timeoutInMs - offset);
+      const doWithSocket = (socket) => {
+        if (socket?.connecting) {
+          socket.on("connect", () => {
+            timing.clearTimeout(timeoutId);
+          });
+        } else {
+          timing.clearTimeout(timeoutId);
+        }
+      };
+      if (request.socket) {
+        doWithSocket(request.socket);
+      } else {
+        request.on("socket", doWithSocket);
+      }
+    };
+    if (timeoutInMs < 2000) {
+      registerTimeout(0);
+      return 0;
+    }
+    return timing.setTimeout(registerTimeout.bind(null, DEFER_EVENT_LISTENER_TIME$2), DEFER_EVENT_LISTENER_TIME$2);
+  };
+  var setRequestTimeout = (req, reject, timeoutInMs = 0, throwOnRequestTimeout, logger) => {
+    if (timeoutInMs) {
+      return timing.setTimeout(() => {
+        let msg = `@smithy/node-http-handler - [${throwOnRequestTimeout ? "ERROR" : "WARN"}] a request has exceeded the configured ${timeoutInMs} ms requestTimeout.`;
+        if (throwOnRequestTimeout) {
+          const error = Object.assign(new Error(msg), {
+            name: "TimeoutError",
+            code: "ETIMEDOUT"
+          });
+          req.destroy(error);
+          reject(error);
+        } else {
+          msg += ` Init client requestHandler with throwOnRequestTimeout=true to turn this into an error.`;
+          logger?.warn?.(msg);
+        }
+      }, timeoutInMs);
+    }
+    return -1;
+  };
+  var DEFER_EVENT_LISTENER_TIME$1 = 3000;
+  var setSocketKeepAlive = (request, { keepAlive, keepAliveMsecs }, deferTimeMs = DEFER_EVENT_LISTENER_TIME$1) => {
+    if (keepAlive !== true) {
+      return -1;
+    }
+    const registerListener = () => {
+      if (request.socket) {
+        request.socket.setKeepAlive(keepAlive, keepAliveMsecs || 0);
+      } else {
+        request.on("socket", (socket) => {
+          socket.setKeepAlive(keepAlive, keepAliveMsecs || 0);
+        });
+      }
+    };
+    if (deferTimeMs === 0) {
+      registerListener();
+      return 0;
+    }
+    return timing.setTimeout(registerListener, deferTimeMs);
+  };
+  var DEFER_EVENT_LISTENER_TIME = 3000;
+  var setSocketTimeout = (request, reject, timeoutInMs = 0) => {
+    const registerTimeout = (offset) => {
+      const timeout = timeoutInMs - offset;
+      const onTimeout = () => {
+        request.destroy();
+        reject(Object.assign(new Error(`@smithy/node-http-handler - the request socket timed out after ${timeoutInMs} ms of inactivity (configured by client requestHandler).`), { name: "TimeoutError" }));
+      };
+      if (request.socket) {
+        request.socket.setTimeout(timeout, onTimeout);
+        request.on("close", () => request.socket?.removeListener("timeout", onTimeout));
+      } else {
+        request.setTimeout(timeout, onTimeout);
+      }
+    };
+    if (0 < timeoutInMs && timeoutInMs < 6000) {
+      registerTimeout(0);
+      return 0;
+    }
+    return timing.setTimeout(registerTimeout.bind(null, timeoutInMs === 0 ? 0 : DEFER_EVENT_LISTENER_TIME), DEFER_EVENT_LISTENER_TIME);
+  };
+  var MIN_WAIT_TIME = 6000;
+  async function writeRequestBody(httpRequest, request, maxContinueTimeoutMs = MIN_WAIT_TIME, externalAgent = false) {
+    const headers = request.headers;
+    const expect = headers ? headers.Expect || headers.expect : undefined;
+    let timeoutId = -1;
+    let sendBody = true;
+    if (!externalAgent && expect === "100-continue") {
+      sendBody = await Promise.race([
+        new Promise((resolve) => {
+          timeoutId = Number(timing.setTimeout(() => resolve(true), Math.max(MIN_WAIT_TIME, maxContinueTimeoutMs)));
+        }),
+        new Promise((resolve) => {
+          httpRequest.on("continue", () => {
+            timing.clearTimeout(timeoutId);
+            resolve(true);
+          });
+          httpRequest.on("response", () => {
+            timing.clearTimeout(timeoutId);
+            resolve(false);
+          });
+          httpRequest.on("error", () => {
+            timing.clearTimeout(timeoutId);
+            resolve(false);
+          });
+        })
+      ]);
+    }
+    if (sendBody) {
+      writeBody(httpRequest, request.body);
+    }
+  }
+  function writeBody(httpRequest, body) {
+    if (body instanceof node_stream.Readable) {
+      body.pipe(httpRequest);
+      return;
+    }
+    if (body) {
+      const isBuffer = Buffer.isBuffer(body);
+      const isString = typeof body === "string";
+      if (isBuffer || isString) {
+        if (isBuffer && body.byteLength === 0) {
+          httpRequest.end();
+        } else {
+          httpRequest.end(body);
+        }
+        return;
+      }
+      const uint8 = body;
+      if (typeof uint8 === "object" && uint8.buffer && typeof uint8.byteOffset === "number" && typeof uint8.byteLength === "number") {
+        httpRequest.end(Buffer.from(uint8.buffer, uint8.byteOffset, uint8.byteLength));
+        return;
+      }
+      httpRequest.end(Buffer.from(body));
+      return;
+    }
+    httpRequest.end();
+  }
+  var DEFAULT_REQUEST_TIMEOUT = 0;
+  var hAgent = undefined;
+  var hRequest = undefined;
+
+  class NodeHttpHandler {
+    config;
+    configProvider;
+    socketWarningTimestamp = 0;
+    externalAgent = false;
+    metadata = { handlerProtocol: "http/1.1" };
+    static create(instanceOrOptions) {
+      if (typeof instanceOrOptions?.handle === "function") {
+        return instanceOrOptions;
+      }
+      return new NodeHttpHandler(instanceOrOptions);
+    }
+    static checkSocketUsage(agent, socketWarningTimestamp, logger = console) {
+      const { sockets, requests, maxSockets } = agent;
+      if (typeof maxSockets !== "number" || maxSockets === Infinity) {
+        return socketWarningTimestamp;
+      }
+      const interval = 15000;
+      if (Date.now() - interval < socketWarningTimestamp) {
+        return socketWarningTimestamp;
+      }
+      if (sockets && requests) {
+        for (const origin in sockets) {
+          const socketsInUse = sockets[origin]?.length ?? 0;
+          const requestsEnqueued = requests[origin]?.length ?? 0;
+          if (socketsInUse >= maxSockets && requestsEnqueued >= 2 * maxSockets) {
+            logger?.warn?.(`@smithy/node-http-handler:WARN - socket usage at capacity=${socketsInUse} and ${requestsEnqueued} additional requests are enqueued.
+See https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/node-configuring-maxsockets.html
+or increase socketAcquisitionWarningTimeout=(millis) in the NodeHttpHandler config.`);
+            return Date.now();
+          }
+        }
+      }
+      return socketWarningTimestamp;
+    }
+    constructor(options) {
+      this.configProvider = new Promise((resolve, reject) => {
+        if (typeof options === "function") {
+          options().then((_options) => {
+            resolve(this.resolveDefaultConfig(_options));
+          }).catch(reject);
+        } else {
+          resolve(this.resolveDefaultConfig(options));
+        }
+      });
+    }
+    destroy() {
+      this.config?.httpAgent?.destroy();
+      this.config?.httpsAgent?.destroy();
+    }
+    async handle(request, { abortSignal, requestTimeout } = {}) {
+      if (!this.config) {
+        this.config = await this.configProvider;
+      }
+      const config = this.config;
+      const isSSL = request.protocol === "https:";
+      if (!isSSL && !this.config.httpAgent) {
+        this.config.httpAgent = await this.config.httpAgentProvider();
+      }
+      return new Promise((_resolve, _reject) => {
+        let writeRequestBodyPromise = undefined;
+        let socketWarningTimeoutId = -1;
+        let connectionTimeoutId = -1;
+        let requestTimeoutId = -1;
+        let socketTimeoutId = -1;
+        let keepAliveTimeoutId = -1;
+        const clearTimeouts = () => {
+          timing.clearTimeout(socketWarningTimeoutId);
+          timing.clearTimeout(connectionTimeoutId);
+          timing.clearTimeout(requestTimeoutId);
+          timing.clearTimeout(socketTimeoutId);
+          timing.clearTimeout(keepAliveTimeoutId);
+        };
+        const resolve = async (arg) => {
+          await writeRequestBodyPromise;
+          clearTimeouts();
+          _resolve(arg);
+        };
+        const reject = async (arg) => {
+          await writeRequestBodyPromise;
+          clearTimeouts();
+          _reject(arg);
+        };
+        if (abortSignal?.aborted) {
+          const abortError = buildAbortError(abortSignal);
+          reject(abortError);
+          return;
+        }
+        const headers = request.headers;
+        const expectContinue = headers ? (headers.Expect ?? headers.expect) === "100-continue" : false;
+        let agent = isSSL ? config.httpsAgent : config.httpAgent;
+        if (expectContinue && !this.externalAgent) {
+          agent = new (isSSL ? node_https.Agent : hAgent)({
+            keepAlive: false,
+            maxSockets: Infinity
+          });
+        }
+        socketWarningTimeoutId = timing.setTimeout(() => {
+          this.socketWarningTimestamp = NodeHttpHandler.checkSocketUsage(agent, this.socketWarningTimestamp, config.logger);
+        }, config.socketAcquisitionWarningTimeout ?? (config.requestTimeout ?? 2000) + (config.connectionTimeout ?? 1000));
+        const queryString = request.query ? protocols.buildQueryString(request.query) : "";
+        let auth = undefined;
+        if (request.username != null || request.password != null) {
+          const username = request.username ?? "";
+          const password = request.password ?? "";
+          auth = `${username}:${password}`;
+        }
+        let path = request.path;
+        if (queryString) {
+          path += `?${queryString}`;
+        }
+        if (request.fragment) {
+          path += `#${request.fragment}`;
+        }
+        let hostname = request.hostname ?? "";
+        if (hostname[0] === "[" && hostname.endsWith("]")) {
+          hostname = request.hostname.slice(1, -1);
+        } else {
+          hostname = request.hostname;
+        }
+        const nodeHttpsOptions = {
+          headers: request.headers,
+          host: hostname,
+          method: request.method,
+          path,
+          port: request.port,
+          agent,
+          auth
+        };
+        const requestFunc = isSSL ? node_https.request : hRequest;
+        const req = requestFunc(nodeHttpsOptions, (res) => {
+          const httpResponse = new protocols.HttpResponse({
+            statusCode: res.statusCode || -1,
+            reason: res.statusMessage,
+            headers: getTransformedHeaders(res.headers),
+            body: res
+          });
+          resolve({ response: httpResponse });
+        });
+        req.on("error", (err) => {
+          if (NODEJS_TIMEOUT_ERROR_CODES.includes(err.code)) {
+            reject(Object.assign(err, { name: "TimeoutError" }));
+          } else {
+            reject(err);
+          }
+        });
+        if (abortSignal) {
+          const onAbort = () => {
+            req.destroy();
+            const abortError = buildAbortError(abortSignal);
+            reject(abortError);
+          };
+          if (typeof abortSignal.addEventListener === "function") {
+            const signal = abortSignal;
+            signal.addEventListener("abort", onAbort, { once: true });
+            req.once("close", () => signal.removeEventListener("abort", onAbort));
+          } else {
+            abortSignal.onabort = onAbort;
+          }
+        }
+        const effectiveRequestTimeout = requestTimeout ?? config.requestTimeout;
+        connectionTimeoutId = setConnectionTimeout(req, reject, config.connectionTimeout);
+        requestTimeoutId = setRequestTimeout(req, reject, effectiveRequestTimeout, config.throwOnRequestTimeout, config.logger ?? console);
+        socketTimeoutId = setSocketTimeout(req, reject, config.socketTimeout);
+        const httpAgent = nodeHttpsOptions.agent;
+        if (typeof httpAgent === "object" && "keepAlive" in httpAgent) {
+          keepAliveTimeoutId = setSocketKeepAlive(req, {
+            keepAlive: httpAgent.keepAlive,
+            keepAliveMsecs: httpAgent.keepAliveMsecs
+          });
+        }
+        writeRequestBodyPromise = writeRequestBody(req, request, effectiveRequestTimeout, this.externalAgent).catch((e) => {
+          clearTimeouts();
+          return _reject(e);
+        });
+      });
+    }
+    updateHttpClientConfig(key, value) {
+      this.config = undefined;
+      this.configProvider = this.configProvider.then((config) => {
+        return {
+          ...config,
+          [key]: value
+        };
+      });
+    }
+    httpHandlerConfigs() {
+      return this.config ?? {};
+    }
+    resolveDefaultConfig(options) {
+      const { requestTimeout, connectionTimeout, socketTimeout, socketAcquisitionWarningTimeout, httpAgent, httpsAgent, throwOnRequestTimeout, logger } = options || {};
+      const keepAlive = true;
+      const maxSockets = 50;
+      return {
+        connectionTimeout,
+        requestTimeout,
+        socketTimeout,
+        socketAcquisitionWarningTimeout,
+        throwOnRequestTimeout,
+        httpAgentProvider: async () => {
+          const { Agent, request } = await import("node:http");
+          hRequest = request;
+          hAgent = Agent;
+          if (httpAgent instanceof hAgent || typeof httpAgent?.destroy === "function") {
+            this.externalAgent = true;
+            return httpAgent;
+          }
+          return new hAgent({ keepAlive, maxSockets, ...httpAgent });
+        },
+        httpsAgent: (() => {
+          if (httpsAgent instanceof node_https.Agent || typeof httpsAgent?.destroy === "function") {
+            this.externalAgent = true;
+            return httpsAgent;
+          }
+          return new node_https.Agent({ keepAlive, maxSockets, ...httpsAgent });
+        })(),
+        logger
+      };
+    }
+  }
+  var ids = new Uint16Array(1);
+
+  class ClientHttp2SessionRef {
+    id = ids[0]++;
+    total = 0;
+    max = 0;
+    session;
+    refs = 0;
+    constructor(session) {
+      session.unref();
+      this.session = session;
+    }
+    retain() {
+      if (this.session.destroyed) {
+        throw new Error("@smithy/node-http-handler - cannot acquire reference to destroyed session.");
+      }
+      this.refs += 1;
+      this.total += 1;
+      this.max = Math.max(this.refs, this.max);
+      this.session.ref();
+    }
+    free() {
+      if (this.session.destroyed) {
+        return;
+      }
+      this.refs -= 1;
+      if (this.refs === 0) {
+        this.session.unref();
+      }
+      if (this.refs < 0) {
+        throw new Error("@smithy/node-http-handler - ClientHttp2Session refcount at zero, cannot decrement.");
+      }
+    }
+    deref() {
+      return this.session;
+    }
+    close() {
+      if (!this.session.closed) {
+        this.session.close();
+      }
+    }
+    destroy() {
+      this.refs = 0;
+      if (!this.session.destroyed) {
+        this.session.destroy();
+      }
+    }
+    useCount() {
+      return this.refs;
+    }
+  }
+
+  class NodeHttp2ConnectionPool {
+    sessions = [];
+    maxConcurrency = 0;
+    constructor(sessions) {
+      this.sessions = (sessions ?? []).map((session) => new ClientHttp2SessionRef(session));
+    }
+    poll() {
+      let cleanup = false;
+      for (const session of this.sessions) {
+        if (session.deref().destroyed) {
+          cleanup = true;
+          continue;
+        }
+        if (!this.maxConcurrency || session.useCount() < this.maxConcurrency) {
+          return session;
+        }
+      }
+      if (cleanup) {
+        for (const session of this.sessions) {
+          if (session.deref().destroyed) {
+            this.remove(session);
+          }
+        }
+      }
+    }
+    offerLast(ref) {
+      this.sessions.push(ref);
+    }
+    remove(ref) {
+      const ix = this.sessions.indexOf(ref);
+      if (ix > -1) {
+        this.sessions.splice(ix, 1);
+      }
+    }
+    [Symbol.iterator]() {
+      return this.sessions[Symbol.iterator]();
+    }
+    setMaxConcurrency(maxConcurrency) {
+      this.maxConcurrency = maxConcurrency;
+    }
+    destroy(ref) {
+      this.remove(ref);
+      ref.destroy();
+    }
+  }
+
+  class NodeHttp2ConnectionManager {
+    config;
+    connectOptions;
+    connectionPools = new Map;
+    constructor(config) {
+      this.config = config;
+      if (this.config.maxConcurrency && this.config.maxConcurrency <= 0) {
+        throw new RangeError("maxConcurrency must be greater than zero.");
+      }
+    }
+    lease(requestContext, connectionConfiguration) {
+      const url = this.getUrlString(requestContext);
+      const pool = this.getPool(url);
+      if (!this.config.disableConcurrency && !connectionConfiguration.isEventStream) {
+        const available = pool.poll();
+        if (available) {
+          available.retain();
+          return available;
+        }
+      }
+      const ref = new ClientHttp2SessionRef(this.connect(url));
+      const session = ref.deref();
+      if (this.config.maxConcurrency) {
+        session.settings({ maxConcurrentStreams: this.config.maxConcurrency }, (err) => {
+          if (err) {
+            throw new Error("Fail to set maxConcurrentStreams to " + this.config.maxConcurrency + "when creating new session for " + requestContext.destination.toString());
+          }
+        });
+      }
+      const graceful = () => {
+        this.removeFromPoolAndClose(url, ref);
+      };
+      const ensureDestroyed = () => {
+        this.removeFromPoolAndCheckedDestroy(url, ref);
+      };
+      session.on("goaway", graceful);
+      session.on("error", ensureDestroyed);
+      session.on("frameError", ensureDestroyed);
+      session.on("close", ensureDestroyed);
+      if (connectionConfiguration.requestTimeout) {
+        session.setTimeout(connectionConfiguration.requestTimeout, ensureDestroyed);
+      }
+      pool.offerLast(ref);
+      ref.retain();
+      return ref;
+    }
+    release(_requestContext, ref) {
+      ref.free();
+    }
+    createIsolatedSession(requestContext, connectionConfiguration) {
+      const url = this.getUrlString(requestContext);
+      const ref = new ClientHttp2SessionRef(this.connect(url));
+      const session = ref.deref();
+      session.settings({ maxConcurrentStreams: 1 });
+      const ensureDestroyed = () => {
+        ref.destroy();
+      };
+      session.on("error", ensureDestroyed);
+      session.on("frameError", ensureDestroyed);
+      session.on("close", ensureDestroyed);
+      if (connectionConfiguration.requestTimeout) {
+        session.setTimeout(connectionConfiguration.requestTimeout, ensureDestroyed);
+      }
+      ref.retain();
+      return ref;
+    }
+    destroy() {
+      for (const [url, connectionPool] of this.connectionPools) {
+        for (const session of [...connectionPool]) {
+          session.destroy();
+        }
+        this.connectionPools.delete(url);
+      }
+    }
+    setMaxConcurrentStreams(maxConcurrentStreams) {
+      if (maxConcurrentStreams && maxConcurrentStreams <= 0) {
+        throw new RangeError("maxConcurrentStreams must be greater than zero.");
+      }
+      this.config.maxConcurrency = maxConcurrentStreams;
+      for (const pool of this.connectionPools.values()) {
+        pool.setMaxConcurrency(maxConcurrentStreams);
+      }
+    }
+    setDisableConcurrentStreams(disableConcurrentStreams) {
+      this.config.disableConcurrency = disableConcurrentStreams;
+    }
+    setNodeHttp2ConnectOptions(nodeHttp2ConnectOptions) {
+      this.connectOptions = nodeHttp2ConnectOptions;
+    }
+    debug() {
+      const pools = {};
+      for (const [url, pool] of this.connectionPools) {
+        const sessions = [];
+        for (const ref of pool) {
+          sessions.push({
+            id: ref.id,
+            active: ref.useCount(),
+            maxConcurrent: ref.max,
+            totalRequests: ref.total
+          });
+        }
+        pools[url] = { sessions };
+      }
+      return pools;
+    }
+    removeFromPoolAndClose(authority, ref) {
+      this.connectionPools.get(authority)?.remove(ref);
+      ref.close();
+    }
+    removeFromPoolAndCheckedDestroy(authority, ref) {
+      this.connectionPools.get(authority)?.remove(ref);
+      ref.destroy();
+    }
+    getPool(url) {
+      if (!this.connectionPools.has(url)) {
+        const pool = new NodeHttp2ConnectionPool;
+        if (this.config.maxConcurrency) {
+          pool.setMaxConcurrency(this.config.maxConcurrency);
+        }
+        this.connectionPools.set(url, pool);
+      }
+      return this.connectionPools.get(url);
+    }
+    getUrlString(request) {
+      return request.destination.toString();
+    }
+    connect(url) {
+      return this.connectOptions === undefined ? http2.connect(url) : http2.connect(url, this.connectOptions);
+    }
+  }
+
+  class NodeHttp2Handler {
+    config;
+    configProvider;
+    metadata = { handlerProtocol: "h2" };
+    connectionManager = new NodeHttp2ConnectionManager({});
+    static create(instanceOrOptions) {
+      if (typeof instanceOrOptions?.handle === "function") {
+        return instanceOrOptions;
+      }
+      return new NodeHttp2Handler(instanceOrOptions);
+    }
+    constructor(options) {
+      this.configProvider = new Promise((resolve, reject) => {
+        if (typeof options === "function") {
+          options().then((opts) => {
+            resolve(opts || {});
+          }).catch(reject);
+        } else {
+          resolve(options || {});
+        }
+      });
+    }
+    destroy() {
+      this.connectionManager.destroy();
+    }
+    async handle(request, { abortSignal, requestTimeout, isEventStream } = {}) {
+      if (!this.config) {
+        this.config = await this.configProvider;
+        const { disableConcurrentStreams: disableConcurrentStreams2, maxConcurrentStreams, nodeHttp2ConnectOptions } = this.config;
+        this.connectionManager.setDisableConcurrentStreams(disableConcurrentStreams2 ?? false);
+        if (maxConcurrentStreams) {
+          this.connectionManager.setMaxConcurrentStreams(maxConcurrentStreams);
+        }
+        if (nodeHttp2ConnectOptions) {
+          this.connectionManager.setNodeHttp2ConnectOptions(nodeHttp2ConnectOptions);
+        }
+      }
+      const { requestTimeout: configRequestTimeout, disableConcurrentStreams } = this.config;
+      const useIsolatedSession = disableConcurrentStreams || isEventStream;
+      const effectiveRequestTimeout = requestTimeout ?? configRequestTimeout;
+      return new Promise((_resolve, _reject) => {
+        let fulfilled = false;
+        let writeRequestBodyPromise = undefined;
+        const resolve = async (arg) => {
+          await writeRequestBodyPromise;
+          _resolve(arg);
+        };
+        const reject = async (arg) => {
+          await writeRequestBodyPromise;
+          _reject(arg);
+        };
+        if (abortSignal?.aborted) {
+          fulfilled = true;
+          const abortError = buildAbortError(abortSignal);
+          reject(abortError);
+          return;
+        }
+        const { hostname, method, port, protocol, query } = request;
+        let auth = "";
+        if (request.username != null || request.password != null) {
+          const username = request.username ?? "";
+          const password = request.password ?? "";
+          auth = `${username}:${password}@`;
+        }
+        const authority = `${protocol}//${auth}${hostname}${port ? `:${port}` : ""}`;
+        const requestContext = { destination: new URL(authority) };
+        const connectConfig = {
+          requestTimeout: this.config?.sessionTimeout,
+          isEventStream
+        };
+        const ref = useIsolatedSession ? this.connectionManager.createIsolatedSession(requestContext, connectConfig) : this.connectionManager.lease(requestContext, connectConfig);
+        const session = ref.deref();
+        const rejectWithDestroy = (err) => {
+          if (useIsolatedSession) {
+            ref.destroy();
+          }
+          fulfilled = true;
+          reject(err);
+        };
+        const queryString = query ? protocols.buildQueryString(query) : "";
+        let path = request.path;
+        if (queryString) {
+          path += `?${queryString}`;
+        }
+        if (request.fragment) {
+          path += `#${request.fragment}`;
+        }
+        const clientHttp2Stream = session.request({
+          ...request.headers,
+          [http2.constants.HTTP2_HEADER_PATH]: path,
+          [http2.constants.HTTP2_HEADER_METHOD]: method
+        });
+        if (effectiveRequestTimeout) {
+          clientHttp2Stream.setTimeout(effectiveRequestTimeout, () => {
+            clientHttp2Stream.close();
+            const timeoutError = new Error(`Stream timed out because of no activity for ${effectiveRequestTimeout} ms`);
+            timeoutError.name = "TimeoutError";
+            rejectWithDestroy(timeoutError);
+          });
+        }
+        if (abortSignal) {
+          const onAbort = () => {
+            clientHttp2Stream.close();
+            const abortError = buildAbortError(abortSignal);
+            rejectWithDestroy(abortError);
+          };
+          if (typeof abortSignal.addEventListener === "function") {
+            const signal = abortSignal;
+            signal.addEventListener("abort", onAbort, { once: true });
+            clientHttp2Stream.once("close", () => signal.removeEventListener("abort", onAbort));
+          } else {
+            abortSignal.onabort = onAbort;
+          }
+        }
+        clientHttp2Stream.on("frameError", (type, code, id) => {
+          rejectWithDestroy(new Error(`Frame type id ${type} in stream id ${id} has failed with code ${code}.`));
+        });
+        clientHttp2Stream.on("error", rejectWithDestroy);
+        clientHttp2Stream.on("aborted", () => {
+          rejectWithDestroy(new Error(`HTTP/2 stream is abnormally aborted in mid-communication with result code ${clientHttp2Stream.rstCode}.`));
+        });
+        clientHttp2Stream.on("response", (headers) => {
+          const httpResponse = new protocols.HttpResponse({
+            statusCode: headers[":status"] ?? -1,
+            headers: getTransformedHeaders(headers),
+            body: clientHttp2Stream
+          });
+          fulfilled = true;
+          resolve({ response: httpResponse });
+          if (useIsolatedSession) {
+            session.close();
+          }
+        });
+        clientHttp2Stream.on("close", () => {
+          if (useIsolatedSession) {
+            ref.destroy();
+          } else {
+            this.connectionManager.release(requestContext, ref);
+          }
+          if (!fulfilled) {
+            rejectWithDestroy(new Error("Unexpected error: http2 request did not get a response"));
+          }
+        });
+        writeRequestBodyPromise = writeRequestBody(clientHttp2Stream, request, effectiveRequestTimeout);
+      });
+    }
+    updateHttpClientConfig(key, value) {
+      this.config = undefined;
+      this.configProvider = this.configProvider.then((config) => {
+        return {
+          ...config,
+          [key]: value
+        };
+      });
+    }
+    httpHandlerConfigs() {
+      return this.config ?? {};
+    }
+  }
+
+  class Collector extends node_stream.Writable {
+    bufferedBytes = [];
+    _write(chunk, encoding, callback) {
+      this.bufferedBytes.push(chunk);
+      callback();
+    }
+  }
+  var streamCollector = (stream) => {
+    if (isReadableStreamInstance(stream)) {
+      return collectReadableStream(stream);
+    }
+    return new Promise((resolve, reject) => {
+      const collector = new Collector;
+      stream.pipe(collector);
+      stream.on("error", (err) => {
+        collector.end();
+        reject(err);
+      });
+      collector.on("error", reject);
+      collector.on("finish", function() {
+        const bytes = new Uint8Array(Buffer.concat(this.bufferedBytes));
+        resolve(bytes);
+      });
+    });
+  };
+  var isReadableStreamInstance = (stream) => typeof ReadableStream === "function" && stream instanceof ReadableStream;
+  async function collectReadableStream(stream) {
+    const chunks = [];
+    const reader = stream.getReader();
+    let isDone = false;
+    let length = 0;
+    while (!isDone) {
+      const { done, value } = await reader.read();
+      if (value) {
+        chunks.push(value);
+        length += value.length;
+      }
+      isDone = done;
+    }
+    const collected = new Uint8Array(length);
+    let offset = 0;
+    for (const chunk of chunks) {
+      collected.set(chunk, offset);
+      offset += chunk.length;
+    }
+    return collected;
+  }
+  exports2.DEFAULT_REQUEST_TIMEOUT = DEFAULT_REQUEST_TIMEOUT;
+  exports2.NodeHttp2Handler = NodeHttp2Handler;
+  exports2.NodeHttpHandler = NodeHttpHandler;
+  exports2.streamCollector = streamCollector;
+});
+
+// ../../node_modules/.bun/@aws-sdk+credential-provider-http@3.972.41/node_modules/@aws-sdk/credential-provider-http/dist-cjs/fromHttp/checkUrl.js
+var require_checkUrl = __commonJS((exports2) => {
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.checkUrl = undefined;
+  var config_1 = require_config();
+  var ECS_CONTAINER_HOST = "169.254.170.2";
+  var EKS_CONTAINER_HOST_IPv4 = "169.254.170.23";
+  var EKS_CONTAINER_HOST_IPv6 = "[fd00:ec2::23]";
+  var checkUrl = (url, logger) => {
+    if (url.protocol === "https:") {
+      return;
+    }
+    if (url.hostname === ECS_CONTAINER_HOST || url.hostname === EKS_CONTAINER_HOST_IPv4 || url.hostname === EKS_CONTAINER_HOST_IPv6) {
+      return;
+    }
+    if (url.hostname.includes("[")) {
+      if (url.hostname === "[::1]" || url.hostname === "[0000:0000:0000:0000:0000:0000:0000:0001]") {
+        return;
+      }
+    } else {
+      if (url.hostname === "localhost") {
+        return;
+      }
+      const ipComponents = url.hostname.split(".");
+      const inRange = (component) => {
+        const num = parseInt(component, 10);
+        return 0 <= num && num <= 255;
+      };
+      if (ipComponents[0] === "127" && inRange(ipComponents[1]) && inRange(ipComponents[2]) && inRange(ipComponents[3]) && ipComponents.length === 4) {
+        return;
+      }
+    }
+    throw new config_1.CredentialsProviderError(`URL not accepted. It must either be HTTPS or match one of the following:
+  - loopback CIDR 127.0.0.0/8 or [::1/128]
+  - ECS container host 169.254.170.2
+  - EKS container host 169.254.170.23 or [fd00:ec2::23]`, { logger });
+  };
+  exports2.checkUrl = checkUrl;
+});
+
+// ../../node_modules/.bun/@aws-sdk+credential-provider-http@3.972.41/node_modules/@aws-sdk/credential-provider-http/dist-cjs/fromHttp/requestHelpers.js
+var require_requestHelpers = __commonJS((exports2) => {
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.createGetRequest = createGetRequest;
+  exports2.getCredentials = getCredentials;
+  var config_1 = require_config();
+  var protocols_1 = require_protocols();
+  var serde_1 = require_serde();
+  var serde_2 = require_serde();
+  function createGetRequest(url) {
+    return new protocols_1.HttpRequest({
+      protocol: url.protocol,
+      hostname: url.hostname,
+      port: Number(url.port),
+      path: url.pathname,
+      query: Array.from(url.searchParams.entries()).reduce((acc, [k, v]) => {
+        acc[k] = v;
+        return acc;
+      }, {}),
+      fragment: url.hash
+    });
+  }
+  async function getCredentials(response, logger) {
+    const stream = (0, serde_2.sdkStreamMixin)(response.body);
+    const str = await stream.transformToString();
+    if (response.statusCode === 200) {
+      const parsed = JSON.parse(str);
+      if (typeof parsed.AccessKeyId !== "string" || typeof parsed.SecretAccessKey !== "string" || typeof parsed.Token !== "string" || typeof parsed.Expiration !== "string") {
+        throw new config_1.CredentialsProviderError("HTTP credential provider response not of the required format, an object matching: " + "{ AccessKeyId: string, SecretAccessKey: string, Token: string, Expiration: string(rfc3339) }", { logger });
+      }
+      return {
+        accessKeyId: parsed.AccessKeyId,
+        secretAccessKey: parsed.SecretAccessKey,
+        sessionToken: parsed.Token,
+        expiration: (0, serde_1.parseRfc3339DateTime)(parsed.Expiration)
+      };
+    }
+    if (response.statusCode >= 400 && response.statusCode < 500) {
+      let parsedBody = {};
+      try {
+        parsedBody = JSON.parse(str);
+      } catch (e) {}
+      throw Object.assign(new config_1.CredentialsProviderError(`Server responded with status: ${response.statusCode}`, { logger }), {
+        Code: parsedBody.Code,
+        Message: parsedBody.Message
+      });
+    }
+    throw new config_1.CredentialsProviderError(`Server responded with status: ${response.statusCode}`, { logger });
+  }
+});
+
+// ../../node_modules/.bun/@aws-sdk+credential-provider-http@3.972.41/node_modules/@aws-sdk/credential-provider-http/dist-cjs/fromHttp/retry-wrapper.js
+var require_retry_wrapper = __commonJS((exports2) => {
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.retryWrapper = undefined;
+  var retryWrapper = (toRetry, maxRetries, delayMs) => {
+    return async () => {
+      for (let i = 0;i < maxRetries; ++i) {
+        try {
+          return await toRetry();
+        } catch (e) {
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
+      }
+      return await toRetry();
+    };
+  };
+  exports2.retryWrapper = retryWrapper;
+});
+
+// ../../node_modules/.bun/@aws-sdk+credential-provider-http@3.972.41/node_modules/@aws-sdk/credential-provider-http/dist-cjs/fromHttp/fromHttp.js
+var require_fromHttp = __commonJS((exports2) => {
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.fromHttp = undefined;
+  var tslib_1 = require_tslib();
+  var client_1 = require_client2();
+  var config_1 = require_config();
+  var node_http_handler_1 = require_dist_cjs15();
+  var promises_1 = tslib_1.__importDefault(require("node:fs/promises"));
+  var checkUrl_1 = require_checkUrl();
+  var requestHelpers_1 = require_requestHelpers();
+  var retry_wrapper_1 = require_retry_wrapper();
+  var AWS_CONTAINER_CREDENTIALS_RELATIVE_URI = "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI";
+  var DEFAULT_LINK_LOCAL_HOST = "http://169.254.170.2";
+  var AWS_CONTAINER_CREDENTIALS_FULL_URI = "AWS_CONTAINER_CREDENTIALS_FULL_URI";
+  var AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE = "AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE";
+  var AWS_CONTAINER_AUTHORIZATION_TOKEN = "AWS_CONTAINER_AUTHORIZATION_TOKEN";
+  var fromHttp = (options = {}) => {
+    options.logger?.debug("@aws-sdk/credential-provider-http - fromHttp");
+    let host;
+    const relative = options.awsContainerCredentialsRelativeUri ?? process.env[AWS_CONTAINER_CREDENTIALS_RELATIVE_URI];
+    const full = options.awsContainerCredentialsFullUri ?? process.env[AWS_CONTAINER_CREDENTIALS_FULL_URI];
+    const token = options.awsContainerAuthorizationToken ?? process.env[AWS_CONTAINER_AUTHORIZATION_TOKEN];
+    const tokenFile = options.awsContainerAuthorizationTokenFile ?? process.env[AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE];
+    const warn = options.logger?.constructor?.name === "NoOpLogger" || !options.logger?.warn ? console.warn : options.logger.warn.bind(options.logger);
+    if (relative && full) {
+      warn("@aws-sdk/credential-provider-http: " + "you have set both awsContainerCredentialsRelativeUri and awsContainerCredentialsFullUri.");
+      warn("awsContainerCredentialsFullUri will take precedence.");
+    }
+    if (token && tokenFile) {
+      warn("@aws-sdk/credential-provider-http: " + "you have set both awsContainerAuthorizationToken and awsContainerAuthorizationTokenFile.");
+      warn("awsContainerAuthorizationToken will take precedence.");
+    }
+    if (full) {
+      host = full;
+    } else if (relative) {
+      host = `${DEFAULT_LINK_LOCAL_HOST}${relative}`;
+    } else {
+      throw new config_1.CredentialsProviderError(`No HTTP credential provider host provided.
+Set AWS_CONTAINER_CREDENTIALS_FULL_URI or AWS_CONTAINER_CREDENTIALS_RELATIVE_URI.`, { logger: options.logger });
+    }
+    const url = new URL(host);
+    (0, checkUrl_1.checkUrl)(url, options.logger);
+    const requestHandler = node_http_handler_1.NodeHttpHandler.create({
+      requestTimeout: options.timeout ?? 1000,
+      connectionTimeout: options.timeout ?? 1000
+    });
+    return (0, retry_wrapper_1.retryWrapper)(async () => {
+      const request = (0, requestHelpers_1.createGetRequest)(url);
+      if (token) {
+        request.headers.Authorization = token;
+      } else if (tokenFile) {
+        request.headers.Authorization = (await promises_1.default.readFile(tokenFile)).toString();
+      }
+      try {
+        const result = await requestHandler.handle(request);
+        return (0, requestHelpers_1.getCredentials)(result.response).then((creds) => (0, client_1.setCredentialFeature)(creds, "CREDENTIALS_HTTP", "z"));
+      } catch (e) {
+        throw new config_1.CredentialsProviderError(String(e), { logger: options.logger });
+      }
+    }, options.maxRetries ?? 3, options.timeout ?? 1000);
+  };
+  exports2.fromHttp = fromHttp;
+});
+
+// ../../node_modules/.bun/@aws-sdk+credential-provider-http@3.972.41/node_modules/@aws-sdk/credential-provider-http/dist-cjs/index.js
+var require_dist_cjs16 = __commonJS((exports2) => {
+  var fromHttp = require_fromHttp();
+  exports2.fromHttp = fromHttp.fromHttp;
+});
+
+// ../../node_modules/.bun/@aws-sdk+nested-clients@3.997.11/node_modules/@aws-sdk/nested-clients/dist-cjs/submodules/sso-oidc/index.js
+var require_sso_oidc = __commonJS((exports2) => {
+  var client$1 = require_client2();
+  var core = require_dist_cjs5();
+  var client = require_client();
+  var config = require_config();
+  var endpoints = require_endpoints();
+  var protocols = require_protocols();
+  var retry = require_retry();
+  var schema = require_schema4();
+  var httpAuthSchemes = require_httpAuthSchemes();
+  var serde = require_serde();
+  var nodeHttpHandler = require_dist_cjs15();
+  var protocols$1 = require_protocols2();
+  var defaultSSOOIDCHttpAuthSchemeParametersProvider = async (config2, context, input) => {
+    return {
+      operation: client.getSmithyContext(context).operation,
+      region: await client.normalizeProvider(config2.region)() || (() => {
+        throw new Error("expected `region` to be configured for `aws.auth#sigv4`");
+      })()
+    };
+  };
+  function createAwsAuthSigv4HttpAuthOption(authParameters) {
+    return {
+      schemeId: "aws.auth#sigv4",
+      signingProperties: {
+        name: "sso-oauth",
+        region: authParameters.region
+      },
+      propertiesExtractor: (config2, context) => ({
+        signingProperties: {
+          config: config2,
+          context
+        }
+      })
+    };
+  }
+  function createSmithyApiNoAuthHttpAuthOption(authParameters) {
+    return {
+      schemeId: "smithy.api#noAuth"
+    };
+  }
+  var defaultSSOOIDCHttpAuthSchemeProvider = (authParameters) => {
+    const options = [];
+    switch (authParameters.operation) {
+      case "CreateToken": {
+        options.push(createSmithyApiNoAuthHttpAuthOption());
+        break;
+      }
+      default: {
+        options.push(createAwsAuthSigv4HttpAuthOption(authParameters));
+      }
+    }
+    return options;
+  };
+  var resolveHttpAuthSchemeConfig = (config2) => {
+    const config_0 = httpAuthSchemes.resolveAwsSdkSigV4Config(config2);
+    return Object.assign(config_0, {
+      authSchemePreference: client.normalizeProvider(config2.authSchemePreference ?? [])
+    });
+  };
+  var resolveClientEndpointParameters = (options) => {
+    return Object.assign(options, {
+      useDualstackEndpoint: options.useDualstackEndpoint ?? false,
+      useFipsEndpoint: options.useFipsEndpoint ?? false,
+      defaultSigningName: "sso-oauth"
+    });
+  };
+  var commonParams = {
+    UseFIPS: { type: "builtInParams", name: "useFipsEndpoint" },
+    Endpoint: { type: "builtInParams", name: "endpoint" },
+    Region: { type: "builtInParams", name: "region" },
+    UseDualStack: { type: "builtInParams", name: "useDualstackEndpoint" }
+  };
+  var version = "3.997.10";
+  var packageInfo = {
+    version
+  };
+  var k = "ref";
+  var a = -1;
+  var b = true;
+  var c = "isSet";
+  var d = "PartitionResult";
+  var e = "booleanEquals";
+  var f = "getAttr";
+  var g = { [k]: "Endpoint" };
+  var h = { [k]: d };
+  var i = {};
+  var j = [{ [k]: "Region" }];
+  var _data = {
+    conditions: [
+      [c, [g]],
+      [c, j],
+      ["aws.partition", j, d],
+      [e, [{ [k]: "UseFIPS" }, b]],
+      [e, [{ [k]: "UseDualStack" }, b]],
+      [e, [{ fn: f, argv: [h, "supportsDualStack"] }, b]],
+      [e, [{ fn: f, argv: [h, "supportsFIPS"] }, b]],
+      ["stringEquals", [{ fn: f, argv: [h, "name"] }, "aws-us-gov"]]
+    ],
+    results: [
+      [a],
+      [a, "Invalid Configuration: FIPS and custom endpoint are not supported"],
+      [a, "Invalid Configuration: Dualstack and custom endpoint are not supported"],
+      [g, i],
+      ["https://oidc-fips.{Region}.{PartitionResult#dualStackDnsSuffix}", i],
+      [a, "FIPS and DualStack are enabled, but this partition does not support one or both"],
+      ["https://oidc.{Region}.amazonaws.com", i],
+      ["https://oidc-fips.{Region}.{PartitionResult#dnsSuffix}", i],
+      [a, "FIPS is enabled but this partition does not support FIPS"],
+      ["https://oidc.{Region}.{PartitionResult#dualStackDnsSuffix}", i],
+      [a, "DualStack is enabled but this partition does not support DualStack"],
+      ["https://oidc.{Region}.{PartitionResult#dnsSuffix}", i],
+      [a, "Invalid Configuration: Missing Region"]
+    ]
+  };
+  var root = 2;
+  var r = 1e8;
+  var nodes = new Int32Array([
+    -1,
+    1,
+    -1,
+    0,
+    13,
+    3,
+    1,
+    4,
+    r + 12,
+    2,
+    5,
+    r + 12,
+    3,
+    8,
+    6,
+    4,
+    7,
+    r + 11,
+    5,
+    r + 9,
+    r + 10,
+    4,
+    11,
+    9,
+    6,
+    10,
+    r + 8,
+    7,
+    r + 6,
+    r + 7,
+    5,
+    12,
+    r + 5,
+    6,
+    r + 4,
+    r + 5,
+    3,
+    r + 1,
+    14,
+    4,
+    r + 2,
+    r + 3
+  ]);
+  var bdd = endpoints.BinaryDecisionDiagram.from(nodes, root, _data.conditions, _data.results);
+  var cache2 = new endpoints.EndpointCache({
+    size: 50,
+    params: ["Endpoint", "Region", "UseDualStack", "UseFIPS"]
+  });
+  var defaultEndpointResolver = (endpointParams, context = {}) => {
+    return cache2.get(endpointParams, () => endpoints.decideEndpoint(bdd, {
+      endpointParams,
+      logger: context.logger
+    }));
+  };
+  endpoints.customEndpointFunctions.aws = client$1.awsEndpointFunctions;
+
+  class SSOOIDCServiceException extends client.ServiceException {
+    constructor(options) {
+      super(options);
+      Object.setPrototypeOf(this, SSOOIDCServiceException.prototype);
+    }
+  }
+
+  class AccessDeniedException extends SSOOIDCServiceException {
+    name = "AccessDeniedException";
+    $fault = "client";
+    error;
+    reason;
+    error_description;
+    constructor(opts) {
+      super({
+        name: "AccessDeniedException",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, AccessDeniedException.prototype);
+      this.error = opts.error;
+      this.reason = opts.reason;
+      this.error_description = opts.error_description;
+    }
+  }
+
+  class AuthorizationPendingException extends SSOOIDCServiceException {
+    name = "AuthorizationPendingException";
+    $fault = "client";
+    error;
+    error_description;
+    constructor(opts) {
+      super({
+        name: "AuthorizationPendingException",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, AuthorizationPendingException.prototype);
+      this.error = opts.error;
+      this.error_description = opts.error_description;
+    }
+  }
+
+  class ExpiredTokenException extends SSOOIDCServiceException {
+    name = "ExpiredTokenException";
+    $fault = "client";
+    error;
+    error_description;
+    constructor(opts) {
+      super({
+        name: "ExpiredTokenException",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, ExpiredTokenException.prototype);
+      this.error = opts.error;
+      this.error_description = opts.error_description;
+    }
+  }
+
+  class InternalServerException extends SSOOIDCServiceException {
+    name = "InternalServerException";
+    $fault = "server";
+    error;
+    error_description;
+    constructor(opts) {
+      super({
+        name: "InternalServerException",
+        $fault: "server",
+        ...opts
+      });
+      Object.setPrototypeOf(this, InternalServerException.prototype);
+      this.error = opts.error;
+      this.error_description = opts.error_description;
+    }
+  }
+
+  class InvalidClientException extends SSOOIDCServiceException {
+    name = "InvalidClientException";
+    $fault = "client";
+    error;
+    error_description;
+    constructor(opts) {
+      super({
+        name: "InvalidClientException",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, InvalidClientException.prototype);
+      this.error = opts.error;
+      this.error_description = opts.error_description;
+    }
+  }
+
+  class InvalidGrantException extends SSOOIDCServiceException {
+    name = "InvalidGrantException";
+    $fault = "client";
+    error;
+    error_description;
+    constructor(opts) {
+      super({
+        name: "InvalidGrantException",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, InvalidGrantException.prototype);
+      this.error = opts.error;
+      this.error_description = opts.error_description;
+    }
+  }
+
+  class InvalidRequestException extends SSOOIDCServiceException {
+    name = "InvalidRequestException";
+    $fault = "client";
+    error;
+    reason;
+    error_description;
+    constructor(opts) {
+      super({
+        name: "InvalidRequestException",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, InvalidRequestException.prototype);
+      this.error = opts.error;
+      this.reason = opts.reason;
+      this.error_description = opts.error_description;
+    }
+  }
+
+  class InvalidScopeException extends SSOOIDCServiceException {
+    name = "InvalidScopeException";
+    $fault = "client";
+    error;
+    error_description;
+    constructor(opts) {
+      super({
+        name: "InvalidScopeException",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, InvalidScopeException.prototype);
+      this.error = opts.error;
+      this.error_description = opts.error_description;
+    }
+  }
+
+  class SlowDownException extends SSOOIDCServiceException {
+    name = "SlowDownException";
+    $fault = "client";
+    error;
+    error_description;
+    constructor(opts) {
+      super({
+        name: "SlowDownException",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, SlowDownException.prototype);
+      this.error = opts.error;
+      this.error_description = opts.error_description;
+    }
+  }
+
+  class UnauthorizedClientException extends SSOOIDCServiceException {
+    name = "UnauthorizedClientException";
+    $fault = "client";
+    error;
+    error_description;
+    constructor(opts) {
+      super({
+        name: "UnauthorizedClientException",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, UnauthorizedClientException.prototype);
+      this.error = opts.error;
+      this.error_description = opts.error_description;
+    }
+  }
+
+  class UnsupportedGrantTypeException extends SSOOIDCServiceException {
+    name = "UnsupportedGrantTypeException";
+    $fault = "client";
+    error;
+    error_description;
+    constructor(opts) {
+      super({
+        name: "UnsupportedGrantTypeException",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, UnsupportedGrantTypeException.prototype);
+      this.error = opts.error;
+      this.error_description = opts.error_description;
+    }
+  }
+  var _ADE = "AccessDeniedException";
+  var _APE = "AuthorizationPendingException";
+  var _AT = "AccessToken";
+  var _CS = "ClientSecret";
+  var _CT = "CreateToken";
+  var _CTR = "CreateTokenRequest";
+  var _CTRr = "CreateTokenResponse";
+  var _CV = "CodeVerifier";
+  var _ETE = "ExpiredTokenException";
+  var _ICE = "InvalidClientException";
+  var _IGE = "InvalidGrantException";
+  var _IRE = "InvalidRequestException";
+  var _ISE = "InternalServerException";
+  var _ISEn = "InvalidScopeException";
+  var _IT = "IdToken";
+  var _RT = "RefreshToken";
+  var _SDE = "SlowDownException";
+  var _UCE = "UnauthorizedClientException";
+  var _UGTE = "UnsupportedGrantTypeException";
+  var _aT = "accessToken";
+  var _c = "client";
+  var _cI = "clientId";
+  var _cS = "clientSecret";
+  var _cV = "codeVerifier";
+  var _co = "code";
+  var _dC = "deviceCode";
+  var _e = "error";
+  var _eI = "expiresIn";
+  var _ed = "error_description";
+  var _gT = "grantType";
+  var _h = "http";
+  var _hE = "httpError";
+  var _iT = "idToken";
+  var _r = "reason";
+  var _rT = "refreshToken";
+  var _rU = "redirectUri";
+  var _s = "smithy.ts.sdk.synthetic.com.amazonaws.ssooidc";
+  var _sc = "scope";
+  var _se = "server";
+  var _tT = "tokenType";
+  var n0 = "com.amazonaws.ssooidc";
+  var _s_registry = schema.TypeRegistry.for(_s);
+  var SSOOIDCServiceException$ = [-3, _s, "SSOOIDCServiceException", 0, [], []];
+  _s_registry.registerError(SSOOIDCServiceException$, SSOOIDCServiceException);
+  var n0_registry = schema.TypeRegistry.for(n0);
+  var AccessDeniedException$ = [
+    -3,
+    n0,
+    _ADE,
+    { [_e]: _c, [_hE]: 400 },
+    [_e, _r, _ed],
+    [0, 0, 0]
+  ];
+  n0_registry.registerError(AccessDeniedException$, AccessDeniedException);
+  var AuthorizationPendingException$ = [
+    -3,
+    n0,
+    _APE,
+    { [_e]: _c, [_hE]: 400 },
+    [_e, _ed],
+    [0, 0]
+  ];
+  n0_registry.registerError(AuthorizationPendingException$, AuthorizationPendingException);
+  var ExpiredTokenException$ = [-3, n0, _ETE, { [_e]: _c, [_hE]: 400 }, [_e, _ed], [0, 0]];
+  n0_registry.registerError(ExpiredTokenException$, ExpiredTokenException);
+  var InternalServerException$ = [-3, n0, _ISE, { [_e]: _se, [_hE]: 500 }, [_e, _ed], [0, 0]];
+  n0_registry.registerError(InternalServerException$, InternalServerException);
+  var InvalidClientException$ = [-3, n0, _ICE, { [_e]: _c, [_hE]: 401 }, [_e, _ed], [0, 0]];
+  n0_registry.registerError(InvalidClientException$, InvalidClientException);
+  var InvalidGrantException$ = [-3, n0, _IGE, { [_e]: _c, [_hE]: 400 }, [_e, _ed], [0, 0]];
+  n0_registry.registerError(InvalidGrantException$, InvalidGrantException);
+  var InvalidRequestException$ = [
+    -3,
+    n0,
+    _IRE,
+    { [_e]: _c, [_hE]: 400 },
+    [_e, _r, _ed],
+    [0, 0, 0]
+  ];
+  n0_registry.registerError(InvalidRequestException$, InvalidRequestException);
+  var InvalidScopeException$ = [-3, n0, _ISEn, { [_e]: _c, [_hE]: 400 }, [_e, _ed], [0, 0]];
+  n0_registry.registerError(InvalidScopeException$, InvalidScopeException);
+  var SlowDownException$ = [-3, n0, _SDE, { [_e]: _c, [_hE]: 400 }, [_e, _ed], [0, 0]];
+  n0_registry.registerError(SlowDownException$, SlowDownException);
+  var UnauthorizedClientException$ = [
+    -3,
+    n0,
+    _UCE,
+    { [_e]: _c, [_hE]: 400 },
+    [_e, _ed],
+    [0, 0]
+  ];
+  n0_registry.registerError(UnauthorizedClientException$, UnauthorizedClientException);
+  var UnsupportedGrantTypeException$ = [
+    -3,
+    n0,
+    _UGTE,
+    { [_e]: _c, [_hE]: 400 },
+    [_e, _ed],
+    [0, 0]
+  ];
+  n0_registry.registerError(UnsupportedGrantTypeException$, UnsupportedGrantTypeException);
+  var errorTypeRegistries = [_s_registry, n0_registry];
+  var AccessToken = [0, n0, _AT, 8, 0];
+  var ClientSecret = [0, n0, _CS, 8, 0];
+  var CodeVerifier = [0, n0, _CV, 8, 0];
+  var IdToken = [0, n0, _IT, 8, 0];
+  var RefreshToken = [0, n0, _RT, 8, 0];
+  var CreateTokenRequest$ = [
+    3,
+    n0,
+    _CTR,
+    0,
+    [_cI, _cS, _gT, _dC, _co, _rT, _sc, _rU, _cV],
+    [0, [() => ClientSecret, 0], 0, 0, 0, [() => RefreshToken, 0], 64 | 0, 0, [() => CodeVerifier, 0]],
+    3
+  ];
+  var CreateTokenResponse$ = [
+    3,
+    n0,
+    _CTRr,
+    0,
+    [_aT, _tT, _eI, _rT, _iT],
+    [[() => AccessToken, 0], 0, 1, [() => RefreshToken, 0], [() => IdToken, 0]]
+  ];
+  var CreateToken$ = [
+    9,
+    n0,
+    _CT,
+    { [_h]: ["POST", "/token", 200] },
+    () => CreateTokenRequest$,
+    () => CreateTokenResponse$
+  ];
+  var getRuntimeConfig$1 = (config2) => {
+    return {
+      apiVersion: "2019-06-10",
+      base64Decoder: config2?.base64Decoder ?? serde.fromBase64,
+      base64Encoder: config2?.base64Encoder ?? serde.toBase64,
+      disableHostPrefix: config2?.disableHostPrefix ?? false,
+      endpointProvider: config2?.endpointProvider ?? defaultEndpointResolver,
+      extensions: config2?.extensions ?? [],
+      httpAuthSchemeProvider: config2?.httpAuthSchemeProvider ?? defaultSSOOIDCHttpAuthSchemeProvider,
+      httpAuthSchemes: config2?.httpAuthSchemes ?? [
+        {
+          schemeId: "aws.auth#sigv4",
+          identityProvider: (ipc) => ipc.getIdentityProvider("aws.auth#sigv4"),
+          signer: new httpAuthSchemes.AwsSdkSigV4Signer
+        },
+        {
+          schemeId: "smithy.api#noAuth",
+          identityProvider: (ipc) => ipc.getIdentityProvider("smithy.api#noAuth") || (async () => ({})),
+          signer: new core.NoAuthSigner
+        }
+      ],
+      logger: config2?.logger ?? new client.NoOpLogger,
+      protocol: config2?.protocol ?? protocols$1.AwsRestJsonProtocol,
+      protocolSettings: config2?.protocolSettings ?? {
+        defaultNamespace: "com.amazonaws.ssooidc",
+        errorTypeRegistries,
+        version: "2019-06-10",
+        serviceTarget: "AWSSSOOIDCService"
+      },
+      serviceId: config2?.serviceId ?? "SSO OIDC",
+      urlParser: config2?.urlParser ?? protocols.parseUrl,
+      utf8Decoder: config2?.utf8Decoder ?? serde.fromUtf8,
+      utf8Encoder: config2?.utf8Encoder ?? serde.toUtf8
+    };
+  };
+  var getRuntimeConfig = (config$1) => {
+    client.emitWarningIfUnsupportedVersion(process.version);
+    const defaultsMode = config.resolveDefaultsModeConfig(config$1);
+    const defaultConfigProvider = () => defaultsMode().then(client.loadConfigsForDefaultMode);
+    const clientSharedValues = getRuntimeConfig$1(config$1);
+    client$1.emitWarningIfUnsupportedVersion(process.version);
+    const loaderConfig = {
+      profile: config$1?.profile,
+      logger: clientSharedValues.logger
+    };
+    return {
+      ...clientSharedValues,
+      ...config$1,
+      runtime: "node",
+      defaultsMode,
+      authSchemePreference: config$1?.authSchemePreference ?? config.loadConfig(httpAuthSchemes.NODE_AUTH_SCHEME_PREFERENCE_OPTIONS, loaderConfig),
+      bodyLengthChecker: config$1?.bodyLengthChecker ?? serde.calculateBodyLength,
+      defaultUserAgentProvider: config$1?.defaultUserAgentProvider ?? client$1.createDefaultUserAgentProvider({ serviceId: clientSharedValues.serviceId, clientVersion: packageInfo.version }),
+      maxAttempts: config$1?.maxAttempts ?? config.loadConfig(retry.NODE_MAX_ATTEMPT_CONFIG_OPTIONS, config$1),
+      region: config$1?.region ?? config.loadConfig(config.NODE_REGION_CONFIG_OPTIONS, { ...config.NODE_REGION_CONFIG_FILE_OPTIONS, ...loaderConfig }),
+      requestHandler: nodeHttpHandler.NodeHttpHandler.create(config$1?.requestHandler ?? defaultConfigProvider),
+      retryMode: config$1?.retryMode ?? config.loadConfig({
+        ...retry.NODE_RETRY_MODE_CONFIG_OPTIONS,
+        default: async () => (await defaultConfigProvider()).retryMode || retry.DEFAULT_RETRY_MODE
+      }, config$1),
+      sha256: config$1?.sha256 ?? serde.Hash.bind(null, "sha256"),
+      streamCollector: config$1?.streamCollector ?? nodeHttpHandler.streamCollector,
+      useDualstackEndpoint: config$1?.useDualstackEndpoint ?? config.loadConfig(config.NODE_USE_DUALSTACK_ENDPOINT_CONFIG_OPTIONS, loaderConfig),
+      useFipsEndpoint: config$1?.useFipsEndpoint ?? config.loadConfig(config.NODE_USE_FIPS_ENDPOINT_CONFIG_OPTIONS, loaderConfig),
+      userAgentAppId: config$1?.userAgentAppId ?? config.loadConfig(client$1.NODE_APP_ID_CONFIG_OPTIONS, loaderConfig)
+    };
+  };
+  var getHttpAuthExtensionConfiguration = (runtimeConfig) => {
+    const _httpAuthSchemes = runtimeConfig.httpAuthSchemes;
+    let _httpAuthSchemeProvider = runtimeConfig.httpAuthSchemeProvider;
+    let _credentials = runtimeConfig.credentials;
+    return {
+      setHttpAuthScheme(httpAuthScheme) {
+        const index = _httpAuthSchemes.findIndex((scheme) => scheme.schemeId === httpAuthScheme.schemeId);
+        if (index === -1) {
+          _httpAuthSchemes.push(httpAuthScheme);
+        } else {
+          _httpAuthSchemes.splice(index, 1, httpAuthScheme);
+        }
+      },
+      httpAuthSchemes() {
+        return _httpAuthSchemes;
+      },
+      setHttpAuthSchemeProvider(httpAuthSchemeProvider) {
+        _httpAuthSchemeProvider = httpAuthSchemeProvider;
+      },
+      httpAuthSchemeProvider() {
+        return _httpAuthSchemeProvider;
+      },
+      setCredentials(credentials) {
+        _credentials = credentials;
+      },
+      credentials() {
+        return _credentials;
+      }
+    };
+  };
+  var resolveHttpAuthRuntimeConfig = (config2) => {
+    return {
+      httpAuthSchemes: config2.httpAuthSchemes(),
+      httpAuthSchemeProvider: config2.httpAuthSchemeProvider(),
+      credentials: config2.credentials()
+    };
+  };
+  var resolveRuntimeExtensions = (runtimeConfig, extensions2) => {
+    const extensionConfiguration = Object.assign(client$1.getAwsRegionExtensionConfiguration(runtimeConfig), client.getDefaultExtensionConfiguration(runtimeConfig), protocols.getHttpHandlerExtensionConfiguration(runtimeConfig), getHttpAuthExtensionConfiguration(runtimeConfig));
+    extensions2.forEach((extension) => extension.configure(extensionConfiguration));
+    return Object.assign(runtimeConfig, client$1.resolveAwsRegionExtensionConfiguration(extensionConfiguration), client.resolveDefaultRuntimeConfig(extensionConfiguration), protocols.resolveHttpHandlerRuntimeConfig(extensionConfiguration), resolveHttpAuthRuntimeConfig(extensionConfiguration));
+  };
+
+  class SSOOIDCClient extends client.Client {
+    config;
+    constructor(...[configuration]) {
+      const _config_0 = getRuntimeConfig(configuration || {});
+      super(_config_0);
+      this.initConfig = _config_0;
+      const _config_1 = resolveClientEndpointParameters(_config_0);
+      const _config_2 = client$1.resolveUserAgentConfig(_config_1);
+      const _config_3 = retry.resolveRetryConfig(_config_2);
+      const _config_4 = config.resolveRegionConfig(_config_3);
+      const _config_5 = client$1.resolveHostHeaderConfig(_config_4);
+      const _config_6 = endpoints.resolveEndpointConfig(_config_5);
+      const _config_7 = resolveHttpAuthSchemeConfig(_config_6);
+      const _config_8 = resolveRuntimeExtensions(_config_7, configuration?.extensions || []);
+      this.config = _config_8;
+      this.middlewareStack.use(schema.getSchemaSerdePlugin(this.config));
+      this.middlewareStack.use(client$1.getUserAgentPlugin(this.config));
+      this.middlewareStack.use(retry.getRetryPlugin(this.config));
+      this.middlewareStack.use(protocols.getContentLengthPlugin(this.config));
+      this.middlewareStack.use(client$1.getHostHeaderPlugin(this.config));
+      this.middlewareStack.use(client$1.getLoggerPlugin(this.config));
+      this.middlewareStack.use(client$1.getRecursionDetectionPlugin(this.config));
+      this.middlewareStack.use(core.getHttpAuthSchemeEndpointRuleSetPlugin(this.config, {
+        httpAuthSchemeParametersProvider: defaultSSOOIDCHttpAuthSchemeParametersProvider,
+        identityProviderConfigProvider: async (config2) => new core.DefaultIdentityProviderConfig({
+          "aws.auth#sigv4": config2.credentials
+        })
+      }));
+      this.middlewareStack.use(core.getHttpSigningPlugin(this.config));
+    }
+    destroy() {
+      super.destroy();
+    }
+  }
+
+  class CreateTokenCommand extends client.Command.classBuilder().ep(commonParams).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AWSSSOOIDCService", "CreateToken", {}).n("SSOOIDCClient", "CreateTokenCommand").sc(CreateToken$).build() {
+  }
+  var commands = {
+    CreateTokenCommand
+  };
+
+  class SSOOIDC extends SSOOIDCClient {
+  }
+  client.createAggregatedClient(commands, SSOOIDC);
+  var AccessDeniedExceptionReason = {
+    KMS_ACCESS_DENIED: "KMS_AccessDeniedException"
+  };
+  var InvalidRequestExceptionReason = {
+    KMS_DISABLED_KEY: "KMS_DisabledException",
+    KMS_INVALID_KEY_USAGE: "KMS_InvalidKeyUsageException",
+    KMS_INVALID_STATE: "KMS_InvalidStateException",
+    KMS_KEY_NOT_FOUND: "KMS_NotFoundException"
+  };
+  exports2.$Command = client.Command;
+  exports2.__Client = client.Client;
+  exports2.AccessDeniedException = AccessDeniedException;
+  exports2.AccessDeniedException$ = AccessDeniedException$;
+  exports2.AccessDeniedExceptionReason = AccessDeniedExceptionReason;
+  exports2.AuthorizationPendingException = AuthorizationPendingException;
+  exports2.AuthorizationPendingException$ = AuthorizationPendingException$;
+  exports2.CreateToken$ = CreateToken$;
+  exports2.CreateTokenCommand = CreateTokenCommand;
+  exports2.CreateTokenRequest$ = CreateTokenRequest$;
+  exports2.CreateTokenResponse$ = CreateTokenResponse$;
+  exports2.ExpiredTokenException = ExpiredTokenException;
+  exports2.ExpiredTokenException$ = ExpiredTokenException$;
+  exports2.InternalServerException = InternalServerException;
+  exports2.InternalServerException$ = InternalServerException$;
+  exports2.InvalidClientException = InvalidClientException;
+  exports2.InvalidClientException$ = InvalidClientException$;
+  exports2.InvalidGrantException = InvalidGrantException;
+  exports2.InvalidGrantException$ = InvalidGrantException$;
+  exports2.InvalidRequestException = InvalidRequestException;
+  exports2.InvalidRequestException$ = InvalidRequestException$;
+  exports2.InvalidRequestExceptionReason = InvalidRequestExceptionReason;
+  exports2.InvalidScopeException = InvalidScopeException;
+  exports2.InvalidScopeException$ = InvalidScopeException$;
+  exports2.SSOOIDC = SSOOIDC;
+  exports2.SSOOIDCClient = SSOOIDCClient;
+  exports2.SSOOIDCServiceException = SSOOIDCServiceException;
+  exports2.SSOOIDCServiceException$ = SSOOIDCServiceException$;
+  exports2.SlowDownException = SlowDownException;
+  exports2.SlowDownException$ = SlowDownException$;
+  exports2.UnauthorizedClientException = UnauthorizedClientException;
+  exports2.UnauthorizedClientException$ = UnauthorizedClientException$;
+  exports2.UnsupportedGrantTypeException = UnsupportedGrantTypeException;
+  exports2.UnsupportedGrantTypeException$ = UnsupportedGrantTypeException$;
+  exports2.errorTypeRegistries = errorTypeRegistries;
+});
+
+// ../../node_modules/.bun/@aws-sdk+token-providers@3.1052.0/node_modules/@aws-sdk/token-providers/dist-cjs/index.js
+var require_dist_cjs17 = __commonJS((exports2) => {
+  var client = require_client2();
+  var httpAuthSchemes = require_httpAuthSchemes();
+  var config = require_config();
+  var node_fs = require("node:fs");
+  var fromEnvSigningName = ({ logger, signingName } = {}) => async () => {
+    logger?.debug?.("@aws-sdk/token-providers - fromEnvSigningName");
+    if (!signingName) {
+      throw new config.TokenProviderError("Please pass 'signingName' to compute environment variable key", { logger });
+    }
+    const bearerTokenKey = httpAuthSchemes.getBearerTokenEnvKey(signingName);
+    if (!(bearerTokenKey in process.env)) {
+      throw new config.TokenProviderError(`Token not present in '${bearerTokenKey}' environment variable`, { logger });
+    }
+    const token = { token: process.env[bearerTokenKey] };
+    client.setTokenFeature(token, "BEARER_SERVICE_ENV_VARS", "3");
+    return token;
+  };
+  var EXPIRE_WINDOW_MS = 5 * 60 * 1000;
+  var REFRESH_MESSAGE = `To refresh this SSO session run 'aws sso login' with the corresponding profile.`;
+  var getSsoOidcClient = async (ssoRegion, init = {}, callerClientConfig) => {
+    const { SSOOIDCClient } = await Promise.resolve().then(() => __toESM(require_sso_oidc()));
+    const coalesce = (prop) => init.clientConfig?.[prop] ?? init.parentClientConfig?.[prop] ?? callerClientConfig?.[prop];
+    const ssoOidcClient = new SSOOIDCClient(Object.assign({}, init.clientConfig ?? {}, {
+      region: ssoRegion ?? init.clientConfig?.region,
+      logger: coalesce("logger"),
+      userAgentAppId: coalesce("userAgentAppId")
+    }));
+    return ssoOidcClient;
+  };
+  var getNewSsoOidcToken = async (ssoToken, ssoRegion, init = {}, callerClientConfig) => {
+    const { CreateTokenCommand } = await Promise.resolve().then(() => __toESM(require_sso_oidc()));
+    const ssoOidcClient = await getSsoOidcClient(ssoRegion, init, callerClientConfig);
+    return ssoOidcClient.send(new CreateTokenCommand({
+      clientId: ssoToken.clientId,
+      clientSecret: ssoToken.clientSecret,
+      refreshToken: ssoToken.refreshToken,
+      grantType: "refresh_token"
+    }));
+  };
+  var validateTokenExpiry = (token) => {
+    if (token.expiration && token.expiration.getTime() < Date.now()) {
+      throw new config.TokenProviderError(`Token is expired. ${REFRESH_MESSAGE}`, false);
+    }
+  };
+  var validateTokenKey = (key, value, forRefresh = false) => {
+    if (typeof value === "undefined") {
+      throw new config.TokenProviderError(`Value not present for '${key}' in SSO Token${forRefresh ? ". Cannot refresh" : ""}. ${REFRESH_MESSAGE}`, false);
+    }
+  };
+  var { writeFile } = node_fs.promises;
+  var writeSSOTokenToFile = (id, ssoToken) => {
+    const tokenFilepath = config.getSSOTokenFilepath(id);
+    const tokenString = JSON.stringify(ssoToken, null, 2);
+    return writeFile(tokenFilepath, tokenString);
+  };
+  var lastRefreshAttemptTime = new Date(0);
+  var fromSso = (init = {}) => async ({ callerClientConfig } = {}) => {
+    init.logger?.debug("@aws-sdk/token-providers - fromSso");
+    const profiles = await config.parseKnownFiles(init);
+    const profileName = config.getProfileName({
+      profile: init.profile ?? callerClientConfig?.profile
+    });
+    const profile = profiles[profileName];
+    if (!profile) {
+      throw new config.TokenProviderError(`Profile '${profileName}' could not be found in shared credentials file.`, false);
+    } else if (!profile["sso_session"]) {
+      throw new config.TokenProviderError(`Profile '${profileName}' is missing required property 'sso_session'.`);
+    }
+    const ssoSessionName = profile["sso_session"];
+    const ssoSessions = await config.loadSsoSessionData(init);
+    const ssoSession = ssoSessions[ssoSessionName];
+    if (!ssoSession) {
+      throw new config.TokenProviderError(`Sso session '${ssoSessionName}' could not be found in shared credentials file.`, false);
+    }
+    for (const ssoSessionRequiredKey of ["sso_start_url", "sso_region"]) {
+      if (!ssoSession[ssoSessionRequiredKey]) {
+        throw new config.TokenProviderError(`Sso session '${ssoSessionName}' is missing required property '${ssoSessionRequiredKey}'.`, false);
+      }
+    }
+    ssoSession["sso_start_url"];
+    const ssoRegion = ssoSession["sso_region"];
+    let ssoToken;
+    try {
+      ssoToken = await config.getSSOTokenFromFile(ssoSessionName);
+    } catch (e) {
+      throw new config.TokenProviderError(`The SSO session token associated with profile=${profileName} was not found or is invalid. ${REFRESH_MESSAGE}`, false);
+    }
+    validateTokenKey("accessToken", ssoToken.accessToken);
+    validateTokenKey("expiresAt", ssoToken.expiresAt);
+    const { accessToken, expiresAt } = ssoToken;
+    const existingToken = { token: accessToken, expiration: new Date(expiresAt) };
+    if (existingToken.expiration.getTime() - Date.now() > EXPIRE_WINDOW_MS) {
+      return existingToken;
+    }
+    if (Date.now() - lastRefreshAttemptTime.getTime() < 30000) {
+      validateTokenExpiry(existingToken);
+      return existingToken;
+    }
+    validateTokenKey("clientId", ssoToken.clientId, true);
+    validateTokenKey("clientSecret", ssoToken.clientSecret, true);
+    validateTokenKey("refreshToken", ssoToken.refreshToken, true);
+    try {
+      lastRefreshAttemptTime.setTime(Date.now());
+      const newSsoOidcToken = await getNewSsoOidcToken(ssoToken, ssoRegion, init, callerClientConfig);
+      validateTokenKey("accessToken", newSsoOidcToken.accessToken);
+      validateTokenKey("expiresIn", newSsoOidcToken.expiresIn);
+      const newTokenExpiration = new Date(Date.now() + newSsoOidcToken.expiresIn * 1000);
+      try {
+        await writeSSOTokenToFile(ssoSessionName, {
+          ...ssoToken,
+          accessToken: newSsoOidcToken.accessToken,
+          expiresAt: newTokenExpiration.toISOString(),
+          refreshToken: newSsoOidcToken.refreshToken
+        });
+      } catch (error) {}
+      return {
+        token: newSsoOidcToken.accessToken,
+        expiration: newTokenExpiration
+      };
+    } catch (error) {
+      validateTokenExpiry(existingToken);
+      return existingToken;
+    }
+  };
+  var fromStatic = ({ token, logger }) => async () => {
+    logger?.debug("@aws-sdk/token-providers - fromStatic");
+    if (!token || !token.token) {
+      throw new config.TokenProviderError(`Please pass a valid token to fromStatic`, false);
+    }
+    return token;
+  };
+  var nodeProvider = (init = {}) => config.memoize(config.chain(fromSso(init), async () => {
+    throw new config.TokenProviderError("Could not load token from any providers", false);
+  }), (token) => token.expiration !== undefined && token.expiration.getTime() - Date.now() < 300000, (token) => token.expiration !== undefined);
+  exports2.fromEnvSigningName = fromEnvSigningName;
+  exports2.fromSso = fromSso;
+  exports2.fromStatic = fromStatic;
+  exports2.nodeProvider = nodeProvider;
+});
+
+// ../../node_modules/.bun/@aws-sdk+nested-clients@3.997.11/node_modules/@aws-sdk/nested-clients/dist-cjs/submodules/sso/index.js
+var require_sso = __commonJS((exports2) => {
+  var client$1 = require_client2();
+  var core = require_dist_cjs5();
+  var client = require_client();
+  var config = require_config();
+  var endpoints = require_endpoints();
+  var protocols = require_protocols();
+  var retry = require_retry();
+  var schema = require_schema4();
+  var httpAuthSchemes = require_httpAuthSchemes();
+  var serde = require_serde();
+  var nodeHttpHandler = require_dist_cjs15();
+  var protocols$1 = require_protocols2();
+  var defaultSSOHttpAuthSchemeParametersProvider = async (config2, context, input) => {
+    return {
+      operation: client.getSmithyContext(context).operation,
+      region: await client.normalizeProvider(config2.region)() || (() => {
+        throw new Error("expected `region` to be configured for `aws.auth#sigv4`");
+      })()
+    };
+  };
+  function createAwsAuthSigv4HttpAuthOption(authParameters) {
+    return {
+      schemeId: "aws.auth#sigv4",
+      signingProperties: {
+        name: "awsssoportal",
+        region: authParameters.region
+      },
+      propertiesExtractor: (config2, context) => ({
+        signingProperties: {
+          config: config2,
+          context
+        }
+      })
+    };
+  }
+  function createSmithyApiNoAuthHttpAuthOption(authParameters) {
+    return {
+      schemeId: "smithy.api#noAuth"
+    };
+  }
+  var defaultSSOHttpAuthSchemeProvider = (authParameters) => {
+    const options = [];
+    switch (authParameters.operation) {
+      case "GetRoleCredentials": {
+        options.push(createSmithyApiNoAuthHttpAuthOption());
+        break;
+      }
+      default: {
+        options.push(createAwsAuthSigv4HttpAuthOption(authParameters));
+      }
+    }
+    return options;
+  };
+  var resolveHttpAuthSchemeConfig = (config2) => {
+    const config_0 = httpAuthSchemes.resolveAwsSdkSigV4Config(config2);
+    return Object.assign(config_0, {
+      authSchemePreference: client.normalizeProvider(config2.authSchemePreference ?? [])
+    });
+  };
+  var resolveClientEndpointParameters = (options) => {
+    return Object.assign(options, {
+      useDualstackEndpoint: options.useDualstackEndpoint ?? false,
+      useFipsEndpoint: options.useFipsEndpoint ?? false,
+      defaultSigningName: "awsssoportal"
+    });
+  };
+  var commonParams = {
+    UseFIPS: { type: "builtInParams", name: "useFipsEndpoint" },
+    Endpoint: { type: "builtInParams", name: "endpoint" },
+    Region: { type: "builtInParams", name: "region" },
+    UseDualStack: { type: "builtInParams", name: "useDualstackEndpoint" }
+  };
+  var version = "3.997.10";
+  var packageInfo = {
+    version
+  };
+  var k = "ref";
+  var a = -1;
+  var b = true;
+  var c = "isSet";
+  var d = "PartitionResult";
+  var e = "booleanEquals";
+  var f = "getAttr";
+  var g = { [k]: "Endpoint" };
+  var h = { [k]: d };
+  var i = {};
+  var j = [{ [k]: "Region" }];
+  var _data = {
+    conditions: [
+      [c, [g]],
+      [c, j],
+      ["aws.partition", j, d],
+      [e, [{ [k]: "UseFIPS" }, b]],
+      [e, [{ [k]: "UseDualStack" }, b]],
+      [e, [{ fn: f, argv: [h, "supportsDualStack"] }, b]],
+      [e, [{ fn: f, argv: [h, "supportsFIPS"] }, b]],
+      ["stringEquals", [{ fn: f, argv: [h, "name"] }, "aws-us-gov"]]
+    ],
+    results: [
+      [a],
+      [a, "Invalid Configuration: FIPS and custom endpoint are not supported"],
+      [a, "Invalid Configuration: Dualstack and custom endpoint are not supported"],
+      [g, i],
+      ["https://portal.sso-fips.{Region}.{PartitionResult#dualStackDnsSuffix}", i],
+      [a, "FIPS and DualStack are enabled, but this partition does not support one or both"],
+      ["https://portal.sso.{Region}.amazonaws.com", i],
+      ["https://portal.sso-fips.{Region}.{PartitionResult#dnsSuffix}", i],
+      [a, "FIPS is enabled but this partition does not support FIPS"],
+      ["https://portal.sso.{Region}.{PartitionResult#dualStackDnsSuffix}", i],
+      [a, "DualStack is enabled but this partition does not support DualStack"],
+      ["https://portal.sso.{Region}.{PartitionResult#dnsSuffix}", i],
+      [a, "Invalid Configuration: Missing Region"]
+    ]
+  };
+  var root = 2;
+  var r = 1e8;
+  var nodes = new Int32Array([
+    -1,
+    1,
+    -1,
+    0,
+    13,
+    3,
+    1,
+    4,
+    r + 12,
+    2,
+    5,
+    r + 12,
+    3,
+    8,
+    6,
+    4,
+    7,
+    r + 11,
+    5,
+    r + 9,
+    r + 10,
+    4,
+    11,
+    9,
+    6,
+    10,
+    r + 8,
+    7,
+    r + 6,
+    r + 7,
+    5,
+    12,
+    r + 5,
+    6,
+    r + 4,
+    r + 5,
+    3,
+    r + 1,
+    14,
+    4,
+    r + 2,
+    r + 3
+  ]);
+  var bdd = endpoints.BinaryDecisionDiagram.from(nodes, root, _data.conditions, _data.results);
+  var cache2 = new endpoints.EndpointCache({
+    size: 50,
+    params: ["Endpoint", "Region", "UseDualStack", "UseFIPS"]
+  });
+  var defaultEndpointResolver = (endpointParams, context = {}) => {
+    return cache2.get(endpointParams, () => endpoints.decideEndpoint(bdd, {
+      endpointParams,
+      logger: context.logger
+    }));
+  };
+  endpoints.customEndpointFunctions.aws = client$1.awsEndpointFunctions;
+
+  class SSOServiceException extends client.ServiceException {
+    constructor(options) {
+      super(options);
+      Object.setPrototypeOf(this, SSOServiceException.prototype);
+    }
+  }
+
+  class InvalidRequestException extends SSOServiceException {
+    name = "InvalidRequestException";
+    $fault = "client";
+    constructor(opts) {
+      super({
+        name: "InvalidRequestException",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, InvalidRequestException.prototype);
+    }
+  }
+
+  class ResourceNotFoundException extends SSOServiceException {
+    name = "ResourceNotFoundException";
+    $fault = "client";
+    constructor(opts) {
+      super({
+        name: "ResourceNotFoundException",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, ResourceNotFoundException.prototype);
+    }
+  }
+
+  class TooManyRequestsException extends SSOServiceException {
+    name = "TooManyRequestsException";
+    $fault = "client";
+    constructor(opts) {
+      super({
+        name: "TooManyRequestsException",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, TooManyRequestsException.prototype);
+    }
+  }
+
+  class UnauthorizedException extends SSOServiceException {
+    name = "UnauthorizedException";
+    $fault = "client";
+    constructor(opts) {
+      super({
+        name: "UnauthorizedException",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, UnauthorizedException.prototype);
+    }
+  }
+  var _ATT = "AccessTokenType";
+  var _GRC = "GetRoleCredentials";
+  var _GRCR = "GetRoleCredentialsRequest";
+  var _GRCRe = "GetRoleCredentialsResponse";
+  var _IRE = "InvalidRequestException";
+  var _RC = "RoleCredentials";
+  var _RNFE = "ResourceNotFoundException";
+  var _SAKT = "SecretAccessKeyType";
+  var _STT = "SessionTokenType";
+  var _TMRE = "TooManyRequestsException";
+  var _UE = "UnauthorizedException";
+  var _aI = "accountId";
+  var _aKI = "accessKeyId";
+  var _aT = "accessToken";
+  var _ai = "account_id";
+  var _c = "client";
+  var _e = "error";
+  var _ex = "expiration";
+  var _h = "http";
+  var _hE = "httpError";
+  var _hH = "httpHeader";
+  var _hQ = "httpQuery";
+  var _m = "message";
+  var _rC = "roleCredentials";
+  var _rN = "roleName";
+  var _rn = "role_name";
+  var _s = "smithy.ts.sdk.synthetic.com.amazonaws.sso";
+  var _sAK = "secretAccessKey";
+  var _sT = "sessionToken";
+  var _xasbt = "x-amz-sso_bearer_token";
+  var n0 = "com.amazonaws.sso";
+  var _s_registry = schema.TypeRegistry.for(_s);
+  var SSOServiceException$ = [-3, _s, "SSOServiceException", 0, [], []];
+  _s_registry.registerError(SSOServiceException$, SSOServiceException);
+  var n0_registry = schema.TypeRegistry.for(n0);
+  var InvalidRequestException$ = [-3, n0, _IRE, { [_e]: _c, [_hE]: 400 }, [_m], [0]];
+  n0_registry.registerError(InvalidRequestException$, InvalidRequestException);
+  var ResourceNotFoundException$ = [-3, n0, _RNFE, { [_e]: _c, [_hE]: 404 }, [_m], [0]];
+  n0_registry.registerError(ResourceNotFoundException$, ResourceNotFoundException);
+  var TooManyRequestsException$ = [-3, n0, _TMRE, { [_e]: _c, [_hE]: 429 }, [_m], [0]];
+  n0_registry.registerError(TooManyRequestsException$, TooManyRequestsException);
+  var UnauthorizedException$ = [-3, n0, _UE, { [_e]: _c, [_hE]: 401 }, [_m], [0]];
+  n0_registry.registerError(UnauthorizedException$, UnauthorizedException);
+  var errorTypeRegistries = [_s_registry, n0_registry];
+  var AccessTokenType = [0, n0, _ATT, 8, 0];
+  var SecretAccessKeyType = [0, n0, _SAKT, 8, 0];
+  var SessionTokenType = [0, n0, _STT, 8, 0];
+  var GetRoleCredentialsRequest$ = [
+    3,
+    n0,
+    _GRCR,
+    0,
+    [_rN, _aI, _aT],
+    [
+      [0, { [_hQ]: _rn }],
+      [0, { [_hQ]: _ai }],
+      [() => AccessTokenType, { [_hH]: _xasbt }]
+    ],
+    3
+  ];
+  var GetRoleCredentialsResponse$ = [
+    3,
+    n0,
+    _GRCRe,
+    0,
+    [_rC],
+    [[() => RoleCredentials$, 0]]
+  ];
+  var RoleCredentials$ = [
+    3,
+    n0,
+    _RC,
+    0,
+    [_aKI, _sAK, _sT, _ex],
+    [0, [() => SecretAccessKeyType, 0], [() => SessionTokenType, 0], 1]
+  ];
+  var GetRoleCredentials$ = [
+    9,
+    n0,
+    _GRC,
+    { [_h]: ["GET", "/federation/credentials", 200] },
+    () => GetRoleCredentialsRequest$,
+    () => GetRoleCredentialsResponse$
+  ];
+  var getRuntimeConfig$1 = (config2) => {
+    return {
+      apiVersion: "2019-06-10",
+      base64Decoder: config2?.base64Decoder ?? serde.fromBase64,
+      base64Encoder: config2?.base64Encoder ?? serde.toBase64,
+      disableHostPrefix: config2?.disableHostPrefix ?? false,
+      endpointProvider: config2?.endpointProvider ?? defaultEndpointResolver,
+      extensions: config2?.extensions ?? [],
+      httpAuthSchemeProvider: config2?.httpAuthSchemeProvider ?? defaultSSOHttpAuthSchemeProvider,
+      httpAuthSchemes: config2?.httpAuthSchemes ?? [
+        {
+          schemeId: "aws.auth#sigv4",
+          identityProvider: (ipc) => ipc.getIdentityProvider("aws.auth#sigv4"),
+          signer: new httpAuthSchemes.AwsSdkSigV4Signer
+        },
+        {
+          schemeId: "smithy.api#noAuth",
+          identityProvider: (ipc) => ipc.getIdentityProvider("smithy.api#noAuth") || (async () => ({})),
+          signer: new core.NoAuthSigner
+        }
+      ],
+      logger: config2?.logger ?? new client.NoOpLogger,
+      protocol: config2?.protocol ?? protocols$1.AwsRestJsonProtocol,
+      protocolSettings: config2?.protocolSettings ?? {
+        defaultNamespace: "com.amazonaws.sso",
+        errorTypeRegistries,
+        version: "2019-06-10",
+        serviceTarget: "SWBPortalService"
+      },
+      serviceId: config2?.serviceId ?? "SSO",
+      urlParser: config2?.urlParser ?? protocols.parseUrl,
+      utf8Decoder: config2?.utf8Decoder ?? serde.fromUtf8,
+      utf8Encoder: config2?.utf8Encoder ?? serde.toUtf8
+    };
+  };
+  var getRuntimeConfig = (config$1) => {
+    client.emitWarningIfUnsupportedVersion(process.version);
+    const defaultsMode = config.resolveDefaultsModeConfig(config$1);
+    const defaultConfigProvider = () => defaultsMode().then(client.loadConfigsForDefaultMode);
+    const clientSharedValues = getRuntimeConfig$1(config$1);
+    client$1.emitWarningIfUnsupportedVersion(process.version);
+    const loaderConfig = {
+      profile: config$1?.profile,
+      logger: clientSharedValues.logger
+    };
+    return {
+      ...clientSharedValues,
+      ...config$1,
+      runtime: "node",
+      defaultsMode,
+      authSchemePreference: config$1?.authSchemePreference ?? config.loadConfig(httpAuthSchemes.NODE_AUTH_SCHEME_PREFERENCE_OPTIONS, loaderConfig),
+      bodyLengthChecker: config$1?.bodyLengthChecker ?? serde.calculateBodyLength,
+      defaultUserAgentProvider: config$1?.defaultUserAgentProvider ?? client$1.createDefaultUserAgentProvider({ serviceId: clientSharedValues.serviceId, clientVersion: packageInfo.version }),
+      maxAttempts: config$1?.maxAttempts ?? config.loadConfig(retry.NODE_MAX_ATTEMPT_CONFIG_OPTIONS, config$1),
+      region: config$1?.region ?? config.loadConfig(config.NODE_REGION_CONFIG_OPTIONS, { ...config.NODE_REGION_CONFIG_FILE_OPTIONS, ...loaderConfig }),
+      requestHandler: nodeHttpHandler.NodeHttpHandler.create(config$1?.requestHandler ?? defaultConfigProvider),
+      retryMode: config$1?.retryMode ?? config.loadConfig({
+        ...retry.NODE_RETRY_MODE_CONFIG_OPTIONS,
+        default: async () => (await defaultConfigProvider()).retryMode || retry.DEFAULT_RETRY_MODE
+      }, config$1),
+      sha256: config$1?.sha256 ?? serde.Hash.bind(null, "sha256"),
+      streamCollector: config$1?.streamCollector ?? nodeHttpHandler.streamCollector,
+      useDualstackEndpoint: config$1?.useDualstackEndpoint ?? config.loadConfig(config.NODE_USE_DUALSTACK_ENDPOINT_CONFIG_OPTIONS, loaderConfig),
+      useFipsEndpoint: config$1?.useFipsEndpoint ?? config.loadConfig(config.NODE_USE_FIPS_ENDPOINT_CONFIG_OPTIONS, loaderConfig),
+      userAgentAppId: config$1?.userAgentAppId ?? config.loadConfig(client$1.NODE_APP_ID_CONFIG_OPTIONS, loaderConfig)
+    };
+  };
+  var getHttpAuthExtensionConfiguration = (runtimeConfig) => {
+    const _httpAuthSchemes = runtimeConfig.httpAuthSchemes;
+    let _httpAuthSchemeProvider = runtimeConfig.httpAuthSchemeProvider;
+    let _credentials = runtimeConfig.credentials;
+    return {
+      setHttpAuthScheme(httpAuthScheme) {
+        const index = _httpAuthSchemes.findIndex((scheme) => scheme.schemeId === httpAuthScheme.schemeId);
+        if (index === -1) {
+          _httpAuthSchemes.push(httpAuthScheme);
+        } else {
+          _httpAuthSchemes.splice(index, 1, httpAuthScheme);
+        }
+      },
+      httpAuthSchemes() {
+        return _httpAuthSchemes;
+      },
+      setHttpAuthSchemeProvider(httpAuthSchemeProvider) {
+        _httpAuthSchemeProvider = httpAuthSchemeProvider;
+      },
+      httpAuthSchemeProvider() {
+        return _httpAuthSchemeProvider;
+      },
+      setCredentials(credentials) {
+        _credentials = credentials;
+      },
+      credentials() {
+        return _credentials;
+      }
+    };
+  };
+  var resolveHttpAuthRuntimeConfig = (config2) => {
+    return {
+      httpAuthSchemes: config2.httpAuthSchemes(),
+      httpAuthSchemeProvider: config2.httpAuthSchemeProvider(),
+      credentials: config2.credentials()
+    };
+  };
+  var resolveRuntimeExtensions = (runtimeConfig, extensions2) => {
+    const extensionConfiguration = Object.assign(client$1.getAwsRegionExtensionConfiguration(runtimeConfig), client.getDefaultExtensionConfiguration(runtimeConfig), protocols.getHttpHandlerExtensionConfiguration(runtimeConfig), getHttpAuthExtensionConfiguration(runtimeConfig));
+    extensions2.forEach((extension) => extension.configure(extensionConfiguration));
+    return Object.assign(runtimeConfig, client$1.resolveAwsRegionExtensionConfiguration(extensionConfiguration), client.resolveDefaultRuntimeConfig(extensionConfiguration), protocols.resolveHttpHandlerRuntimeConfig(extensionConfiguration), resolveHttpAuthRuntimeConfig(extensionConfiguration));
+  };
+
+  class SSOClient extends client.Client {
+    config;
+    constructor(...[configuration]) {
+      const _config_0 = getRuntimeConfig(configuration || {});
+      super(_config_0);
+      this.initConfig = _config_0;
+      const _config_1 = resolveClientEndpointParameters(_config_0);
+      const _config_2 = client$1.resolveUserAgentConfig(_config_1);
+      const _config_3 = retry.resolveRetryConfig(_config_2);
+      const _config_4 = config.resolveRegionConfig(_config_3);
+      const _config_5 = client$1.resolveHostHeaderConfig(_config_4);
+      const _config_6 = endpoints.resolveEndpointConfig(_config_5);
+      const _config_7 = resolveHttpAuthSchemeConfig(_config_6);
+      const _config_8 = resolveRuntimeExtensions(_config_7, configuration?.extensions || []);
+      this.config = _config_8;
+      this.middlewareStack.use(schema.getSchemaSerdePlugin(this.config));
+      this.middlewareStack.use(client$1.getUserAgentPlugin(this.config));
+      this.middlewareStack.use(retry.getRetryPlugin(this.config));
+      this.middlewareStack.use(protocols.getContentLengthPlugin(this.config));
+      this.middlewareStack.use(client$1.getHostHeaderPlugin(this.config));
+      this.middlewareStack.use(client$1.getLoggerPlugin(this.config));
+      this.middlewareStack.use(client$1.getRecursionDetectionPlugin(this.config));
+      this.middlewareStack.use(core.getHttpAuthSchemeEndpointRuleSetPlugin(this.config, {
+        httpAuthSchemeParametersProvider: defaultSSOHttpAuthSchemeParametersProvider,
+        identityProviderConfigProvider: async (config2) => new core.DefaultIdentityProviderConfig({
+          "aws.auth#sigv4": config2.credentials
+        })
+      }));
+      this.middlewareStack.use(core.getHttpSigningPlugin(this.config));
+    }
+    destroy() {
+      super.destroy();
+    }
+  }
+
+  class GetRoleCredentialsCommand extends client.Command.classBuilder().ep(commonParams).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("SWBPortalService", "GetRoleCredentials", {}).n("SSOClient", "GetRoleCredentialsCommand").sc(GetRoleCredentials$).build() {
+  }
+  var commands = {
+    GetRoleCredentialsCommand
+  };
+
+  class SSO extends SSOClient {
+  }
+  client.createAggregatedClient(commands, SSO);
+  exports2.$Command = client.Command;
+  exports2.__Client = client.Client;
+  exports2.GetRoleCredentials$ = GetRoleCredentials$;
+  exports2.GetRoleCredentialsCommand = GetRoleCredentialsCommand;
+  exports2.GetRoleCredentialsRequest$ = GetRoleCredentialsRequest$;
+  exports2.GetRoleCredentialsResponse$ = GetRoleCredentialsResponse$;
+  exports2.InvalidRequestException = InvalidRequestException;
+  exports2.InvalidRequestException$ = InvalidRequestException$;
+  exports2.ResourceNotFoundException = ResourceNotFoundException;
+  exports2.ResourceNotFoundException$ = ResourceNotFoundException$;
+  exports2.RoleCredentials$ = RoleCredentials$;
+  exports2.SSO = SSO;
+  exports2.SSOClient = SSOClient;
+  exports2.SSOServiceException = SSOServiceException;
+  exports2.SSOServiceException$ = SSOServiceException$;
+  exports2.TooManyRequestsException = TooManyRequestsException;
+  exports2.TooManyRequestsException$ = TooManyRequestsException$;
+  exports2.UnauthorizedException = UnauthorizedException;
+  exports2.UnauthorizedException$ = UnauthorizedException$;
+  exports2.errorTypeRegistries = errorTypeRegistries;
+});
+
+// ../../node_modules/.bun/@aws-sdk+credential-provider-sso@3.972.43/node_modules/@aws-sdk/credential-provider-sso/dist-cjs/loadSso-BKDNrsal.js
+var require_loadSso_BKDNrsal = __commonJS((exports2) => {
+  var sso = require_sso();
+  exports2.GetRoleCredentialsCommand = sso.GetRoleCredentialsCommand;
+  exports2.SSOClient = sso.SSOClient;
+});
+
+// ../../node_modules/.bun/@aws-sdk+credential-provider-sso@3.972.43/node_modules/@aws-sdk/credential-provider-sso/dist-cjs/index.js
+var require_dist_cjs18 = __commonJS((exports2) => {
+  var config = require_config();
+  var client = require_client2();
+  var tokenProviders = require_dist_cjs17();
+  var isSsoProfile = (arg) => arg && (typeof arg.sso_start_url === "string" || typeof arg.sso_account_id === "string" || typeof arg.sso_session === "string" || typeof arg.sso_region === "string" || typeof arg.sso_role_name === "string");
+  var SHOULD_FAIL_CREDENTIAL_CHAIN = false;
+  var resolveSSOCredentials = async ({ ssoStartUrl, ssoSession, ssoAccountId, ssoRegion, ssoRoleName, ssoClient, clientConfig, parentClientConfig, callerClientConfig, profile, filepath, configFilepath, ignoreCache, logger }) => {
+    let token;
+    const refreshMessage = `To refresh this SSO session run aws sso login with the corresponding profile.`;
+    if (ssoSession) {
+      try {
+        const _token = await tokenProviders.fromSso({
+          profile,
+          filepath,
+          configFilepath,
+          ignoreCache
+        })();
+        token = {
+          accessToken: _token.token,
+          expiresAt: new Date(_token.expiration).toISOString()
+        };
+      } catch (e) {
+        throw new config.CredentialsProviderError(e.message, {
+          tryNextLink: SHOULD_FAIL_CREDENTIAL_CHAIN,
+          logger
+        });
+      }
+    } else {
+      try {
+        token = await config.getSSOTokenFromFile(ssoStartUrl);
+      } catch (e) {
+        throw new config.CredentialsProviderError(`The SSO session associated with this profile is invalid. ${refreshMessage}`, {
+          tryNextLink: SHOULD_FAIL_CREDENTIAL_CHAIN,
+          logger
+        });
+      }
+    }
+    if (new Date(token.expiresAt).getTime() - Date.now() <= 0) {
+      throw new config.CredentialsProviderError(`The SSO session associated with this profile has expired. ${refreshMessage}`, {
+        tryNextLink: SHOULD_FAIL_CREDENTIAL_CHAIN,
+        logger
+      });
+    }
+    const { accessToken } = token;
+    const { SSOClient, GetRoleCredentialsCommand } = await Promise.resolve().then(function() {
+      return require_loadSso_BKDNrsal();
+    });
+    const sso = ssoClient || new SSOClient(Object.assign({}, clientConfig ?? {}, {
+      logger: clientConfig?.logger ?? callerClientConfig?.logger ?? parentClientConfig?.logger,
+      region: clientConfig?.region ?? ssoRegion,
+      userAgentAppId: clientConfig?.userAgentAppId ?? callerClientConfig?.userAgentAppId ?? parentClientConfig?.userAgentAppId
+    }));
+    let ssoResp;
+    try {
+      ssoResp = await sso.send(new GetRoleCredentialsCommand({
+        accountId: ssoAccountId,
+        roleName: ssoRoleName,
+        accessToken
+      }));
+    } catch (e) {
+      throw new config.CredentialsProviderError(e, {
+        tryNextLink: SHOULD_FAIL_CREDENTIAL_CHAIN,
+        logger
+      });
+    }
+    const { roleCredentials: { accessKeyId, secretAccessKey, sessionToken, expiration, credentialScope, accountId } = {} } = ssoResp;
+    if (!accessKeyId || !secretAccessKey || !sessionToken || !expiration) {
+      throw new config.CredentialsProviderError("SSO returns an invalid temporary credential.", {
+        tryNextLink: SHOULD_FAIL_CREDENTIAL_CHAIN,
+        logger
+      });
+    }
+    const credentials = {
+      accessKeyId,
+      secretAccessKey,
+      sessionToken,
+      expiration: new Date(expiration),
+      ...credentialScope && { credentialScope },
+      ...accountId && { accountId }
+    };
+    if (ssoSession) {
+      client.setCredentialFeature(credentials, "CREDENTIALS_SSO", "s");
+    } else {
+      client.setCredentialFeature(credentials, "CREDENTIALS_SSO_LEGACY", "u");
+    }
+    return credentials;
+  };
+  var validateSsoProfile = (profile, logger) => {
+    const { sso_start_url, sso_account_id, sso_region, sso_role_name } = profile;
+    if (!sso_start_url || !sso_account_id || !sso_region || !sso_role_name) {
+      throw new config.CredentialsProviderError(`Profile is configured with invalid SSO credentials. Required parameters "sso_account_id", ` + `"sso_region", "sso_role_name", "sso_start_url". Got ${Object.keys(profile).join(", ")}
+Reference: https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sso.html`, { tryNextLink: false, logger });
+    }
+    return profile;
+  };
+  var fromSSO = (init = {}) => async ({ callerClientConfig } = {}) => {
+    init.logger?.debug("@aws-sdk/credential-provider-sso - fromSSO");
+    const { ssoStartUrl, ssoAccountId, ssoRegion, ssoRoleName, ssoSession } = init;
+    const { ssoClient } = init;
+    const profileName = config.getProfileName({
+      profile: init.profile ?? callerClientConfig?.profile
+    });
+    if (!ssoStartUrl && !ssoAccountId && !ssoRegion && !ssoRoleName && !ssoSession) {
+      const profiles = await config.parseKnownFiles(init);
+      const profile = profiles[profileName];
+      if (!profile) {
+        throw new config.CredentialsProviderError(`Profile ${profileName} was not found.`, { logger: init.logger });
+      }
+      if (!isSsoProfile(profile)) {
+        throw new config.CredentialsProviderError(`Profile ${profileName} is not configured with SSO credentials.`, {
+          logger: init.logger
+        });
+      }
+      if (profile?.sso_session) {
+        const ssoSessions = await config.loadSsoSessionData(init);
+        const session = ssoSessions[profile.sso_session];
+        const conflictMsg = ` configurations in profile ${profileName} and sso-session ${profile.sso_session}`;
+        if (ssoRegion && ssoRegion !== session.sso_region) {
+          throw new config.CredentialsProviderError(`Conflicting SSO region` + conflictMsg, {
+            tryNextLink: false,
+            logger: init.logger
+          });
+        }
+        if (ssoStartUrl && ssoStartUrl !== session.sso_start_url) {
+          throw new config.CredentialsProviderError(`Conflicting SSO start_url` + conflictMsg, {
+            tryNextLink: false,
+            logger: init.logger
+          });
+        }
+        profile.sso_region = session.sso_region;
+        profile.sso_start_url = session.sso_start_url;
+      }
+      const { sso_start_url, sso_account_id, sso_region, sso_role_name, sso_session } = validateSsoProfile(profile, init.logger);
+      return resolveSSOCredentials({
+        ssoStartUrl: sso_start_url,
+        ssoSession: sso_session,
+        ssoAccountId: sso_account_id,
+        ssoRegion: sso_region,
+        ssoRoleName: sso_role_name,
+        ssoClient,
+        clientConfig: init.clientConfig,
+        parentClientConfig: init.parentClientConfig,
+        callerClientConfig: init.callerClientConfig,
+        profile: profileName,
+        filepath: init.filepath,
+        configFilepath: init.configFilepath,
+        ignoreCache: init.ignoreCache,
+        logger: init.logger
+      });
+    } else if (!ssoStartUrl || !ssoAccountId || !ssoRegion || !ssoRoleName) {
+      throw new config.CredentialsProviderError("Incomplete configuration. The fromSSO() argument hash must include " + '"ssoStartUrl", "ssoAccountId", "ssoRegion", "ssoRoleName"', { tryNextLink: false, logger: init.logger });
+    } else {
+      return resolveSSOCredentials({
+        ssoStartUrl,
+        ssoSession,
+        ssoAccountId,
+        ssoRegion,
+        ssoRoleName,
+        ssoClient,
+        clientConfig: init.clientConfig,
+        parentClientConfig: init.parentClientConfig,
+        callerClientConfig: init.callerClientConfig,
+        profile: profileName,
+        filepath: init.filepath,
+        configFilepath: init.configFilepath,
+        ignoreCache: init.ignoreCache,
+        logger: init.logger
+      });
+    }
+  };
+  exports2.fromSSO = fromSSO;
+  exports2.isSsoProfile = isSsoProfile;
+  exports2.validateSsoProfile = validateSsoProfile;
+});
+
+// ../../node_modules/.bun/@aws-sdk+nested-clients@3.997.11/node_modules/@aws-sdk/nested-clients/dist-cjs/submodules/signin/index.js
+var require_signin = __commonJS((exports2) => {
+  var client$1 = require_client2();
+  var core = require_dist_cjs5();
+  var client = require_client();
+  var config = require_config();
+  var endpoints = require_endpoints();
+  var protocols = require_protocols();
+  var retry = require_retry();
+  var schema = require_schema4();
+  var httpAuthSchemes = require_httpAuthSchemes();
+  var serde = require_serde();
+  var nodeHttpHandler = require_dist_cjs15();
+  var protocols$1 = require_protocols2();
+  var defaultSigninHttpAuthSchemeParametersProvider = async (config2, context, input) => {
+    return {
+      operation: client.getSmithyContext(context).operation,
+      region: await client.normalizeProvider(config2.region)() || (() => {
+        throw new Error("expected `region` to be configured for `aws.auth#sigv4`");
+      })()
+    };
+  };
+  function createAwsAuthSigv4HttpAuthOption(authParameters) {
+    return {
+      schemeId: "aws.auth#sigv4",
+      signingProperties: {
+        name: "signin",
+        region: authParameters.region
+      },
+      propertiesExtractor: (config2, context) => ({
+        signingProperties: {
+          config: config2,
+          context
+        }
+      })
+    };
+  }
+  function createSmithyApiNoAuthHttpAuthOption(authParameters) {
+    return {
+      schemeId: "smithy.api#noAuth"
+    };
+  }
+  var defaultSigninHttpAuthSchemeProvider = (authParameters) => {
+    const options = [];
+    switch (authParameters.operation) {
+      case "CreateOAuth2Token": {
+        options.push(createSmithyApiNoAuthHttpAuthOption());
+        break;
+      }
+      default: {
+        options.push(createAwsAuthSigv4HttpAuthOption(authParameters));
+      }
+    }
+    return options;
+  };
+  var resolveHttpAuthSchemeConfig = (config2) => {
+    const config_0 = httpAuthSchemes.resolveAwsSdkSigV4Config(config2);
+    return Object.assign(config_0, {
+      authSchemePreference: client.normalizeProvider(config2.authSchemePreference ?? [])
+    });
+  };
+  var resolveClientEndpointParameters = (options) => {
+    return Object.assign(options, {
+      useDualstackEndpoint: options.useDualstackEndpoint ?? false,
+      useFipsEndpoint: options.useFipsEndpoint ?? false,
+      defaultSigningName: "signin"
+    });
+  };
+  var commonParams = {
+    UseFIPS: { type: "builtInParams", name: "useFipsEndpoint" },
+    Endpoint: { type: "builtInParams", name: "endpoint" },
+    Region: { type: "builtInParams", name: "region" },
+    UseDualStack: { type: "builtInParams", name: "useDualstackEndpoint" }
+  };
+  var version = "3.997.10";
+  var packageInfo = {
+    version
+  };
+  var m = "ref";
+  var a = -1;
+  var b = true;
+  var c = "isSet";
+  var d = "PartitionResult";
+  var e = "booleanEquals";
+  var f = "getAttr";
+  var g = "stringEquals";
+  var h = { [m]: "Endpoint" };
+  var i = { [m]: d };
+  var j = { fn: f, argv: [i, "name"] };
+  var k = {};
+  var l = [{ [m]: "Region" }];
+  var _data = {
+    conditions: [
+      [c, [h]],
+      [c, l],
+      ["aws.partition", l, d],
+      [e, [{ [m]: "UseFIPS" }, b]],
+      [e, [{ [m]: "UseDualStack" }, b]],
+      [e, [{ fn: f, argv: [i, "supportsDualStack"] }, b]],
+      [e, [{ fn: f, argv: [i, "supportsFIPS"] }, b]],
+      [g, [j, "aws"]],
+      [g, [j, "aws-cn"]],
+      [g, [j, "aws-us-gov"]]
+    ],
+    results: [
+      [a],
+      [a, "Invalid Configuration: FIPS and custom endpoint are not supported"],
+      [a, "Invalid Configuration: Dualstack and custom endpoint are not supported"],
+      [h, k],
+      ["https://{Region}.signin.aws.amazon.com", k],
+      ["https://{Region}.signin.amazonaws.cn", k],
+      ["https://{Region}.signin.amazonaws-us-gov.com", k],
+      ["https://signin-fips.{Region}.{PartitionResult#dualStackDnsSuffix}", k],
+      [a, "FIPS and DualStack are enabled, but this partition does not support one or both"],
+      ["https://signin-fips.{Region}.{PartitionResult#dnsSuffix}", k],
+      [a, "FIPS is enabled but this partition does not support FIPS"],
+      ["https://signin.{Region}.{PartitionResult#dualStackDnsSuffix}", k],
+      [a, "DualStack is enabled but this partition does not support DualStack"],
+      ["https://signin.{Region}.{PartitionResult#dnsSuffix}", k],
+      [a, "Invalid Configuration: Missing Region"]
+    ]
+  };
+  var root = 2;
+  var r = 1e8;
+  var nodes = new Int32Array([
+    -1,
+    1,
+    -1,
+    0,
+    15,
+    3,
+    1,
+    4,
+    r + 14,
+    2,
+    5,
+    r + 14,
+    3,
+    11,
+    6,
+    4,
+    10,
+    7,
+    7,
+    r + 4,
+    8,
+    8,
+    r + 5,
+    9,
+    9,
+    r + 6,
+    r + 13,
+    5,
+    r + 11,
+    r + 12,
+    4,
+    13,
+    12,
+    6,
+    r + 9,
+    r + 10,
+    5,
+    14,
+    r + 8,
+    6,
+    r + 7,
+    r + 8,
+    3,
+    r + 1,
+    16,
+    4,
+    r + 2,
+    r + 3
+  ]);
+  var bdd = endpoints.BinaryDecisionDiagram.from(nodes, root, _data.conditions, _data.results);
+  var cache2 = new endpoints.EndpointCache({
+    size: 50,
+    params: ["Endpoint", "Region", "UseDualStack", "UseFIPS"]
+  });
+  var defaultEndpointResolver = (endpointParams, context = {}) => {
+    return cache2.get(endpointParams, () => endpoints.decideEndpoint(bdd, {
+      endpointParams,
+      logger: context.logger
+    }));
+  };
+  endpoints.customEndpointFunctions.aws = client$1.awsEndpointFunctions;
+
+  class SigninServiceException extends client.ServiceException {
+    constructor(options) {
+      super(options);
+      Object.setPrototypeOf(this, SigninServiceException.prototype);
+    }
+  }
+
+  class AccessDeniedException extends SigninServiceException {
+    name = "AccessDeniedException";
+    $fault = "client";
+    error;
+    constructor(opts) {
+      super({
+        name: "AccessDeniedException",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, AccessDeniedException.prototype);
+      this.error = opts.error;
+    }
+  }
+
+  class InternalServerException extends SigninServiceException {
+    name = "InternalServerException";
+    $fault = "server";
+    error;
+    constructor(opts) {
+      super({
+        name: "InternalServerException",
+        $fault: "server",
+        ...opts
+      });
+      Object.setPrototypeOf(this, InternalServerException.prototype);
+      this.error = opts.error;
+    }
+  }
+
+  class TooManyRequestsError extends SigninServiceException {
+    name = "TooManyRequestsError";
+    $fault = "client";
+    error;
+    constructor(opts) {
+      super({
+        name: "TooManyRequestsError",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, TooManyRequestsError.prototype);
+      this.error = opts.error;
+    }
+  }
+
+  class ValidationException extends SigninServiceException {
+    name = "ValidationException";
+    $fault = "client";
+    error;
+    constructor(opts) {
+      super({
+        name: "ValidationException",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, ValidationException.prototype);
+      this.error = opts.error;
+    }
+  }
+  var _ADE = "AccessDeniedException";
+  var _AT = "AccessToken";
+  var _COAT = "CreateOAuth2Token";
+  var _COATR = "CreateOAuth2TokenRequest";
+  var _COATRB = "CreateOAuth2TokenRequestBody";
+  var _COATRBr = "CreateOAuth2TokenResponseBody";
+  var _COATRr = "CreateOAuth2TokenResponse";
+  var _ISE = "InternalServerException";
+  var _RT = "RefreshToken";
+  var _TMRE = "TooManyRequestsError";
+  var _VE = "ValidationException";
+  var _aKI = "accessKeyId";
+  var _aT = "accessToken";
+  var _c = "client";
+  var _cI = "clientId";
+  var _cV = "codeVerifier";
+  var _co = "code";
+  var _e = "error";
+  var _eI = "expiresIn";
+  var _gT = "grantType";
+  var _h = "http";
+  var _hE = "httpError";
+  var _iT = "idToken";
+  var _jN = "jsonName";
+  var _m = "message";
+  var _rT = "refreshToken";
+  var _rU = "redirectUri";
+  var _s = "smithy.ts.sdk.synthetic.com.amazonaws.signin";
+  var _sAK = "secretAccessKey";
+  var _sT = "sessionToken";
+  var _se = "server";
+  var _tI = "tokenInput";
+  var _tO = "tokenOutput";
+  var _tT = "tokenType";
+  var n0 = "com.amazonaws.signin";
+  var _s_registry = schema.TypeRegistry.for(_s);
+  var SigninServiceException$ = [-3, _s, "SigninServiceException", 0, [], []];
+  _s_registry.registerError(SigninServiceException$, SigninServiceException);
+  var n0_registry = schema.TypeRegistry.for(n0);
+  var AccessDeniedException$ = [-3, n0, _ADE, { [_e]: _c }, [_e, _m], [0, 0], 2];
+  n0_registry.registerError(AccessDeniedException$, AccessDeniedException);
+  var InternalServerException$ = [-3, n0, _ISE, { [_e]: _se, [_hE]: 500 }, [_e, _m], [0, 0], 2];
+  n0_registry.registerError(InternalServerException$, InternalServerException);
+  var TooManyRequestsError$ = [-3, n0, _TMRE, { [_e]: _c, [_hE]: 429 }, [_e, _m], [0, 0], 2];
+  n0_registry.registerError(TooManyRequestsError$, TooManyRequestsError);
+  var ValidationException$ = [-3, n0, _VE, { [_e]: _c, [_hE]: 400 }, [_e, _m], [0, 0], 2];
+  n0_registry.registerError(ValidationException$, ValidationException);
+  var errorTypeRegistries = [_s_registry, n0_registry];
+  var RefreshToken = [0, n0, _RT, 8, 0];
+  var AccessToken$ = [
+    3,
+    n0,
+    _AT,
+    8,
+    [_aKI, _sAK, _sT],
+    [
+      [0, { [_jN]: _aKI }],
+      [0, { [_jN]: _sAK }],
+      [0, { [_jN]: _sT }]
+    ],
+    3
+  ];
+  var CreateOAuth2TokenRequest$ = [
+    3,
+    n0,
+    _COATR,
+    0,
+    [_tI],
+    [[() => CreateOAuth2TokenRequestBody$, 16]],
+    1
+  ];
+  var CreateOAuth2TokenRequestBody$ = [
+    3,
+    n0,
+    _COATRB,
+    0,
+    [_cI, _gT, _co, _rU, _cV, _rT],
+    [
+      [0, { [_jN]: _cI }],
+      [0, { [_jN]: _gT }],
+      0,
+      [0, { [_jN]: _rU }],
+      [0, { [_jN]: _cV }],
+      [() => RefreshToken, { [_jN]: _rT }]
+    ],
+    2
+  ];
+  var CreateOAuth2TokenResponse$ = [
+    3,
+    n0,
+    _COATRr,
+    0,
+    [_tO],
+    [[() => CreateOAuth2TokenResponseBody$, 16]],
+    1
+  ];
+  var CreateOAuth2TokenResponseBody$ = [
+    3,
+    n0,
+    _COATRBr,
+    0,
+    [_aT, _tT, _eI, _rT, _iT],
+    [
+      [() => AccessToken$, { [_jN]: _aT }],
+      [0, { [_jN]: _tT }],
+      [1, { [_jN]: _eI }],
+      [() => RefreshToken, { [_jN]: _rT }],
+      [0, { [_jN]: _iT }]
+    ],
+    4
+  ];
+  var CreateOAuth2Token$ = [
+    9,
+    n0,
+    _COAT,
+    { [_h]: ["POST", "/v1/token", 200] },
+    () => CreateOAuth2TokenRequest$,
+    () => CreateOAuth2TokenResponse$
+  ];
+  var getRuntimeConfig$1 = (config2) => {
+    return {
+      apiVersion: "2023-01-01",
+      base64Decoder: config2?.base64Decoder ?? serde.fromBase64,
+      base64Encoder: config2?.base64Encoder ?? serde.toBase64,
+      disableHostPrefix: config2?.disableHostPrefix ?? false,
+      endpointProvider: config2?.endpointProvider ?? defaultEndpointResolver,
+      extensions: config2?.extensions ?? [],
+      httpAuthSchemeProvider: config2?.httpAuthSchemeProvider ?? defaultSigninHttpAuthSchemeProvider,
+      httpAuthSchemes: config2?.httpAuthSchemes ?? [
+        {
+          schemeId: "aws.auth#sigv4",
+          identityProvider: (ipc) => ipc.getIdentityProvider("aws.auth#sigv4"),
+          signer: new httpAuthSchemes.AwsSdkSigV4Signer
+        },
+        {
+          schemeId: "smithy.api#noAuth",
+          identityProvider: (ipc) => ipc.getIdentityProvider("smithy.api#noAuth") || (async () => ({})),
+          signer: new core.NoAuthSigner
+        }
+      ],
+      logger: config2?.logger ?? new client.NoOpLogger,
+      protocol: config2?.protocol ?? protocols$1.AwsRestJsonProtocol,
+      protocolSettings: config2?.protocolSettings ?? {
+        defaultNamespace: "com.amazonaws.signin",
+        errorTypeRegistries,
+        version: "2023-01-01",
+        serviceTarget: "Signin"
+      },
+      serviceId: config2?.serviceId ?? "Signin",
+      urlParser: config2?.urlParser ?? protocols.parseUrl,
+      utf8Decoder: config2?.utf8Decoder ?? serde.fromUtf8,
+      utf8Encoder: config2?.utf8Encoder ?? serde.toUtf8
+    };
+  };
+  var getRuntimeConfig = (config$1) => {
+    client.emitWarningIfUnsupportedVersion(process.version);
+    const defaultsMode = config.resolveDefaultsModeConfig(config$1);
+    const defaultConfigProvider = () => defaultsMode().then(client.loadConfigsForDefaultMode);
+    const clientSharedValues = getRuntimeConfig$1(config$1);
+    client$1.emitWarningIfUnsupportedVersion(process.version);
+    const loaderConfig = {
+      profile: config$1?.profile,
+      logger: clientSharedValues.logger
+    };
+    return {
+      ...clientSharedValues,
+      ...config$1,
+      runtime: "node",
+      defaultsMode,
+      authSchemePreference: config$1?.authSchemePreference ?? config.loadConfig(httpAuthSchemes.NODE_AUTH_SCHEME_PREFERENCE_OPTIONS, loaderConfig),
+      bodyLengthChecker: config$1?.bodyLengthChecker ?? serde.calculateBodyLength,
+      defaultUserAgentProvider: config$1?.defaultUserAgentProvider ?? client$1.createDefaultUserAgentProvider({ serviceId: clientSharedValues.serviceId, clientVersion: packageInfo.version }),
+      maxAttempts: config$1?.maxAttempts ?? config.loadConfig(retry.NODE_MAX_ATTEMPT_CONFIG_OPTIONS, config$1),
+      region: config$1?.region ?? config.loadConfig(config.NODE_REGION_CONFIG_OPTIONS, { ...config.NODE_REGION_CONFIG_FILE_OPTIONS, ...loaderConfig }),
+      requestHandler: nodeHttpHandler.NodeHttpHandler.create(config$1?.requestHandler ?? defaultConfigProvider),
+      retryMode: config$1?.retryMode ?? config.loadConfig({
+        ...retry.NODE_RETRY_MODE_CONFIG_OPTIONS,
+        default: async () => (await defaultConfigProvider()).retryMode || retry.DEFAULT_RETRY_MODE
+      }, config$1),
+      sha256: config$1?.sha256 ?? serde.Hash.bind(null, "sha256"),
+      streamCollector: config$1?.streamCollector ?? nodeHttpHandler.streamCollector,
+      useDualstackEndpoint: config$1?.useDualstackEndpoint ?? config.loadConfig(config.NODE_USE_DUALSTACK_ENDPOINT_CONFIG_OPTIONS, loaderConfig),
+      useFipsEndpoint: config$1?.useFipsEndpoint ?? config.loadConfig(config.NODE_USE_FIPS_ENDPOINT_CONFIG_OPTIONS, loaderConfig),
+      userAgentAppId: config$1?.userAgentAppId ?? config.loadConfig(client$1.NODE_APP_ID_CONFIG_OPTIONS, loaderConfig)
+    };
+  };
+  var getHttpAuthExtensionConfiguration = (runtimeConfig) => {
+    const _httpAuthSchemes = runtimeConfig.httpAuthSchemes;
+    let _httpAuthSchemeProvider = runtimeConfig.httpAuthSchemeProvider;
+    let _credentials = runtimeConfig.credentials;
+    return {
+      setHttpAuthScheme(httpAuthScheme) {
+        const index = _httpAuthSchemes.findIndex((scheme) => scheme.schemeId === httpAuthScheme.schemeId);
+        if (index === -1) {
+          _httpAuthSchemes.push(httpAuthScheme);
+        } else {
+          _httpAuthSchemes.splice(index, 1, httpAuthScheme);
+        }
+      },
+      httpAuthSchemes() {
+        return _httpAuthSchemes;
+      },
+      setHttpAuthSchemeProvider(httpAuthSchemeProvider) {
+        _httpAuthSchemeProvider = httpAuthSchemeProvider;
+      },
+      httpAuthSchemeProvider() {
+        return _httpAuthSchemeProvider;
+      },
+      setCredentials(credentials) {
+        _credentials = credentials;
+      },
+      credentials() {
+        return _credentials;
+      }
+    };
+  };
+  var resolveHttpAuthRuntimeConfig = (config2) => {
+    return {
+      httpAuthSchemes: config2.httpAuthSchemes(),
+      httpAuthSchemeProvider: config2.httpAuthSchemeProvider(),
+      credentials: config2.credentials()
+    };
+  };
+  var resolveRuntimeExtensions = (runtimeConfig, extensions2) => {
+    const extensionConfiguration = Object.assign(client$1.getAwsRegionExtensionConfiguration(runtimeConfig), client.getDefaultExtensionConfiguration(runtimeConfig), protocols.getHttpHandlerExtensionConfiguration(runtimeConfig), getHttpAuthExtensionConfiguration(runtimeConfig));
+    extensions2.forEach((extension) => extension.configure(extensionConfiguration));
+    return Object.assign(runtimeConfig, client$1.resolveAwsRegionExtensionConfiguration(extensionConfiguration), client.resolveDefaultRuntimeConfig(extensionConfiguration), protocols.resolveHttpHandlerRuntimeConfig(extensionConfiguration), resolveHttpAuthRuntimeConfig(extensionConfiguration));
+  };
+
+  class SigninClient extends client.Client {
+    config;
+    constructor(...[configuration]) {
+      const _config_0 = getRuntimeConfig(configuration || {});
+      super(_config_0);
+      this.initConfig = _config_0;
+      const _config_1 = resolveClientEndpointParameters(_config_0);
+      const _config_2 = client$1.resolveUserAgentConfig(_config_1);
+      const _config_3 = retry.resolveRetryConfig(_config_2);
+      const _config_4 = config.resolveRegionConfig(_config_3);
+      const _config_5 = client$1.resolveHostHeaderConfig(_config_4);
+      const _config_6 = endpoints.resolveEndpointConfig(_config_5);
+      const _config_7 = resolveHttpAuthSchemeConfig(_config_6);
+      const _config_8 = resolveRuntimeExtensions(_config_7, configuration?.extensions || []);
+      this.config = _config_8;
+      this.middlewareStack.use(schema.getSchemaSerdePlugin(this.config));
+      this.middlewareStack.use(client$1.getUserAgentPlugin(this.config));
+      this.middlewareStack.use(retry.getRetryPlugin(this.config));
+      this.middlewareStack.use(protocols.getContentLengthPlugin(this.config));
+      this.middlewareStack.use(client$1.getHostHeaderPlugin(this.config));
+      this.middlewareStack.use(client$1.getLoggerPlugin(this.config));
+      this.middlewareStack.use(client$1.getRecursionDetectionPlugin(this.config));
+      this.middlewareStack.use(core.getHttpAuthSchemeEndpointRuleSetPlugin(this.config, {
+        httpAuthSchemeParametersProvider: defaultSigninHttpAuthSchemeParametersProvider,
+        identityProviderConfigProvider: async (config2) => new core.DefaultIdentityProviderConfig({
+          "aws.auth#sigv4": config2.credentials
+        })
+      }));
+      this.middlewareStack.use(core.getHttpSigningPlugin(this.config));
+    }
+    destroy() {
+      super.destroy();
+    }
+  }
+
+  class CreateOAuth2TokenCommand extends client.Command.classBuilder().ep(commonParams).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("Signin", "CreateOAuth2Token", {}).n("SigninClient", "CreateOAuth2TokenCommand").sc(CreateOAuth2Token$).build() {
+  }
+  var commands = {
+    CreateOAuth2TokenCommand
+  };
+
+  class Signin extends SigninClient {
+  }
+  client.createAggregatedClient(commands, Signin);
+  var OAuth2ErrorCode = {
+    AUTHCODE_EXPIRED: "AUTHCODE_EXPIRED",
+    INSUFFICIENT_PERMISSIONS: "INSUFFICIENT_PERMISSIONS",
+    INVALID_REQUEST: "INVALID_REQUEST",
+    SERVER_ERROR: "server_error",
+    TOKEN_EXPIRED: "TOKEN_EXPIRED",
+    USER_CREDENTIALS_CHANGED: "USER_CREDENTIALS_CHANGED"
+  };
+  exports2.$Command = client.Command;
+  exports2.__Client = client.Client;
+  exports2.AccessDeniedException = AccessDeniedException;
+  exports2.AccessDeniedException$ = AccessDeniedException$;
+  exports2.AccessToken$ = AccessToken$;
+  exports2.CreateOAuth2Token$ = CreateOAuth2Token$;
+  exports2.CreateOAuth2TokenCommand = CreateOAuth2TokenCommand;
+  exports2.CreateOAuth2TokenRequest$ = CreateOAuth2TokenRequest$;
+  exports2.CreateOAuth2TokenRequestBody$ = CreateOAuth2TokenRequestBody$;
+  exports2.CreateOAuth2TokenResponse$ = CreateOAuth2TokenResponse$;
+  exports2.CreateOAuth2TokenResponseBody$ = CreateOAuth2TokenResponseBody$;
+  exports2.InternalServerException = InternalServerException;
+  exports2.InternalServerException$ = InternalServerException$;
+  exports2.OAuth2ErrorCode = OAuth2ErrorCode;
+  exports2.Signin = Signin;
+  exports2.SigninClient = SigninClient;
+  exports2.SigninServiceException = SigninServiceException;
+  exports2.SigninServiceException$ = SigninServiceException$;
+  exports2.TooManyRequestsError = TooManyRequestsError;
+  exports2.TooManyRequestsError$ = TooManyRequestsError$;
+  exports2.ValidationException = ValidationException;
+  exports2.ValidationException$ = ValidationException$;
+  exports2.errorTypeRegistries = errorTypeRegistries;
+});
+
+// ../../node_modules/.bun/@aws-sdk+credential-provider-login@3.972.43/node_modules/@aws-sdk/credential-provider-login/dist-cjs/index.js
+var require_dist_cjs19 = __commonJS((exports2) => {
+  var client = require_client2();
+  var config = require_config();
+  var protocols = require_protocols();
+  var node_crypto = require("node:crypto");
+  var node_fs = require("node:fs");
+  var node_os = require("node:os");
+  var node_path = require("node:path");
+
+  class LoginCredentialsFetcher {
+    profileData;
+    init;
+    callerClientConfig;
+    static REFRESH_THRESHOLD = 5 * 60 * 1000;
+    constructor(profileData, init, callerClientConfig) {
+      this.profileData = profileData;
+      this.init = init;
+      this.callerClientConfig = callerClientConfig;
+    }
+    async loadCredentials() {
+      const token = await this.loadToken();
+      if (!token) {
+        throw new config.CredentialsProviderError(`Failed to load a token for session ${this.loginSession}, please re-authenticate using aws login`, { tryNextLink: false, logger: this.logger });
+      }
+      const accessToken = token.accessToken;
+      const now = Date.now();
+      const expiryTime = new Date(accessToken.expiresAt).getTime();
+      const timeUntilExpiry = expiryTime - now;
+      if (timeUntilExpiry <= LoginCredentialsFetcher.REFRESH_THRESHOLD) {
+        return this.refresh(token);
+      }
+      return {
+        accessKeyId: accessToken.accessKeyId,
+        secretAccessKey: accessToken.secretAccessKey,
+        sessionToken: accessToken.sessionToken,
+        accountId: accessToken.accountId,
+        expiration: new Date(accessToken.expiresAt)
+      };
+    }
+    get logger() {
+      return this.init?.logger;
+    }
+    get loginSession() {
+      return this.profileData.login_session;
+    }
+    async refresh(token) {
+      const { SigninClient, CreateOAuth2TokenCommand } = await Promise.resolve().then(() => __toESM(require_signin()));
+      const { logger, userAgentAppId } = this.callerClientConfig ?? {};
+      const isH2 = (requestHandler2) => {
+        return requestHandler2?.metadata?.handlerProtocol === "h2";
+      };
+      const requestHandler = isH2(this.callerClientConfig?.requestHandler) ? undefined : this.callerClientConfig?.requestHandler;
+      const region = this.profileData.region ?? await this.callerClientConfig?.region?.() ?? process.env.AWS_REGION;
+      const client2 = new SigninClient({
+        credentials: {
+          accessKeyId: "",
+          secretAccessKey: ""
+        },
+        region,
+        requestHandler,
+        logger,
+        userAgentAppId,
+        ...this.init?.clientConfig
+      });
+      this.createDPoPInterceptor(client2.middlewareStack);
+      const commandInput = {
+        tokenInput: {
+          clientId: token.clientId,
+          refreshToken: token.refreshToken,
+          grantType: "refresh_token"
+        }
+      };
+      try {
+        const response = await client2.send(new CreateOAuth2TokenCommand(commandInput));
+        const { accessKeyId, secretAccessKey, sessionToken } = response.tokenOutput?.accessToken ?? {};
+        const { refreshToken, expiresIn } = response.tokenOutput ?? {};
+        if (!accessKeyId || !secretAccessKey || !sessionToken || !refreshToken) {
+          throw new config.CredentialsProviderError("Token refresh response missing required fields", {
+            logger: this.logger,
+            tryNextLink: false
+          });
+        }
+        const expiresInMs = (expiresIn ?? 900) * 1000;
+        const expiration = new Date(Date.now() + expiresInMs);
+        const updatedToken = {
+          ...token,
+          accessToken: {
+            ...token.accessToken,
+            accessKeyId,
+            secretAccessKey,
+            sessionToken,
+            expiresAt: expiration.toISOString()
+          },
+          refreshToken
+        };
+        await this.saveToken(updatedToken);
+        const newAccessToken = updatedToken.accessToken;
+        return {
+          accessKeyId: newAccessToken.accessKeyId,
+          secretAccessKey: newAccessToken.secretAccessKey,
+          sessionToken: newAccessToken.sessionToken,
+          accountId: newAccessToken.accountId,
+          expiration
+        };
+      } catch (error) {
+        if (error.name === "AccessDeniedException") {
+          const errorType = error.error;
+          let message2;
+          switch (errorType) {
+            case "TOKEN_EXPIRED":
+              message2 = "Your session has expired. Please reauthenticate.";
+              break;
+            case "USER_CREDENTIALS_CHANGED":
+              message2 = "Unable to refresh credentials because of a change in your password. Please reauthenticate with your new password.";
+              break;
+            case "INSUFFICIENT_PERMISSIONS":
+              message2 = "Unable to refresh credentials due to insufficient permissions. You may be missing permission for the 'CreateOAuth2Token' action.";
+              break;
+            default:
+              message2 = `Failed to refresh token: ${String(error)}. Please re-authenticate using \`aws login\``;
+          }
+          throw new config.CredentialsProviderError(message2, { logger: this.logger, tryNextLink: false });
+        }
+        throw new config.CredentialsProviderError(`Failed to refresh token: ${String(error)}. Please re-authenticate using aws login`, { logger: this.logger });
+      }
+    }
+    async loadToken() {
+      const tokenFilePath = this.getTokenFilePath();
+      try {
+        let tokenData;
+        try {
+          tokenData = await config.readFile(tokenFilePath, { ignoreCache: this.init?.ignoreCache });
+        } catch {
+          tokenData = await node_fs.promises.readFile(tokenFilePath, "utf8");
+        }
+        const token = JSON.parse(tokenData);
+        const missingFields = ["accessToken", "clientId", "refreshToken", "dpopKey"].filter((k) => !token[k]);
+        if (!token.accessToken?.accountId) {
+          missingFields.push("accountId");
+        }
+        if (missingFields.length > 0) {
+          throw new config.CredentialsProviderError(`Token validation failed, missing fields: ${missingFields.join(", ")}`, {
+            logger: this.logger,
+            tryNextLink: false
+          });
+        }
+        return token;
+      } catch (error) {
+        throw new config.CredentialsProviderError(`Failed to load token from ${tokenFilePath}: ${String(error)}`, {
+          logger: this.logger,
+          tryNextLink: false
+        });
+      }
+    }
+    async saveToken(token) {
+      const tokenFilePath = this.getTokenFilePath();
+      const directory = node_path.dirname(tokenFilePath);
+      try {
+        await node_fs.promises.mkdir(directory, { recursive: true });
+      } catch (error) {}
+      await node_fs.promises.writeFile(tokenFilePath, JSON.stringify(token, null, 2), "utf8");
+    }
+    getTokenFilePath() {
+      const directory = process.env.AWS_LOGIN_CACHE_DIRECTORY ?? node_path.join(node_os.homedir(), ".aws", "login", "cache");
+      const loginSessionBytes = Buffer.from(this.loginSession, "utf8");
+      const loginSessionSha256 = node_crypto.createHash("sha256").update(loginSessionBytes).digest("hex");
+      return node_path.join(directory, `${loginSessionSha256}.json`);
+    }
+    derToRawSignature(derSignature) {
+      let offset = 2;
+      if (derSignature[offset] !== 2) {
+        throw new Error("Invalid DER signature");
+      }
+      offset++;
+      const rLength = derSignature[offset++];
+      let r = derSignature.subarray(offset, offset + rLength);
+      offset += rLength;
+      if (derSignature[offset] !== 2) {
+        throw new Error("Invalid DER signature");
+      }
+      offset++;
+      const sLength = derSignature[offset++];
+      let s = derSignature.subarray(offset, offset + sLength);
+      r = r[0] === 0 ? r.subarray(1) : r;
+      s = s[0] === 0 ? s.subarray(1) : s;
+      const rPadded = Buffer.concat([Buffer.alloc(32 - r.length), r]);
+      const sPadded = Buffer.concat([Buffer.alloc(32 - s.length), s]);
+      return Buffer.concat([rPadded, sPadded]);
+    }
+    createDPoPInterceptor(middlewareStack) {
+      middlewareStack.add((next) => async (args) => {
+        if (protocols.HttpRequest.isInstance(args.request)) {
+          const request = args.request;
+          const actualEndpoint = `${request.protocol}//${request.hostname}${request.port ? `:${request.port}` : ""}${request.path}`;
+          const dpop = await this.generateDpop(request.method, actualEndpoint);
+          request.headers = {
+            ...request.headers,
+            DPoP: dpop
+          };
+        }
+        return next(args);
+      }, {
+        step: "finalizeRequest",
+        name: "dpopInterceptor",
+        override: true
+      });
+    }
+    async generateDpop(method = "POST", endpoint) {
+      const token = await this.loadToken();
+      try {
+        const privateKey = node_crypto.createPrivateKey({
+          key: token.dpopKey,
+          format: "pem",
+          type: "sec1"
+        });
+        const publicKey = node_crypto.createPublicKey(privateKey);
+        const publicDer = publicKey.export({ format: "der", type: "spki" });
+        let pointStart = -1;
+        for (let i = 0;i < publicDer.length; i++) {
+          if (publicDer[i] === 4) {
+            pointStart = i;
+            break;
+          }
+        }
+        const x = publicDer.slice(pointStart + 1, pointStart + 33);
+        const y = publicDer.slice(pointStart + 33, pointStart + 65);
+        const header = {
+          alg: "ES256",
+          typ: "dpop+jwt",
+          jwk: {
+            kty: "EC",
+            crv: "P-256",
+            x: x.toString("base64url"),
+            y: y.toString("base64url")
+          }
+        };
+        const payload = {
+          jti: crypto.randomUUID(),
+          htm: method,
+          htu: endpoint,
+          iat: Math.floor(Date.now() / 1000)
+        };
+        const headerB64 = Buffer.from(JSON.stringify(header)).toString("base64url");
+        const payloadB64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
+        const message2 = `${headerB64}.${payloadB64}`;
+        const asn1Signature = node_crypto.sign("sha256", Buffer.from(message2), privateKey);
+        const rawSignature = this.derToRawSignature(asn1Signature);
+        const signatureB64 = rawSignature.toString("base64url");
+        return `${message2}.${signatureB64}`;
+      } catch (error) {
+        throw new config.CredentialsProviderError(`Failed to generate Dpop proof: ${error instanceof Error ? error.message : String(error)}`, { logger: this.logger, tryNextLink: false });
+      }
+    }
+  }
+  var fromLoginCredentials = (init) => async ({ callerClientConfig } = {}) => {
+    init?.logger?.debug?.("@aws-sdk/credential-providers - fromLoginCredentials");
+    const profiles = await config.parseKnownFiles(init || {});
+    const profileName = config.getProfileName({
+      profile: init?.profile ?? callerClientConfig?.profile
+    });
+    const profile = profiles[profileName];
+    if (!profile?.login_session) {
+      throw new config.CredentialsProviderError(`Profile ${profileName} does not contain login_session.`, {
+        tryNextLink: true,
+        logger: init?.logger
+      });
+    }
+    const fetcher = new LoginCredentialsFetcher(profile, init, callerClientConfig);
+    const credentials = await fetcher.loadCredentials();
+    return client.setCredentialFeature(credentials, "CREDENTIALS_LOGIN", "AD");
+  };
+  exports2.fromLoginCredentials = fromLoginCredentials;
+});
+
+// ../../node_modules/.bun/@aws-sdk+nested-clients@3.997.11/node_modules/@aws-sdk/nested-clients/dist-cjs/submodules/sts/index.js
+var require_sts = __commonJS((exports2) => {
+  var client$1 = require_client2();
+  var core = require_dist_cjs5();
+  var client = require_client();
+  var config = require_config();
+  var endpoints = require_endpoints();
+  var protocols = require_protocols();
+  var retry = require_retry();
+  var schema = require_schema4();
+  var httpAuthSchemes = require_httpAuthSchemes();
+  var signatureV4MultiRegion = require_dist_cjs11();
+  var serde = require_serde();
+  var nodeHttpHandler = require_dist_cjs15();
+  var protocols$1 = require_protocols2();
+  var q = "ref";
+  var a = -1;
+  var b = true;
+  var c = "isSet";
+  var d = "PartitionResult";
+  var e = "booleanEquals";
+  var f = "stringEquals";
+  var g = "getAttr";
+  var h = "us-east-1";
+  var i = "sigv4";
+  var j = "sts";
+  var k = "https://sts.{Region}.{PartitionResult#dnsSuffix}";
+  var l = { [q]: "Endpoint" };
+  var m = { [q]: "Region" };
+  var n = { [q]: d };
+  var o = {};
+  var p = [m];
+  var _data = {
+    conditions: [
+      [c, [l]],
+      [c, p],
+      ["aws.partition", p, d],
+      [e, [{ [q]: "UseFIPS" }, b]],
+      [e, [{ [q]: "UseDualStack" }, b]],
+      [f, [m, "aws-global"]],
+      [e, [{ [q]: "UseGlobalEndpoint" }, b]],
+      [f, [m, "eu-central-1"]],
+      [e, [{ fn: g, argv: [n, "supportsDualStack"] }, b]],
+      [e, [{ fn: g, argv: [n, "supportsFIPS"] }, b]],
+      [f, [m, "ap-south-1"]],
+      [f, [m, "eu-north-1"]],
+      [f, [m, "eu-west-1"]],
+      [f, [m, "eu-west-2"]],
+      [f, [m, "eu-west-3"]],
+      [f, [m, "sa-east-1"]],
+      [f, [m, h]],
+      [f, [m, "us-east-2"]],
+      [f, [m, "us-west-2"]],
+      [f, [m, "us-west-1"]],
+      [f, [m, "ca-central-1"]],
+      [f, [m, "ap-southeast-1"]],
+      [f, [m, "ap-northeast-1"]],
+      [f, [m, "ap-southeast-2"]],
+      [f, [{ fn: g, argv: [n, "name"] }, "aws-us-gov"]]
+    ],
+    results: [
+      [a],
+      ["https://sts.amazonaws.com", { authSchemes: [{ name: i, signingName: j, signingRegion: h }] }],
+      [k, { authSchemes: [{ name: i, signingName: j, signingRegion: "{Region}" }] }],
+      [a, "Invalid Configuration: FIPS and custom endpoint are not supported"],
+      [a, "Invalid Configuration: Dualstack and custom endpoint are not supported"],
+      [l, o],
+      ["https://sts-fips.{Region}.{PartitionResult#dualStackDnsSuffix}", o],
+      [a, "FIPS and DualStack are enabled, but this partition does not support one or both"],
+      ["https://sts.{Region}.amazonaws.com", o],
+      ["https://sts-fips.{Region}.{PartitionResult#dnsSuffix}", o],
+      [a, "FIPS is enabled but this partition does not support FIPS"],
+      ["https://sts.{Region}.{PartitionResult#dualStackDnsSuffix}", o],
+      [a, "DualStack is enabled but this partition does not support DualStack"],
+      [k, o],
+      [a, "Invalid Configuration: Missing Region"]
+    ]
+  };
+  var root = 2;
+  var r = 1e8;
+  var nodes = new Int32Array([
+    -1,
+    1,
+    -1,
+    0,
+    30,
+    3,
+    1,
+    4,
+    r + 14,
+    2,
+    5,
+    r + 14,
+    3,
+    25,
+    6,
+    4,
+    24,
+    7,
+    5,
+    r + 1,
+    8,
+    6,
+    9,
+    r + 13,
+    7,
+    r + 1,
+    10,
+    10,
+    r + 1,
+    11,
+    11,
+    r + 1,
+    12,
+    12,
+    r + 1,
+    13,
+    13,
+    r + 1,
+    14,
+    14,
+    r + 1,
+    15,
+    15,
+    r + 1,
+    16,
+    16,
+    r + 1,
+    17,
+    17,
+    r + 1,
+    18,
+    18,
+    r + 1,
+    19,
+    19,
+    r + 1,
+    20,
+    20,
+    r + 1,
+    21,
+    21,
+    r + 1,
+    22,
+    22,
+    r + 1,
+    23,
+    23,
+    r + 1,
+    r + 2,
+    8,
+    r + 11,
+    r + 12,
+    4,
+    28,
+    26,
+    9,
+    27,
+    r + 10,
+    24,
+    r + 8,
+    r + 9,
+    8,
+    29,
+    r + 7,
+    9,
+    r + 6,
+    r + 7,
+    3,
+    r + 3,
+    31,
+    4,
+    r + 4,
+    r + 5
+  ]);
+  var bdd = endpoints.BinaryDecisionDiagram.from(nodes, root, _data.conditions, _data.results);
+  var cache2 = new endpoints.EndpointCache({
+    size: 50,
+    params: ["Endpoint", "Region", "UseDualStack", "UseFIPS", "UseGlobalEndpoint"]
+  });
+  var defaultEndpointResolver = (endpointParams, context = {}) => {
+    return cache2.get(endpointParams, () => endpoints.decideEndpoint(bdd, {
+      endpointParams,
+      logger: context.logger
+    }));
+  };
+  endpoints.customEndpointFunctions.aws = client$1.awsEndpointFunctions;
+  var createEndpointRuleSetHttpAuthSchemeParametersProvider = (defaultHttpAuthSchemeParametersProvider) => async (config2, context, input) => {
+    if (!input) {
+      throw new Error("Could not find `input` for `defaultEndpointRuleSetHttpAuthSchemeParametersProvider`");
+    }
+    const defaultParameters = await defaultHttpAuthSchemeParametersProvider(config2, context, input);
+    const instructionsFn = client.getSmithyContext(context)?.commandInstance?.constructor?.getEndpointParameterInstructions;
+    if (!instructionsFn) {
+      throw new Error(`getEndpointParameterInstructions() is not defined on '${context.commandName}'`);
+    }
+    const endpointParameters = await endpoints.resolveParams(input, { getEndpointParameterInstructions: instructionsFn }, config2);
+    return Object.assign(defaultParameters, endpointParameters);
+  };
+  var _defaultSTSHttpAuthSchemeParametersProvider = async (config2, context, input) => {
+    return {
+      operation: client.getSmithyContext(context).operation,
+      region: await client.normalizeProvider(config2.region)() || (() => {
+        throw new Error("expected `region` to be configured for `aws.auth#sigv4`");
+      })()
+    };
+  };
+  var defaultSTSHttpAuthSchemeParametersProvider = createEndpointRuleSetHttpAuthSchemeParametersProvider(_defaultSTSHttpAuthSchemeParametersProvider);
+  function createAwsAuthSigv4HttpAuthOption(authParameters) {
+    return {
+      schemeId: "aws.auth#sigv4",
+      signingProperties: {
+        name: "sts",
+        region: authParameters.region
+      },
+      propertiesExtractor: (config2, context) => ({
+        signingProperties: {
+          config: config2,
+          context
+        }
+      })
+    };
+  }
+  function createAwsAuthSigv4aHttpAuthOption(authParameters) {
+    return {
+      schemeId: "aws.auth#sigv4a",
+      signingProperties: {
+        name: "sts",
+        region: authParameters.region
+      },
+      propertiesExtractor: (config2, context) => ({
+        signingProperties: {
+          config: config2,
+          context
+        }
+      })
+    };
+  }
+  function createSmithyApiNoAuthHttpAuthOption(authParameters) {
+    return {
+      schemeId: "smithy.api#noAuth"
+    };
+  }
+  var createEndpointRuleSetHttpAuthSchemeProvider = (defaultEndpointResolver2, defaultHttpAuthSchemeResolver, createHttpAuthOptionFunctions) => {
+    const endpointRuleSetHttpAuthSchemeProvider = (authParameters) => {
+      const endpoint = defaultEndpointResolver2(authParameters);
+      const authSchemes = endpoint.properties?.authSchemes;
+      if (!authSchemes) {
+        return defaultHttpAuthSchemeResolver(authParameters);
+      }
+      const options = [];
+      for (const scheme of authSchemes) {
+        const { name: resolvedName, properties = {}, ...rest } = scheme;
+        const name = resolvedName.toLowerCase();
+        if (resolvedName !== name) {
+          console.warn(`HttpAuthScheme has been normalized with lowercasing: '${resolvedName}' to '${name}'`);
+        }
+        let schemeId;
+        if (name === "sigv4a") {
+          schemeId = "aws.auth#sigv4a";
+          const sigv4Present = authSchemes.find((s) => {
+            const name2 = s.name.toLowerCase();
+            return name2 !== "sigv4a" && name2.startsWith("sigv4");
+          });
+          if (signatureV4MultiRegion.SignatureV4MultiRegion.sigv4aDependency() === "none" && sigv4Present) {
+            continue;
+          }
+        } else if (name.startsWith("sigv4")) {
+          schemeId = "aws.auth#sigv4";
+        } else {
+          throw new Error(`Unknown HttpAuthScheme found in '@smithy.rules#endpointRuleSet': '${name}'`);
+        }
+        const createOption = createHttpAuthOptionFunctions[schemeId];
+        if (!createOption) {
+          throw new Error(`Could not find HttpAuthOption create function for '${schemeId}'`);
+        }
+        const option = createOption(authParameters);
+        option.schemeId = schemeId;
+        option.signingProperties = { ...option.signingProperties || {}, ...rest, ...properties };
+        options.push(option);
+      }
+      return options;
+    };
+    return endpointRuleSetHttpAuthSchemeProvider;
+  };
+  var _defaultSTSHttpAuthSchemeProvider = (authParameters) => {
+    const options = [];
+    switch (authParameters.operation) {
+      case "AssumeRoleWithWebIdentity": {
+        options.push(createSmithyApiNoAuthHttpAuthOption());
+        options.push(createAwsAuthSigv4aHttpAuthOption(authParameters));
+        break;
+      }
+      default: {
+        options.push(createAwsAuthSigv4HttpAuthOption(authParameters));
+        options.push(createAwsAuthSigv4aHttpAuthOption(authParameters));
+      }
+    }
+    return options;
+  };
+  var defaultSTSHttpAuthSchemeProvider = createEndpointRuleSetHttpAuthSchemeProvider(defaultEndpointResolver, _defaultSTSHttpAuthSchemeProvider, {
+    "aws.auth#sigv4": createAwsAuthSigv4HttpAuthOption,
+    "aws.auth#sigv4a": createAwsAuthSigv4aHttpAuthOption,
+    "smithy.api#noAuth": createSmithyApiNoAuthHttpAuthOption
+  });
+  var resolveHttpAuthSchemeConfig = (config2) => {
+    const config_0 = httpAuthSchemes.resolveAwsSdkSigV4Config(config2);
+    const config_1 = httpAuthSchemes.resolveAwsSdkSigV4AConfig(config_0);
+    return Object.assign(config_1, {
+      authSchemePreference: client.normalizeProvider(config2.authSchemePreference ?? [])
+    });
+  };
+  var resolveClientEndpointParameters = (options) => {
+    return Object.assign(options, {
+      useDualstackEndpoint: options.useDualstackEndpoint ?? false,
+      useFipsEndpoint: options.useFipsEndpoint ?? false,
+      useGlobalEndpoint: options.useGlobalEndpoint ?? false,
+      defaultSigningName: "sts"
+    });
+  };
+  var commonParams = {
+    UseGlobalEndpoint: { type: "builtInParams", name: "useGlobalEndpoint" },
+    UseFIPS: { type: "builtInParams", name: "useFipsEndpoint" },
+    Endpoint: { type: "builtInParams", name: "endpoint" },
+    Region: { type: "builtInParams", name: "region" },
+    UseDualStack: { type: "builtInParams", name: "useDualstackEndpoint" }
+  };
+  var version = "3.997.10";
+  var packageInfo = {
+    version
+  };
+
+  class STSServiceException extends client.ServiceException {
+    constructor(options) {
+      super(options);
+      Object.setPrototypeOf(this, STSServiceException.prototype);
+    }
+  }
+
+  class ExpiredTokenException extends STSServiceException {
+    name = "ExpiredTokenException";
+    $fault = "client";
+    constructor(opts) {
+      super({
+        name: "ExpiredTokenException",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, ExpiredTokenException.prototype);
+    }
+  }
+
+  class MalformedPolicyDocumentException extends STSServiceException {
+    name = "MalformedPolicyDocumentException";
+    $fault = "client";
+    constructor(opts) {
+      super({
+        name: "MalformedPolicyDocumentException",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, MalformedPolicyDocumentException.prototype);
+    }
+  }
+
+  class PackedPolicyTooLargeException extends STSServiceException {
+    name = "PackedPolicyTooLargeException";
+    $fault = "client";
+    constructor(opts) {
+      super({
+        name: "PackedPolicyTooLargeException",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, PackedPolicyTooLargeException.prototype);
+    }
+  }
+
+  class RegionDisabledException extends STSServiceException {
+    name = "RegionDisabledException";
+    $fault = "client";
+    constructor(opts) {
+      super({
+        name: "RegionDisabledException",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, RegionDisabledException.prototype);
+    }
+  }
+
+  class IDPRejectedClaimException extends STSServiceException {
+    name = "IDPRejectedClaimException";
+    $fault = "client";
+    constructor(opts) {
+      super({
+        name: "IDPRejectedClaimException",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, IDPRejectedClaimException.prototype);
+    }
+  }
+
+  class InvalidIdentityTokenException extends STSServiceException {
+    name = "InvalidIdentityTokenException";
+    $fault = "client";
+    constructor(opts) {
+      super({
+        name: "InvalidIdentityTokenException",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, InvalidIdentityTokenException.prototype);
+    }
+  }
+
+  class IDPCommunicationErrorException extends STSServiceException {
+    name = "IDPCommunicationErrorException";
+    $fault = "client";
+    $retryable = {};
+    constructor(opts) {
+      super({
+        name: "IDPCommunicationErrorException",
+        $fault: "client",
+        ...opts
+      });
+      Object.setPrototypeOf(this, IDPCommunicationErrorException.prototype);
+    }
+  }
+  var _A = "Arn";
+  var _AKI = "AccessKeyId";
+  var _AR = "AssumeRole";
+  var _ARI = "AssumedRoleId";
+  var _ARR = "AssumeRoleRequest";
+  var _ARRs = "AssumeRoleResponse";
+  var _ARU = "AssumedRoleUser";
+  var _ARWWI = "AssumeRoleWithWebIdentity";
+  var _ARWWIR = "AssumeRoleWithWebIdentityRequest";
+  var _ARWWIRs = "AssumeRoleWithWebIdentityResponse";
+  var _Au = "Audience";
+  var _C = "Credentials";
+  var _CA = "ContextAssertion";
+  var _DS = "DurationSeconds";
+  var _E = "Expiration";
+  var _EI = "ExternalId";
+  var _ETE = "ExpiredTokenException";
+  var _IDPCEE = "IDPCommunicationErrorException";
+  var _IDPRCE = "IDPRejectedClaimException";
+  var _IITE = "InvalidIdentityTokenException";
+  var _K = "Key";
+  var _MPDE = "MalformedPolicyDocumentException";
+  var _P = "Policy";
+  var _PA = "PolicyArns";
+  var _PAr = "ProviderArn";
+  var _PC = "ProvidedContexts";
+  var _PCLT = "ProvidedContextsListType";
+  var _PCr = "ProvidedContext";
+  var _PDT = "PolicyDescriptorType";
+  var _PI = "ProviderId";
+  var _PPS = "PackedPolicySize";
+  var _PPTLE = "PackedPolicyTooLargeException";
+  var _Pr = "Provider";
+  var _RA = "RoleArn";
+  var _RDE = "RegionDisabledException";
+  var _RSN = "RoleSessionName";
+  var _SAK = "SecretAccessKey";
+  var _SFWIT = "SubjectFromWebIdentityToken";
+  var _SI = "SourceIdentity";
+  var _SN = "SerialNumber";
+  var _ST = "SessionToken";
+  var _T = "Tags";
+  var _TC = "TokenCode";
+  var _TTK = "TransitiveTagKeys";
+  var _Ta = "Tag";
+  var _V = "Value";
+  var _WIT = "WebIdentityToken";
+  var _a2 = "arn";
+  var _aKST = "accessKeySecretType";
+  var _aQE = "awsQueryError";
+  var _c = "client";
+  var _cTT = "clientTokenType";
+  var _e = "error";
+  var _hE = "httpError";
+  var _m = "message";
+  var _pDLT = "policyDescriptorListType";
+  var _s = "smithy.ts.sdk.synthetic.com.amazonaws.sts";
+  var _tLT = "tagListType";
+  var n0 = "com.amazonaws.sts";
+  var _s_registry = schema.TypeRegistry.for(_s);
+  var STSServiceException$ = [-3, _s, "STSServiceException", 0, [], []];
+  _s_registry.registerError(STSServiceException$, STSServiceException);
+  var n0_registry = schema.TypeRegistry.for(n0);
+  var ExpiredTokenException$ = [
+    -3,
+    n0,
+    _ETE,
+    { [_aQE]: [`ExpiredTokenException`, 400], [_e]: _c, [_hE]: 400 },
+    [_m],
+    [0]
+  ];
+  n0_registry.registerError(ExpiredTokenException$, ExpiredTokenException);
+  var IDPCommunicationErrorException$ = [
+    -3,
+    n0,
+    _IDPCEE,
+    { [_aQE]: [`IDPCommunicationError`, 400], [_e]: _c, [_hE]: 400 },
+    [_m],
+    [0]
+  ];
+  n0_registry.registerError(IDPCommunicationErrorException$, IDPCommunicationErrorException);
+  var IDPRejectedClaimException$ = [
+    -3,
+    n0,
+    _IDPRCE,
+    { [_aQE]: [`IDPRejectedClaim`, 403], [_e]: _c, [_hE]: 403 },
+    [_m],
+    [0]
+  ];
+  n0_registry.registerError(IDPRejectedClaimException$, IDPRejectedClaimException);
+  var InvalidIdentityTokenException$ = [
+    -3,
+    n0,
+    _IITE,
+    { [_aQE]: [`InvalidIdentityToken`, 400], [_e]: _c, [_hE]: 400 },
+    [_m],
+    [0]
+  ];
+  n0_registry.registerError(InvalidIdentityTokenException$, InvalidIdentityTokenException);
+  var MalformedPolicyDocumentException$ = [
+    -3,
+    n0,
+    _MPDE,
+    { [_aQE]: [`MalformedPolicyDocument`, 400], [_e]: _c, [_hE]: 400 },
+    [_m],
+    [0]
+  ];
+  n0_registry.registerError(MalformedPolicyDocumentException$, MalformedPolicyDocumentException);
+  var PackedPolicyTooLargeException$ = [
+    -3,
+    n0,
+    _PPTLE,
+    { [_aQE]: [`PackedPolicyTooLarge`, 400], [_e]: _c, [_hE]: 400 },
+    [_m],
+    [0]
+  ];
+  n0_registry.registerError(PackedPolicyTooLargeException$, PackedPolicyTooLargeException);
+  var RegionDisabledException$ = [
+    -3,
+    n0,
+    _RDE,
+    { [_aQE]: [`RegionDisabledException`, 403], [_e]: _c, [_hE]: 403 },
+    [_m],
+    [0]
+  ];
+  n0_registry.registerError(RegionDisabledException$, RegionDisabledException);
+  var errorTypeRegistries = [_s_registry, n0_registry];
+  var accessKeySecretType = [0, n0, _aKST, 8, 0];
+  var clientTokenType = [0, n0, _cTT, 8, 0];
+  var AssumedRoleUser$ = [3, n0, _ARU, 0, [_ARI, _A], [0, 0], 2];
+  var AssumeRoleRequest$ = [
+    3,
+    n0,
+    _ARR,
+    0,
+    [_RA, _RSN, _PA, _P, _DS, _T, _TTK, _EI, _SN, _TC, _SI, _PC],
+    [0, 0, () => policyDescriptorListType, 0, 1, () => tagListType, 64 | 0, 0, 0, 0, 0, () => ProvidedContextsListType],
+    2
+  ];
+  var AssumeRoleResponse$ = [
+    3,
+    n0,
+    _ARRs,
+    0,
+    [_C, _ARU, _PPS, _SI],
+    [[() => Credentials$, 0], () => AssumedRoleUser$, 1, 0]
+  ];
+  var AssumeRoleWithWebIdentityRequest$ = [
+    3,
+    n0,
+    _ARWWIR,
+    0,
+    [_RA, _RSN, _WIT, _PI, _PA, _P, _DS],
+    [0, 0, [() => clientTokenType, 0], 0, () => policyDescriptorListType, 0, 1],
+    3
+  ];
+  var AssumeRoleWithWebIdentityResponse$ = [
+    3,
+    n0,
+    _ARWWIRs,
+    0,
+    [_C, _SFWIT, _ARU, _PPS, _Pr, _Au, _SI],
+    [[() => Credentials$, 0], 0, () => AssumedRoleUser$, 1, 0, 0, 0]
+  ];
+  var Credentials$ = [
+    3,
+    n0,
+    _C,
+    0,
+    [_AKI, _SAK, _ST, _E],
+    [0, [() => accessKeySecretType, 0], 0, 4],
+    4
+  ];
+  var PolicyDescriptorType$ = [3, n0, _PDT, 0, [_a2], [0]];
+  var ProvidedContext$ = [3, n0, _PCr, 0, [_PAr, _CA], [0, 0]];
+  var Tag$ = [3, n0, _Ta, 0, [_K, _V], [0, 0], 2];
+  var policyDescriptorListType = [1, n0, _pDLT, 0, () => PolicyDescriptorType$];
+  var ProvidedContextsListType = [1, n0, _PCLT, 0, () => ProvidedContext$];
+  var tagListType = [1, n0, _tLT, 0, () => Tag$];
+  var AssumeRole$ = [9, n0, _AR, 0, () => AssumeRoleRequest$, () => AssumeRoleResponse$];
+  var AssumeRoleWithWebIdentity$ = [
+    9,
+    n0,
+    _ARWWI,
+    0,
+    () => AssumeRoleWithWebIdentityRequest$,
+    () => AssumeRoleWithWebIdentityResponse$
+  ];
+  var getRuntimeConfig$1 = (config2) => {
+    return {
+      apiVersion: "2011-06-15",
+      base64Decoder: config2?.base64Decoder ?? serde.fromBase64,
+      base64Encoder: config2?.base64Encoder ?? serde.toBase64,
+      disableHostPrefix: config2?.disableHostPrefix ?? false,
+      endpointProvider: config2?.endpointProvider ?? defaultEndpointResolver,
+      extensions: config2?.extensions ?? [],
+      httpAuthSchemeProvider: config2?.httpAuthSchemeProvider ?? defaultSTSHttpAuthSchemeProvider,
+      httpAuthSchemes: config2?.httpAuthSchemes ?? [
+        {
+          schemeId: "aws.auth#sigv4",
+          identityProvider: (ipc) => ipc.getIdentityProvider("aws.auth#sigv4"),
+          signer: new httpAuthSchemes.AwsSdkSigV4Signer
+        },
+        {
+          schemeId: "aws.auth#sigv4a",
+          identityProvider: (ipc) => ipc.getIdentityProvider("aws.auth#sigv4a"),
+          signer: new httpAuthSchemes.AwsSdkSigV4ASigner
+        },
+        {
+          schemeId: "smithy.api#noAuth",
+          identityProvider: (ipc) => ipc.getIdentityProvider("smithy.api#noAuth") || (async () => ({})),
+          signer: new core.NoAuthSigner
+        }
+      ],
+      logger: config2?.logger ?? new client.NoOpLogger,
+      protocol: config2?.protocol ?? protocols$1.AwsQueryProtocol,
+      protocolSettings: config2?.protocolSettings ?? {
+        defaultNamespace: "com.amazonaws.sts",
+        errorTypeRegistries,
+        xmlNamespace: "https://sts.amazonaws.com/doc/2011-06-15/",
+        version: "2011-06-15",
+        serviceTarget: "AWSSecurityTokenServiceV20110615"
+      },
+      serviceId: config2?.serviceId ?? "STS",
+      signerConstructor: config2?.signerConstructor ?? signatureV4MultiRegion.SignatureV4MultiRegion,
+      urlParser: config2?.urlParser ?? protocols.parseUrl,
+      utf8Decoder: config2?.utf8Decoder ?? serde.fromUtf8,
+      utf8Encoder: config2?.utf8Encoder ?? serde.toUtf8
+    };
+  };
+  var getRuntimeConfig = (config$1) => {
+    client.emitWarningIfUnsupportedVersion(process.version);
+    const defaultsMode = config.resolveDefaultsModeConfig(config$1);
+    const defaultConfigProvider = () => defaultsMode().then(client.loadConfigsForDefaultMode);
+    const clientSharedValues = getRuntimeConfig$1(config$1);
+    client$1.emitWarningIfUnsupportedVersion(process.version);
+    const loaderConfig = {
+      profile: config$1?.profile,
+      logger: clientSharedValues.logger
+    };
+    return {
+      ...clientSharedValues,
+      ...config$1,
+      runtime: "node",
+      defaultsMode,
+      authSchemePreference: config$1?.authSchemePreference ?? config.loadConfig(httpAuthSchemes.NODE_AUTH_SCHEME_PREFERENCE_OPTIONS, loaderConfig),
+      bodyLengthChecker: config$1?.bodyLengthChecker ?? serde.calculateBodyLength,
+      defaultUserAgentProvider: config$1?.defaultUserAgentProvider ?? client$1.createDefaultUserAgentProvider({ serviceId: clientSharedValues.serviceId, clientVersion: packageInfo.version }),
+      httpAuthSchemes: config$1?.httpAuthSchemes ?? [
+        {
+          schemeId: "aws.auth#sigv4",
+          identityProvider: (ipc) => ipc.getIdentityProvider("aws.auth#sigv4") || (async (idProps) => await config$1.credentialDefaultProvider(idProps?.__config || {})()),
+          signer: new httpAuthSchemes.AwsSdkSigV4Signer
+        },
+        {
+          schemeId: "aws.auth#sigv4a",
+          identityProvider: (ipc) => ipc.getIdentityProvider("aws.auth#sigv4a"),
+          signer: new httpAuthSchemes.AwsSdkSigV4ASigner
+        },
+        {
+          schemeId: "smithy.api#noAuth",
+          identityProvider: (ipc) => ipc.getIdentityProvider("smithy.api#noAuth") || (async () => ({})),
+          signer: new core.NoAuthSigner
+        }
+      ],
+      maxAttempts: config$1?.maxAttempts ?? config.loadConfig(retry.NODE_MAX_ATTEMPT_CONFIG_OPTIONS, config$1),
+      region: config$1?.region ?? config.loadConfig(config.NODE_REGION_CONFIG_OPTIONS, { ...config.NODE_REGION_CONFIG_FILE_OPTIONS, ...loaderConfig }),
+      requestHandler: nodeHttpHandler.NodeHttpHandler.create(config$1?.requestHandler ?? defaultConfigProvider),
+      retryMode: config$1?.retryMode ?? config.loadConfig({
+        ...retry.NODE_RETRY_MODE_CONFIG_OPTIONS,
+        default: async () => (await defaultConfigProvider()).retryMode || retry.DEFAULT_RETRY_MODE
+      }, config$1),
+      sha256: config$1?.sha256 ?? serde.Hash.bind(null, "sha256"),
+      sigv4aSigningRegionSet: config$1?.sigv4aSigningRegionSet ?? config.loadConfig(httpAuthSchemes.NODE_SIGV4A_CONFIG_OPTIONS, loaderConfig),
+      streamCollector: config$1?.streamCollector ?? nodeHttpHandler.streamCollector,
+      useDualstackEndpoint: config$1?.useDualstackEndpoint ?? config.loadConfig(config.NODE_USE_DUALSTACK_ENDPOINT_CONFIG_OPTIONS, loaderConfig),
+      useFipsEndpoint: config$1?.useFipsEndpoint ?? config.loadConfig(config.NODE_USE_FIPS_ENDPOINT_CONFIG_OPTIONS, loaderConfig),
+      userAgentAppId: config$1?.userAgentAppId ?? config.loadConfig(client$1.NODE_APP_ID_CONFIG_OPTIONS, loaderConfig)
+    };
+  };
+  var getHttpAuthExtensionConfiguration = (runtimeConfig) => {
+    const _httpAuthSchemes = runtimeConfig.httpAuthSchemes;
+    let _httpAuthSchemeProvider = runtimeConfig.httpAuthSchemeProvider;
+    let _credentials = runtimeConfig.credentials;
+    return {
+      setHttpAuthScheme(httpAuthScheme) {
+        const index = _httpAuthSchemes.findIndex((scheme) => scheme.schemeId === httpAuthScheme.schemeId);
+        if (index === -1) {
+          _httpAuthSchemes.push(httpAuthScheme);
+        } else {
+          _httpAuthSchemes.splice(index, 1, httpAuthScheme);
+        }
+      },
+      httpAuthSchemes() {
+        return _httpAuthSchemes;
+      },
+      setHttpAuthSchemeProvider(httpAuthSchemeProvider) {
+        _httpAuthSchemeProvider = httpAuthSchemeProvider;
+      },
+      httpAuthSchemeProvider() {
+        return _httpAuthSchemeProvider;
+      },
+      setCredentials(credentials) {
+        _credentials = credentials;
+      },
+      credentials() {
+        return _credentials;
+      }
+    };
+  };
+  var resolveHttpAuthRuntimeConfig = (config2) => {
+    return {
+      httpAuthSchemes: config2.httpAuthSchemes(),
+      httpAuthSchemeProvider: config2.httpAuthSchemeProvider(),
+      credentials: config2.credentials()
+    };
+  };
+  var resolveRuntimeExtensions = (runtimeConfig, extensions2) => {
+    const extensionConfiguration = Object.assign(client$1.getAwsRegionExtensionConfiguration(runtimeConfig), client.getDefaultExtensionConfiguration(runtimeConfig), protocols.getHttpHandlerExtensionConfiguration(runtimeConfig), getHttpAuthExtensionConfiguration(runtimeConfig));
+    extensions2.forEach((extension) => extension.configure(extensionConfiguration));
+    return Object.assign(runtimeConfig, client$1.resolveAwsRegionExtensionConfiguration(extensionConfiguration), client.resolveDefaultRuntimeConfig(extensionConfiguration), protocols.resolveHttpHandlerRuntimeConfig(extensionConfiguration), resolveHttpAuthRuntimeConfig(extensionConfiguration));
+  };
+
+  class STSClient extends client.Client {
+    config;
+    constructor(...[configuration]) {
+      const _config_0 = getRuntimeConfig(configuration || {});
+      super(_config_0);
+      this.initConfig = _config_0;
+      const _config_1 = resolveClientEndpointParameters(_config_0);
+      const _config_2 = client$1.resolveUserAgentConfig(_config_1);
+      const _config_3 = retry.resolveRetryConfig(_config_2);
+      const _config_4 = config.resolveRegionConfig(_config_3);
+      const _config_5 = client$1.resolveHostHeaderConfig(_config_4);
+      const _config_6 = endpoints.resolveEndpointConfig(_config_5);
+      const _config_7 = resolveHttpAuthSchemeConfig(_config_6);
+      const _config_8 = resolveRuntimeExtensions(_config_7, configuration?.extensions || []);
+      this.config = _config_8;
+      this.middlewareStack.use(schema.getSchemaSerdePlugin(this.config));
+      this.middlewareStack.use(client$1.getUserAgentPlugin(this.config));
+      this.middlewareStack.use(retry.getRetryPlugin(this.config));
+      this.middlewareStack.use(protocols.getContentLengthPlugin(this.config));
+      this.middlewareStack.use(client$1.getHostHeaderPlugin(this.config));
+      this.middlewareStack.use(client$1.getLoggerPlugin(this.config));
+      this.middlewareStack.use(client$1.getRecursionDetectionPlugin(this.config));
+      this.middlewareStack.use(core.getHttpAuthSchemeEndpointRuleSetPlugin(this.config, {
+        httpAuthSchemeParametersProvider: defaultSTSHttpAuthSchemeParametersProvider,
+        identityProviderConfigProvider: async (config2) => new core.DefaultIdentityProviderConfig({
+          "aws.auth#sigv4": config2.credentials,
+          "aws.auth#sigv4a": config2.credentials
+        })
+      }));
+      this.middlewareStack.use(core.getHttpSigningPlugin(this.config));
+    }
+    destroy() {
+      super.destroy();
+    }
+  }
+
+  class AssumeRoleCommand extends client.Command.classBuilder().ep(commonParams).m(function(Command, cs, config2, o2) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AWSSecurityTokenServiceV20110615", "AssumeRole", {}).n("STSClient", "AssumeRoleCommand").sc(AssumeRole$).build() {
+  }
+
+  class AssumeRoleWithWebIdentityCommand extends client.Command.classBuilder().ep(commonParams).m(function(Command, cs, config2, o2) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AWSSecurityTokenServiceV20110615", "AssumeRoleWithWebIdentity", {}).n("STSClient", "AssumeRoleWithWebIdentityCommand").sc(AssumeRoleWithWebIdentity$).build() {
+  }
+  var commands = {
+    AssumeRoleCommand,
+    AssumeRoleWithWebIdentityCommand
+  };
+
+  class STS extends STSClient {
+  }
+  client.createAggregatedClient(commands, STS);
+  var getAccountIdFromAssumedRoleUser = (assumedRoleUser) => {
+    if (typeof assumedRoleUser?.Arn === "string") {
+      const arnComponents = assumedRoleUser.Arn.split(":");
+      if (arnComponents.length > 4 && arnComponents[4] !== "") {
+        return arnComponents[4];
+      }
+    }
+    return;
+  };
+  var resolveRegion = async (_region, _parentRegion, credentialProviderLogger, loaderConfig = {}) => {
+    const region = typeof _region === "function" ? await _region() : _region;
+    const parentRegion = typeof _parentRegion === "function" ? await _parentRegion() : _parentRegion;
+    let stsDefaultRegion = "";
+    const resolvedRegion = region ?? parentRegion ?? (stsDefaultRegion = await client$1.stsRegionDefaultResolver(loaderConfig)());
+    credentialProviderLogger?.debug?.("@aws-sdk/client-sts::resolveRegion", "accepting first of:", `${region} (credential provider clientConfig)`, `${parentRegion} (contextual client)`, `${stsDefaultRegion} (STS default: AWS_REGION, profile region, or us-east-1)`);
+    return resolvedRegion;
+  };
+  var getDefaultRoleAssumer$1 = (stsOptions, STSClient2) => {
+    let stsClient;
+    let closureSourceCreds;
+    return async (sourceCreds, params) => {
+      closureSourceCreds = sourceCreds;
+      if (!stsClient) {
+        const { logger = stsOptions?.parentClientConfig?.logger, profile = stsOptions?.parentClientConfig?.profile, region, requestHandler = stsOptions?.parentClientConfig?.requestHandler, credentialProviderLogger, userAgentAppId = stsOptions?.parentClientConfig?.userAgentAppId } = stsOptions;
+        const resolvedRegion = await resolveRegion(region, stsOptions?.parentClientConfig?.region, credentialProviderLogger, {
+          logger,
+          profile
+        });
+        const isCompatibleRequestHandler = !isH2(requestHandler);
+        stsClient = new STSClient2({
+          ...stsOptions,
+          userAgentAppId,
+          profile,
+          credentialDefaultProvider: () => async () => closureSourceCreds,
+          region: resolvedRegion,
+          requestHandler: isCompatibleRequestHandler ? requestHandler : undefined,
+          logger
+        });
+      }
+      const { Credentials, AssumedRoleUser } = await stsClient.send(new AssumeRoleCommand(params));
+      if (!Credentials || !Credentials.AccessKeyId || !Credentials.SecretAccessKey) {
+        throw new Error(`Invalid response from STS.assumeRole call with role ${params.RoleArn}`);
+      }
+      const accountId = getAccountIdFromAssumedRoleUser(AssumedRoleUser);
+      const credentials = {
+        accessKeyId: Credentials.AccessKeyId,
+        secretAccessKey: Credentials.SecretAccessKey,
+        sessionToken: Credentials.SessionToken,
+        expiration: Credentials.Expiration,
+        ...Credentials.CredentialScope && { credentialScope: Credentials.CredentialScope },
+        ...accountId && { accountId }
+      };
+      client$1.setCredentialFeature(credentials, "CREDENTIALS_STS_ASSUME_ROLE", "i");
+      return credentials;
+    };
+  };
+  var getDefaultRoleAssumerWithWebIdentity$1 = (stsOptions, STSClient2) => {
+    let stsClient;
+    return async (params) => {
+      if (!stsClient) {
+        const { logger = stsOptions?.parentClientConfig?.logger, profile = stsOptions?.parentClientConfig?.profile, region, requestHandler = stsOptions?.parentClientConfig?.requestHandler, credentialProviderLogger, userAgentAppId = stsOptions?.parentClientConfig?.userAgentAppId } = stsOptions;
+        const resolvedRegion = await resolveRegion(region, stsOptions?.parentClientConfig?.region, credentialProviderLogger, {
+          logger,
+          profile
+        });
+        const isCompatibleRequestHandler = !isH2(requestHandler);
+        stsClient = new STSClient2({
+          ...stsOptions,
+          userAgentAppId,
+          profile,
+          region: resolvedRegion,
+          requestHandler: isCompatibleRequestHandler ? requestHandler : undefined,
+          logger
+        });
+      }
+      const { Credentials, AssumedRoleUser } = await stsClient.send(new AssumeRoleWithWebIdentityCommand(params));
+      if (!Credentials || !Credentials.AccessKeyId || !Credentials.SecretAccessKey) {
+        throw new Error(`Invalid response from STS.assumeRoleWithWebIdentity call with role ${params.RoleArn}`);
+      }
+      const accountId = getAccountIdFromAssumedRoleUser(AssumedRoleUser);
+      const credentials = {
+        accessKeyId: Credentials.AccessKeyId,
+        secretAccessKey: Credentials.SecretAccessKey,
+        sessionToken: Credentials.SessionToken,
+        expiration: Credentials.Expiration,
+        ...Credentials.CredentialScope && { credentialScope: Credentials.CredentialScope },
+        ...accountId && { accountId }
+      };
+      if (accountId) {
+        client$1.setCredentialFeature(credentials, "RESOLVED_ACCOUNT_ID", "T");
+      }
+      client$1.setCredentialFeature(credentials, "CREDENTIALS_STS_ASSUME_ROLE_WEB_ID", "k");
+      return credentials;
+    };
+  };
+  var isH2 = (requestHandler) => {
+    return requestHandler?.metadata?.handlerProtocol === "h2";
+  };
+  var getCustomizableStsClientCtor = (baseCtor, customizations) => {
+    if (!customizations)
+      return baseCtor;
+    else
+      return class CustomizableSTSClient extends baseCtor {
+        constructor(config2) {
+          super(config2);
+          for (const customization of customizations) {
+            this.middlewareStack.use(customization);
+          }
+        }
+      };
+  };
+  var getDefaultRoleAssumer = (stsOptions = {}, stsPlugins) => getDefaultRoleAssumer$1(stsOptions, getCustomizableStsClientCtor(STSClient, stsPlugins));
+  var getDefaultRoleAssumerWithWebIdentity = (stsOptions = {}, stsPlugins) => getDefaultRoleAssumerWithWebIdentity$1(stsOptions, getCustomizableStsClientCtor(STSClient, stsPlugins));
+  var decorateDefaultCredentialProvider = (provider) => (input) => provider({
+    roleAssumer: getDefaultRoleAssumer(input),
+    roleAssumerWithWebIdentity: getDefaultRoleAssumerWithWebIdentity(input),
+    ...input
+  });
+  exports2.$Command = client.Command;
+  exports2.__Client = client.Client;
+  exports2.AssumeRole$ = AssumeRole$;
+  exports2.AssumeRoleCommand = AssumeRoleCommand;
+  exports2.AssumeRoleRequest$ = AssumeRoleRequest$;
+  exports2.AssumeRoleResponse$ = AssumeRoleResponse$;
+  exports2.AssumeRoleWithWebIdentity$ = AssumeRoleWithWebIdentity$;
+  exports2.AssumeRoleWithWebIdentityCommand = AssumeRoleWithWebIdentityCommand;
+  exports2.AssumeRoleWithWebIdentityRequest$ = AssumeRoleWithWebIdentityRequest$;
+  exports2.AssumeRoleWithWebIdentityResponse$ = AssumeRoleWithWebIdentityResponse$;
+  exports2.AssumedRoleUser$ = AssumedRoleUser$;
+  exports2.Credentials$ = Credentials$;
+  exports2.ExpiredTokenException = ExpiredTokenException;
+  exports2.ExpiredTokenException$ = ExpiredTokenException$;
+  exports2.IDPCommunicationErrorException = IDPCommunicationErrorException;
+  exports2.IDPCommunicationErrorException$ = IDPCommunicationErrorException$;
+  exports2.IDPRejectedClaimException = IDPRejectedClaimException;
+  exports2.IDPRejectedClaimException$ = IDPRejectedClaimException$;
+  exports2.InvalidIdentityTokenException = InvalidIdentityTokenException;
+  exports2.InvalidIdentityTokenException$ = InvalidIdentityTokenException$;
+  exports2.MalformedPolicyDocumentException = MalformedPolicyDocumentException;
+  exports2.MalformedPolicyDocumentException$ = MalformedPolicyDocumentException$;
+  exports2.PackedPolicyTooLargeException = PackedPolicyTooLargeException;
+  exports2.PackedPolicyTooLargeException$ = PackedPolicyTooLargeException$;
+  exports2.PolicyDescriptorType$ = PolicyDescriptorType$;
+  exports2.ProvidedContext$ = ProvidedContext$;
+  exports2.RegionDisabledException = RegionDisabledException;
+  exports2.RegionDisabledException$ = RegionDisabledException$;
+  exports2.STS = STS;
+  exports2.STSClient = STSClient;
+  exports2.STSServiceException = STSServiceException;
+  exports2.STSServiceException$ = STSServiceException$;
+  exports2.Tag$ = Tag$;
+  exports2.decorateDefaultCredentialProvider = decorateDefaultCredentialProvider;
+  exports2.errorTypeRegistries = errorTypeRegistries;
+  exports2.getDefaultRoleAssumer = getDefaultRoleAssumer;
+  exports2.getDefaultRoleAssumerWithWebIdentity = getDefaultRoleAssumerWithWebIdentity;
+});
+
+// ../../node_modules/.bun/@aws-sdk+credential-provider-process@3.972.39/node_modules/@aws-sdk/credential-provider-process/dist-cjs/index.js
+var require_dist_cjs20 = __commonJS((exports2) => {
+  var config = require_config();
+  var node_child_process = require("node:child_process");
+  var node_util = require("node:util");
+  var client = require_client2();
+  var getValidatedProcessCredentials = (profileName, data, profiles) => {
+    if (data.Version !== 1) {
+      throw Error(`Profile ${profileName} credential_process did not return Version 1.`);
+    }
+    if (data.AccessKeyId === undefined || data.SecretAccessKey === undefined) {
+      throw Error(`Profile ${profileName} credential_process returned invalid credentials.`);
+    }
+    if (data.Expiration) {
+      const currentTime = new Date;
+      const expireTime = new Date(data.Expiration);
+      if (expireTime < currentTime) {
+        throw Error(`Profile ${profileName} credential_process returned expired credentials.`);
+      }
+    }
+    let accountId = data.AccountId;
+    if (!accountId && profiles?.[profileName]?.aws_account_id) {
+      accountId = profiles[profileName].aws_account_id;
+    }
+    const credentials = {
+      accessKeyId: data.AccessKeyId,
+      secretAccessKey: data.SecretAccessKey,
+      ...data.SessionToken && { sessionToken: data.SessionToken },
+      ...data.Expiration && { expiration: new Date(data.Expiration) },
+      ...data.CredentialScope && { credentialScope: data.CredentialScope },
+      ...accountId && { accountId }
+    };
+    client.setCredentialFeature(credentials, "CREDENTIALS_PROCESS", "w");
+    return credentials;
+  };
+  var resolveProcessCredentials = async (profileName, profiles, logger) => {
+    const profile = profiles[profileName];
+    if (profiles[profileName]) {
+      const credentialProcess = profile["credential_process"];
+      if (credentialProcess !== undefined) {
+        const execPromise = node_util.promisify(config.externalDataInterceptor?.getTokenRecord?.().exec ?? node_child_process.exec);
+        try {
+          const { stdout } = await execPromise(credentialProcess);
+          let data;
+          try {
+            data = JSON.parse(stdout.trim());
+          } catch {
+            throw Error(`Profile ${profileName} credential_process returned invalid JSON.`);
+          }
+          return getValidatedProcessCredentials(profileName, data, profiles);
+        } catch (error) {
+          throw new config.CredentialsProviderError(error.message, { logger });
+        }
+      } else {
+        throw new config.CredentialsProviderError(`Profile ${profileName} did not contain credential_process.`, { logger });
+      }
+    } else {
+      throw new config.CredentialsProviderError(`Profile ${profileName} could not be found in shared credentials file.`, {
+        logger
+      });
+    }
+  };
+  var fromProcess = (init = {}) => async ({ callerClientConfig } = {}) => {
+    init.logger?.debug("@aws-sdk/credential-provider-process - fromProcess");
+    const profiles = await config.parseKnownFiles(init);
+    return resolveProcessCredentials(config.getProfileName({
+      profile: init.profile ?? callerClientConfig?.profile
+    }), profiles, init.logger);
+  };
+  exports2.fromProcess = fromProcess;
+});
+
+// ../../node_modules/.bun/@aws-sdk+credential-provider-web-identity@3.972.43/node_modules/@aws-sdk/credential-provider-web-identity/dist-cjs/fromWebToken.js
+var require_fromWebToken = __commonJS((exports2) => {
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.fromWebToken = undefined;
+  var fromWebToken = (init) => async (awsIdentityProperties) => {
+    init.logger?.debug("@aws-sdk/credential-provider-web-identity - fromWebToken");
+    const { roleArn, roleSessionName, webIdentityToken, providerId, policyArns, policy, durationSeconds } = init;
+    let { roleAssumerWithWebIdentity } = init;
+    if (!roleAssumerWithWebIdentity) {
+      const { getDefaultRoleAssumerWithWebIdentity } = await Promise.resolve().then(() => __toESM(require_sts()));
+      roleAssumerWithWebIdentity = getDefaultRoleAssumerWithWebIdentity({
+        ...init.clientConfig,
+        credentialProviderLogger: init.logger,
+        parentClientConfig: {
+          ...awsIdentityProperties?.callerClientConfig,
+          ...init.parentClientConfig
+        }
+      }, init.clientPlugins);
+    }
+    return roleAssumerWithWebIdentity({
+      RoleArn: roleArn,
+      RoleSessionName: roleSessionName ?? `aws-sdk-js-session-${Date.now()}`,
+      WebIdentityToken: webIdentityToken,
+      ProviderId: providerId,
+      PolicyArns: policyArns,
+      Policy: policy,
+      DurationSeconds: durationSeconds
+    });
+  };
+  exports2.fromWebToken = fromWebToken;
+});
+
+// ../../node_modules/.bun/@aws-sdk+credential-provider-web-identity@3.972.43/node_modules/@aws-sdk/credential-provider-web-identity/dist-cjs/fromTokenFile.js
+var require_fromTokenFile = __commonJS((exports2) => {
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.fromTokenFile = undefined;
+  var client_1 = require_client2();
+  var config_1 = require_config();
+  var node_fs_1 = require("node:fs");
+  var fromWebToken_1 = require_fromWebToken();
+  var ENV_TOKEN_FILE = "AWS_WEB_IDENTITY_TOKEN_FILE";
+  var ENV_ROLE_ARN = "AWS_ROLE_ARN";
+  var ENV_ROLE_SESSION_NAME = "AWS_ROLE_SESSION_NAME";
+  var fromTokenFile = (init = {}) => async (awsIdentityProperties) => {
+    init.logger?.debug("@aws-sdk/credential-provider-web-identity - fromTokenFile");
+    const webIdentityTokenFile = init?.webIdentityTokenFile ?? process.env[ENV_TOKEN_FILE];
+    const roleArn = init?.roleArn ?? process.env[ENV_ROLE_ARN];
+    const roleSessionName = init?.roleSessionName ?? process.env[ENV_ROLE_SESSION_NAME];
+    if (!webIdentityTokenFile || !roleArn) {
+      throw new config_1.CredentialsProviderError("Web identity configuration not specified", {
+        logger: init.logger
+      });
+    }
+    const credentials = await (0, fromWebToken_1.fromWebToken)({
+      ...init,
+      webIdentityToken: config_1.externalDataInterceptor?.getTokenRecord?.()[webIdentityTokenFile] ?? (0, node_fs_1.readFileSync)(webIdentityTokenFile, { encoding: "ascii" }),
+      roleArn,
+      roleSessionName
+    })(awsIdentityProperties);
+    if (webIdentityTokenFile === process.env[ENV_TOKEN_FILE]) {
+      (0, client_1.setCredentialFeature)(credentials, "CREDENTIALS_ENV_VARS_STS_WEB_ID_TOKEN", "h");
+    }
+    return credentials;
+  };
+  exports2.fromTokenFile = fromTokenFile;
+});
+
+// ../../node_modules/.bun/@aws-sdk+credential-provider-web-identity@3.972.43/node_modules/@aws-sdk/credential-provider-web-identity/dist-cjs/index.js
+var require_dist_cjs21 = __commonJS((exports2) => {
+  var fromTokenFile = require_fromTokenFile();
+  var fromWebToken = require_fromWebToken();
+  Object.prototype.hasOwnProperty.call(fromTokenFile, "__proto__") && !Object.prototype.hasOwnProperty.call(exports2, "__proto__") && Object.defineProperty(exports2, "__proto__", {
+    enumerable: true,
+    value: fromTokenFile["__proto__"]
+  });
+  Object.keys(fromTokenFile).forEach(function(k) {
+    if (k !== "default" && !Object.prototype.hasOwnProperty.call(exports2, k))
+      exports2[k] = fromTokenFile[k];
+  });
+  Object.prototype.hasOwnProperty.call(fromWebToken, "__proto__") && !Object.prototype.hasOwnProperty.call(exports2, "__proto__") && Object.defineProperty(exports2, "__proto__", {
+    enumerable: true,
+    value: fromWebToken["__proto__"]
+  });
+  Object.keys(fromWebToken).forEach(function(k) {
+    if (k !== "default" && !Object.prototype.hasOwnProperty.call(exports2, k))
+      exports2[k] = fromWebToken[k];
+  });
+});
+
+// ../../node_modules/.bun/@aws-sdk+credential-provider-ini@3.972.43/node_modules/@aws-sdk/credential-provider-ini/dist-cjs/index.js
+var require_dist_cjs22 = __commonJS((exports2) => {
+  var config = require_config();
+  var client = require_client2();
+  var credentialProviderLogin = require_dist_cjs19();
+  var resolveCredentialSource = (credentialSource, profileName, logger) => {
+    const sourceProvidersMap = {
+      EcsContainer: async (options) => {
+        const { fromHttp } = await Promise.resolve().then(() => __toESM(require_dist_cjs16()));
+        const { fromContainerMetadata } = await Promise.resolve().then(() => __toESM(require_dist_cjs14()));
+        logger?.debug("@aws-sdk/credential-provider-ini - credential_source is EcsContainer");
+        return async () => config.chain(fromHttp(options ?? {}), fromContainerMetadata(options))().then(setNamedProvider);
+      },
+      Ec2InstanceMetadata: async (options) => {
+        logger?.debug("@aws-sdk/credential-provider-ini - credential_source is Ec2InstanceMetadata");
+        const { fromInstanceMetadata } = await Promise.resolve().then(() => __toESM(require_dist_cjs14()));
+        return async () => fromInstanceMetadata(options)().then(setNamedProvider);
+      },
+      Environment: async (options) => {
+        logger?.debug("@aws-sdk/credential-provider-ini - credential_source is Environment");
+        const { fromEnv } = await Promise.resolve().then(() => __toESM(require_dist_cjs13()));
+        return async () => fromEnv(options)().then(setNamedProvider);
+      }
+    };
+    if (credentialSource in sourceProvidersMap) {
+      return sourceProvidersMap[credentialSource];
+    } else {
+      throw new config.CredentialsProviderError(`Unsupported credential source in profile ${profileName}. Got ${credentialSource}, expected EcsContainer or Ec2InstanceMetadata or Environment.`, { logger });
+    }
+  };
+  var setNamedProvider = (creds) => client.setCredentialFeature(creds, "CREDENTIALS_PROFILE_NAMED_PROVIDER", "p");
+  var isAssumeRoleProfile = (arg, { profile = "default", logger } = {}) => {
+    return Boolean(arg) && typeof arg === "object" && typeof arg.role_arn === "string" && ["undefined", "string"].indexOf(typeof arg.role_session_name) > -1 && ["undefined", "string"].indexOf(typeof arg.external_id) > -1 && ["undefined", "string"].indexOf(typeof arg.mfa_serial) > -1 && (isAssumeRoleWithSourceProfile(arg, { profile, logger }) || isCredentialSourceProfile(arg, { profile, logger }));
+  };
+  var isAssumeRoleWithSourceProfile = (arg, { profile, logger }) => {
+    const withSourceProfile = typeof arg.source_profile === "string" && typeof arg.credential_source === "undefined";
+    if (withSourceProfile) {
+      logger?.debug?.(`    ${profile} isAssumeRoleWithSourceProfile source_profile=${arg.source_profile}`);
+    }
+    return withSourceProfile;
+  };
+  var isCredentialSourceProfile = (arg, { profile, logger }) => {
+    const withProviderProfile = typeof arg.credential_source === "string" && typeof arg.source_profile === "undefined";
+    if (withProviderProfile) {
+      logger?.debug?.(`    ${profile} isCredentialSourceProfile credential_source=${arg.credential_source}`);
+    }
+    return withProviderProfile;
+  };
+  var resolveAssumeRoleCredentials = async (profileName, profiles, options, callerClientConfig, visitedProfiles = {}, resolveProfileData2) => {
+    options.logger?.debug("@aws-sdk/credential-provider-ini - resolveAssumeRoleCredentials (STS)");
+    const profileData = profiles[profileName];
+    const { source_profile, region } = profileData;
+    if (!options.roleAssumer) {
+      const { getDefaultRoleAssumer } = await Promise.resolve().then(() => __toESM(require_sts()));
+      options.roleAssumer = getDefaultRoleAssumer({
+        ...options.clientConfig,
+        credentialProviderLogger: options.logger,
+        parentClientConfig: {
+          ...callerClientConfig,
+          ...options?.parentClientConfig,
+          region: region ?? options?.parentClientConfig?.region ?? callerClientConfig?.region
+        }
+      }, options.clientPlugins);
+    }
+    if (source_profile && source_profile in visitedProfiles) {
+      throw new config.CredentialsProviderError(`Detected a cycle attempting to resolve credentials for profile ${config.getProfileName(options)}. Profiles visited: ` + Object.keys(visitedProfiles).join(", "), { logger: options.logger });
+    }
+    options.logger?.debug(`@aws-sdk/credential-provider-ini - finding credential resolver using ${source_profile ? `source_profile=[${source_profile}]` : `profile=[${profileName}]`}`);
+    const sourceCredsProvider = source_profile ? resolveProfileData2(source_profile, profiles, options, callerClientConfig, {
+      ...visitedProfiles,
+      [source_profile]: true
+    }, isCredentialSourceWithoutRoleArn(profiles[source_profile] ?? {})) : (await resolveCredentialSource(profileData.credential_source, profileName, options.logger)(options))();
+    if (isCredentialSourceWithoutRoleArn(profileData)) {
+      return sourceCredsProvider.then((creds) => client.setCredentialFeature(creds, "CREDENTIALS_PROFILE_SOURCE_PROFILE", "o"));
+    } else {
+      const params = {
+        RoleArn: profileData.role_arn,
+        RoleSessionName: profileData.role_session_name || `aws-sdk-js-${Date.now()}`,
+        ExternalId: profileData.external_id,
+        DurationSeconds: parseInt(profileData.duration_seconds || "3600", 10)
+      };
+      const { mfa_serial } = profileData;
+      if (mfa_serial) {
+        if (!options.mfaCodeProvider) {
+          throw new config.CredentialsProviderError(`Profile ${profileName} requires multi-factor authentication, but no MFA code callback was provided.`, { logger: options.logger, tryNextLink: false });
+        }
+        params.SerialNumber = mfa_serial;
+        params.TokenCode = await options.mfaCodeProvider(mfa_serial);
+      }
+      const sourceCreds = await sourceCredsProvider;
+      return options.roleAssumer(sourceCreds, params).then((creds) => client.setCredentialFeature(creds, "CREDENTIALS_PROFILE_SOURCE_PROFILE", "o"));
+    }
+  };
+  var isCredentialSourceWithoutRoleArn = (section) => {
+    return !section.role_arn && !!section.credential_source;
+  };
+  var isLoginProfile = (data) => {
+    return Boolean(data && data.login_session);
+  };
+  var resolveLoginCredentials = async (profileName, options, callerClientConfig) => {
+    const credentials = await credentialProviderLogin.fromLoginCredentials({
+      ...options,
+      profile: profileName
+    })({ callerClientConfig });
+    return client.setCredentialFeature(credentials, "CREDENTIALS_PROFILE_LOGIN", "AC");
+  };
+  var isProcessProfile = (arg) => Boolean(arg) && typeof arg === "object" && typeof arg.credential_process === "string";
+  var resolveProcessCredentials = async (options, profile) => Promise.resolve().then(() => __toESM(require_dist_cjs20())).then(({ fromProcess }) => fromProcess({
+    ...options,
+    profile
+  })().then((creds) => client.setCredentialFeature(creds, "CREDENTIALS_PROFILE_PROCESS", "v")));
+  var resolveSsoCredentials = async (profile, profileData, options = {}, callerClientConfig) => {
+    const { fromSSO } = await Promise.resolve().then(() => __toESM(require_dist_cjs18()));
+    return fromSSO({
+      profile,
+      logger: options.logger,
+      parentClientConfig: options.parentClientConfig,
+      clientConfig: options.clientConfig
+    })({
+      callerClientConfig
+    }).then((creds) => {
+      if (profileData.sso_session) {
+        return client.setCredentialFeature(creds, "CREDENTIALS_PROFILE_SSO", "r");
+      } else {
+        return client.setCredentialFeature(creds, "CREDENTIALS_PROFILE_SSO_LEGACY", "t");
+      }
+    });
+  };
+  var isSsoProfile = (arg) => arg && (typeof arg.sso_start_url === "string" || typeof arg.sso_account_id === "string" || typeof arg.sso_session === "string" || typeof arg.sso_region === "string" || typeof arg.sso_role_name === "string");
+  var isStaticCredsProfile = (arg) => Boolean(arg) && typeof arg === "object" && typeof arg.aws_access_key_id === "string" && typeof arg.aws_secret_access_key === "string" && ["undefined", "string"].indexOf(typeof arg.aws_session_token) > -1 && ["undefined", "string"].indexOf(typeof arg.aws_account_id) > -1;
+  var resolveStaticCredentials = async (profile, options) => {
+    options?.logger?.debug("@aws-sdk/credential-provider-ini - resolveStaticCredentials");
+    const credentials = {
+      accessKeyId: profile.aws_access_key_id,
+      secretAccessKey: profile.aws_secret_access_key,
+      sessionToken: profile.aws_session_token,
+      ...profile.aws_credential_scope && { credentialScope: profile.aws_credential_scope },
+      ...profile.aws_account_id && { accountId: profile.aws_account_id }
+    };
+    return client.setCredentialFeature(credentials, "CREDENTIALS_PROFILE", "n");
+  };
+  var isWebIdentityProfile = (arg) => Boolean(arg) && typeof arg === "object" && typeof arg.web_identity_token_file === "string" && typeof arg.role_arn === "string" && ["undefined", "string"].indexOf(typeof arg.role_session_name) > -1;
+  var resolveWebIdentityCredentials = async (profile, options, callerClientConfig) => Promise.resolve().then(() => __toESM(require_dist_cjs21())).then(({ fromTokenFile }) => fromTokenFile({
+    webIdentityTokenFile: profile.web_identity_token_file,
+    roleArn: profile.role_arn,
+    roleSessionName: profile.role_session_name,
+    roleAssumerWithWebIdentity: options.roleAssumerWithWebIdentity,
+    logger: options.logger,
+    parentClientConfig: options.parentClientConfig
+  })({
+    callerClientConfig
+  }).then((creds) => client.setCredentialFeature(creds, "CREDENTIALS_PROFILE_STS_WEB_ID_TOKEN", "q")));
+  var resolveProfileData = async (profileName, profiles, options, callerClientConfig, visitedProfiles = {}, isAssumeRoleRecursiveCall = false) => {
+    const data = profiles[profileName];
+    if (Object.keys(visitedProfiles).length > 0 && isStaticCredsProfile(data)) {
+      return resolveStaticCredentials(data, options);
+    }
+    if (isAssumeRoleRecursiveCall || isAssumeRoleProfile(data, { profile: profileName, logger: options.logger })) {
+      return resolveAssumeRoleCredentials(profileName, profiles, options, callerClientConfig, visitedProfiles, resolveProfileData);
+    }
+    if (isStaticCredsProfile(data)) {
+      return resolveStaticCredentials(data, options);
+    }
+    if (isWebIdentityProfile(data)) {
+      return resolveWebIdentityCredentials(data, options, callerClientConfig);
+    }
+    if (isProcessProfile(data)) {
+      return resolveProcessCredentials(options, profileName);
+    }
+    if (isSsoProfile(data)) {
+      return await resolveSsoCredentials(profileName, data, options, callerClientConfig);
+    }
+    if (isLoginProfile(data)) {
+      return resolveLoginCredentials(profileName, options, callerClientConfig);
+    }
+    throw new config.CredentialsProviderError(`Could not resolve credentials using profile: [${profileName}] in configuration/credentials file(s).`, { logger: options.logger });
+  };
+  var fromIni = (init = {}) => async ({ callerClientConfig } = {}) => {
+    init.logger?.debug("@aws-sdk/credential-provider-ini - fromIni");
+    const profiles = await config.parseKnownFiles(init);
+    return resolveProfileData(config.getProfileName({
+      profile: init.profile ?? callerClientConfig?.profile
+    }), profiles, init, callerClientConfig);
+  };
+  exports2.fromIni = fromIni;
+});
+
+// ../../node_modules/.bun/@aws-sdk+credential-provider-node@3.972.44/node_modules/@aws-sdk/credential-provider-node/dist-cjs/index.js
+var require_dist_cjs23 = __commonJS((exports2) => {
+  var credentialProviderEnv = require_dist_cjs13();
+  var config = require_config();
+  var ENV_IMDS_DISABLED = "AWS_EC2_METADATA_DISABLED";
+  var remoteProvider = async (init) => {
+    const { ENV_CMDS_FULL_URI, ENV_CMDS_RELATIVE_URI, fromContainerMetadata, fromInstanceMetadata } = await Promise.resolve().then(() => __toESM(require_dist_cjs14()));
+    if (process.env[ENV_CMDS_RELATIVE_URI] || process.env[ENV_CMDS_FULL_URI]) {
+      init.logger?.debug("@aws-sdk/credential-provider-node - remoteProvider::fromHttp/fromContainerMetadata");
+      const { fromHttp } = await Promise.resolve().then(() => __toESM(require_dist_cjs16()));
+      return config.chain(fromHttp(init), fromContainerMetadata(init));
+    }
+    if (process.env[ENV_IMDS_DISABLED] && process.env[ENV_IMDS_DISABLED] !== "false") {
+      return async () => {
+        throw new config.CredentialsProviderError("EC2 Instance Metadata Service access disabled", { logger: init.logger });
+      };
+    }
+    init.logger?.debug("@aws-sdk/credential-provider-node - remoteProvider::fromInstanceMetadata");
+    return fromInstanceMetadata(init);
+  };
+  function memoizeChain(providers, treatAsExpired) {
+    const chain = internalCreateChain(providers);
+    let activeLock;
+    let passiveLock;
+    let credentials;
+    const provider = async (options) => {
+      if (options?.forceRefresh) {
+        return await chain(options);
+      }
+      if (credentials?.expiration) {
+        if (credentials?.expiration?.getTime() < Date.now()) {
+          credentials = undefined;
+        }
+      }
+      if (activeLock) {
+        await activeLock;
+      } else if (!credentials || treatAsExpired?.(credentials)) {
+        if (credentials) {
+          if (!passiveLock) {
+            passiveLock = chain(options).then((c) => {
+              credentials = c;
+            }).finally(() => {
+              passiveLock = undefined;
+            });
+          }
+        } else {
+          activeLock = chain(options).then((c) => {
+            credentials = c;
+          }).finally(() => {
+            activeLock = undefined;
+          });
+          return provider(options);
+        }
+      }
+      return credentials;
+    };
+    return provider;
+  }
+  var internalCreateChain = (providers) => async (awsIdentityProperties) => {
+    let lastProviderError;
+    for (const provider of providers) {
+      try {
+        return await provider(awsIdentityProperties);
+      } catch (err) {
+        lastProviderError = err;
+        if (err?.tryNextLink) {
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw lastProviderError;
+  };
+  var multipleCredentialSourceWarningEmitted = false;
+  var defaultProvider = (init = {}) => memoizeChain([
+    async () => {
+      const profile = init.profile ?? process.env[config.ENV_PROFILE];
+      if (profile) {
+        const envStaticCredentialsAreSet = process.env[credentialProviderEnv.ENV_KEY] && process.env[credentialProviderEnv.ENV_SECRET];
+        if (envStaticCredentialsAreSet) {
+          if (!multipleCredentialSourceWarningEmitted) {
+            const warnFn = init.logger?.warn && init.logger?.constructor?.name !== "NoOpLogger" ? init.logger.warn.bind(init.logger) : console.warn;
+            warnFn(`@aws-sdk/credential-provider-node - defaultProvider::fromEnv WARNING:
+    Multiple credential sources detected: 
+    Both AWS_PROFILE and the pair AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY static credentials are set.
+    This SDK will proceed with the AWS_PROFILE value.
+    
+    However, a future version may change this behavior to prefer the ENV static credentials.
+    Please ensure that your environment only sets either the AWS_PROFILE or the
+    AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY pair.
+`);
+            multipleCredentialSourceWarningEmitted = true;
+          }
+        }
+        throw new config.CredentialsProviderError("AWS_PROFILE is set, skipping fromEnv provider.", {
+          logger: init.logger,
+          tryNextLink: true
+        });
+      }
+      init.logger?.debug("@aws-sdk/credential-provider-node - defaultProvider::fromEnv");
+      return credentialProviderEnv.fromEnv(init)();
+    },
+    async (awsIdentityProperties) => {
+      init.logger?.debug("@aws-sdk/credential-provider-node - defaultProvider::fromSSO");
+      const { ssoStartUrl, ssoAccountId, ssoRegion, ssoRoleName, ssoSession } = init;
+      if (!ssoStartUrl && !ssoAccountId && !ssoRegion && !ssoRoleName && !ssoSession) {
+        throw new config.CredentialsProviderError("Skipping SSO provider in default chain (inputs do not include SSO fields).", { logger: init.logger });
+      }
+      const { fromSSO } = await Promise.resolve().then(() => __toESM(require_dist_cjs18()));
+      return fromSSO(init)(awsIdentityProperties);
+    },
+    async (awsIdentityProperties) => {
+      init.logger?.debug("@aws-sdk/credential-provider-node - defaultProvider::fromIni");
+      const { fromIni } = await Promise.resolve().then(() => __toESM(require_dist_cjs22()));
+      return fromIni(init)(awsIdentityProperties);
+    },
+    async (awsIdentityProperties) => {
+      init.logger?.debug("@aws-sdk/credential-provider-node - defaultProvider::fromProcess");
+      const { fromProcess } = await Promise.resolve().then(() => __toESM(require_dist_cjs20()));
+      return fromProcess(init)(awsIdentityProperties);
+    },
+    async (awsIdentityProperties) => {
+      init.logger?.debug("@aws-sdk/credential-provider-node - defaultProvider::fromTokenFile");
+      const { fromTokenFile } = await Promise.resolve().then(() => __toESM(require_dist_cjs21()));
+      return fromTokenFile(init)(awsIdentityProperties);
+    },
+    async () => {
+      init.logger?.debug("@aws-sdk/credential-provider-node - defaultProvider::remoteProvider");
+      return (await remoteProvider(init))();
+    },
+    async () => {
+      throw new config.CredentialsProviderError("Could not load credentials from any providers", {
+        tryNextLink: false,
+        logger: init.logger
+      });
+    }
+  ], credentialsTreatedAsExpired);
+  var credentialsWillNeedRefresh = (credentials) => credentials?.expiration !== undefined;
+  var credentialsTreatedAsExpired = (credentials) => credentials?.expiration !== undefined && credentials.expiration.getTime() - Date.now() < 300000;
+  exports2.credentialsTreatedAsExpired = credentialsTreatedAsExpired;
+  exports2.credentialsWillNeedRefresh = credentialsWillNeedRefresh;
+  exports2.defaultProvider = defaultProvider;
+});
+
+// ../../node_modules/.bun/@aws-sdk+middleware-bucket-endpoint@3.972.15/node_modules/@aws-sdk/middleware-bucket-endpoint/dist-cjs/index.js
+var require_dist_cjs24 = __commonJS((exports2) => {
+  var config = require_config();
+  var util = require_util();
+  var protocols = require_protocols();
+  var NODE_DISABLE_MULTIREGION_ACCESS_POINT_ENV_NAME = "AWS_S3_DISABLE_MULTIREGION_ACCESS_POINTS";
+  var NODE_DISABLE_MULTIREGION_ACCESS_POINT_INI_NAME = "s3_disable_multiregion_access_points";
+  var NODE_DISABLE_MULTIREGION_ACCESS_POINT_CONFIG_OPTIONS = {
+    environmentVariableSelector: (env4) => config.booleanSelector(env4, NODE_DISABLE_MULTIREGION_ACCESS_POINT_ENV_NAME, config.SelectorType.ENV),
+    configFileSelector: (profile) => config.booleanSelector(profile, NODE_DISABLE_MULTIREGION_ACCESS_POINT_INI_NAME, config.SelectorType.CONFIG),
+    default: false
+  };
+  var NODE_USE_ARN_REGION_ENV_NAME = "AWS_S3_USE_ARN_REGION";
+  var NODE_USE_ARN_REGION_INI_NAME = "s3_use_arn_region";
+  var NODE_USE_ARN_REGION_CONFIG_OPTIONS = {
+    environmentVariableSelector: (env4) => config.booleanSelector(env4, NODE_USE_ARN_REGION_ENV_NAME, config.SelectorType.ENV),
+    configFileSelector: (profile) => config.booleanSelector(profile, NODE_USE_ARN_REGION_INI_NAME, config.SelectorType.CONFIG),
+    default: undefined
+  };
+  var DOMAIN_PATTERN = /^[a-z0-9][a-z0-9\.\-]{1,61}[a-z0-9]$/;
+  var IP_ADDRESS_PATTERN = /(\d+\.){3}\d+/;
+  var DOTS_PATTERN = /\.\./;
+  var DOT_PATTERN = /\./;
+  var S3_HOSTNAME_PATTERN = /^(.+\.)?s3(-fips)?(\.dualstack)?[.-]([a-z0-9-]+)\./;
+  var S3_US_EAST_1_ALTNAME_PATTERN = /^s3(-external-1)?\.amazonaws\.com$/;
+  var AWS_PARTITION_SUFFIX = "amazonaws.com";
+  var isBucketNameOptions = (options) => typeof options.bucketName === "string";
+  var isDnsCompatibleBucketName = (bucketName) => DOMAIN_PATTERN.test(bucketName) && !IP_ADDRESS_PATTERN.test(bucketName) && !DOTS_PATTERN.test(bucketName);
+  var getRegionalSuffix = (hostname) => {
+    const parts = hostname.match(S3_HOSTNAME_PATTERN);
+    return [parts[4], hostname.replace(new RegExp(`^${parts[0]}`), "")];
+  };
+  var getSuffix = (hostname) => S3_US_EAST_1_ALTNAME_PATTERN.test(hostname) ? ["us-east-1", AWS_PARTITION_SUFFIX] : getRegionalSuffix(hostname);
+  var getSuffixForArnEndpoint = (hostname) => S3_US_EAST_1_ALTNAME_PATTERN.test(hostname) ? [hostname.replace(`.${AWS_PARTITION_SUFFIX}`, ""), AWS_PARTITION_SUFFIX] : getRegionalSuffix(hostname);
+  var validateArnEndpointOptions = (options) => {
+    if (options.pathStyleEndpoint) {
+      throw new Error("Path-style S3 endpoint is not supported when bucket is an ARN");
+    }
+    if (options.accelerateEndpoint) {
+      throw new Error("Accelerate endpoint is not supported when bucket is an ARN");
+    }
+    if (!options.tlsCompatible) {
+      throw new Error("HTTPS is required when bucket is an ARN");
+    }
+  };
+  var validateService = (service) => {
+    if (service !== "s3" && service !== "s3-outposts" && service !== "s3-object-lambda") {
+      throw new Error("Expect 's3' or 's3-outposts' or 's3-object-lambda' in ARN service component");
+    }
+  };
+  var validateS3Service = (service) => {
+    if (service !== "s3") {
+      throw new Error("Expect 's3' in Accesspoint ARN service component");
+    }
+  };
+  var validateOutpostService = (service) => {
+    if (service !== "s3-outposts") {
+      throw new Error("Expect 's3-posts' in Outpost ARN service component");
+    }
+  };
+  var validatePartition = (partition, options) => {
+    if (partition !== options.clientPartition) {
+      throw new Error(`Partition in ARN is incompatible, got "${partition}" but expected "${options.clientPartition}"`);
+    }
+  };
+  var validateRegion = (region, options) => {};
+  var validateRegionalClient = (region) => {
+    if (["s3-external-1", "aws-global"].includes(region)) {
+      throw new Error(`Client region ${region} is not regional`);
+    }
+  };
+  var validateAccountId = (accountId) => {
+    if (!/[0-9]{12}/.exec(accountId)) {
+      throw new Error("Access point ARN accountID does not match regex '[0-9]{12}'");
+    }
+  };
+  var validateDNSHostLabel = (label, options = { tlsCompatible: true }) => {
+    if (label.length >= 64 || !/^[a-z0-9][a-z0-9.-]*[a-z0-9]$/.test(label) || /(\d+\.){3}\d+/.test(label) || /[.-]{2}/.test(label) || options?.tlsCompatible && DOT_PATTERN.test(label)) {
+      throw new Error(`Invalid DNS label ${label}`);
+    }
+  };
+  var validateCustomEndpoint = (options) => {
+    if (options.isCustomEndpoint) {
+      if (options.dualstackEndpoint)
+        throw new Error("Dualstack endpoint is not supported with custom endpoint");
+      if (options.accelerateEndpoint)
+        throw new Error("Accelerate endpoint is not supported with custom endpoint");
+    }
+  };
+  var getArnResources = (resource) => {
+    const delimiter = resource.includes(":") ? ":" : "/";
+    const [resourceType, ...rest] = resource.split(delimiter);
+    if (resourceType === "accesspoint") {
+      if (rest.length !== 1 || rest[0] === "") {
+        throw new Error(`Access Point ARN should have one resource accesspoint${delimiter}{accesspointname}`);
+      }
+      return { accesspointName: rest[0] };
+    } else if (resourceType === "outpost") {
+      if (!rest[0] || rest[1] !== "accesspoint" || !rest[2] || rest.length !== 3) {
+        throw new Error(`Outpost ARN should have resource outpost${delimiter}{outpostId}${delimiter}accesspoint${delimiter}{accesspointName}`);
+      }
+      const [outpostId, _, accesspointName] = rest;
+      return { outpostId, accesspointName };
+    } else {
+      throw new Error(`ARN resource should begin with 'accesspoint${delimiter}' or 'outpost${delimiter}'`);
+    }
+  };
+  var validateNoDualstack = (dualstackEndpoint) => {};
+  var validateNoFIPS = (useFipsEndpoint) => {
+    if (useFipsEndpoint)
+      throw new Error(`FIPS region is not supported with Outpost.`);
+  };
+  var validateMrapAlias = (name) => {
+    try {
+      name.split(".").forEach((label) => {
+        validateDNSHostLabel(label);
+      });
+    } catch (e) {
+      throw new Error(`"${name}" is not a DNS compatible name.`);
+    }
+  };
+  var bucketHostname = (options) => {
+    validateCustomEndpoint(options);
+    return isBucketNameOptions(options) ? getEndpointFromBucketName(options) : getEndpointFromArn(options);
+  };
+  var getEndpointFromBucketName = ({ accelerateEndpoint = false, clientRegion: region, baseHostname, bucketName, dualstackEndpoint = false, fipsEndpoint = false, pathStyleEndpoint = false, tlsCompatible = true, isCustomEndpoint = false }) => {
+    const [clientRegion, hostnameSuffix] = isCustomEndpoint ? [region, baseHostname] : getSuffix(baseHostname);
+    if (pathStyleEndpoint || !isDnsCompatibleBucketName(bucketName) || tlsCompatible && DOT_PATTERN.test(bucketName)) {
+      return {
+        bucketEndpoint: false,
+        hostname: dualstackEndpoint ? `s3.dualstack.${clientRegion}.${hostnameSuffix}` : baseHostname
+      };
+    }
+    if (accelerateEndpoint) {
+      baseHostname = `s3-accelerate${dualstackEndpoint ? ".dualstack" : ""}.${hostnameSuffix}`;
+    } else if (dualstackEndpoint) {
+      baseHostname = `s3.dualstack.${clientRegion}.${hostnameSuffix}`;
+    }
+    return {
+      bucketEndpoint: true,
+      hostname: `${bucketName}.${baseHostname}`
+    };
+  };
+  var getEndpointFromArn = (options) => {
+    const { isCustomEndpoint, baseHostname, clientRegion } = options;
+    const hostnameSuffix = isCustomEndpoint ? baseHostname : getSuffixForArnEndpoint(baseHostname)[1];
+    const { pathStyleEndpoint, accelerateEndpoint = false, fipsEndpoint = false, tlsCompatible = true, bucketName, clientPartition = "aws" } = options;
+    validateArnEndpointOptions({ pathStyleEndpoint, accelerateEndpoint, tlsCompatible });
+    const { service, partition, accountId, region, resource } = bucketName;
+    validateService(service);
+    validatePartition(partition, { clientPartition });
+    validateAccountId(accountId);
+    const { accesspointName, outpostId } = getArnResources(resource);
+    if (service === "s3-object-lambda") {
+      return getEndpointFromObjectLambdaArn({ ...options, tlsCompatible, bucketName, accesspointName, hostnameSuffix });
+    }
+    if (region === "") {
+      return getEndpointFromMRAPArn({ ...options, mrapAlias: accesspointName, hostnameSuffix });
+    }
+    if (outpostId) {
+      return getEndpointFromOutpostArn({ ...options, clientRegion, outpostId, accesspointName, hostnameSuffix });
+    }
+    return getEndpointFromAccessPointArn({ ...options, clientRegion, accesspointName, hostnameSuffix });
+  };
+  var getEndpointFromObjectLambdaArn = ({ dualstackEndpoint = false, fipsEndpoint = false, tlsCompatible = true, useArnRegion, clientRegion, clientSigningRegion = clientRegion, accesspointName, bucketName, hostnameSuffix }) => {
+    const { accountId, region, service } = bucketName;
+    validateRegionalClient(clientRegion);
+    const DNSHostLabel = `${accesspointName}-${accountId}`;
+    validateDNSHostLabel(DNSHostLabel, { tlsCompatible });
+    const endpointRegion = useArnRegion ? region : clientRegion;
+    const signingRegion = useArnRegion ? region : clientSigningRegion;
+    return {
+      bucketEndpoint: true,
+      hostname: `${DNSHostLabel}.${service}${fipsEndpoint ? "-fips" : ""}.${endpointRegion}.${hostnameSuffix}`,
+      signingRegion,
+      signingService: service
+    };
+  };
+  var getEndpointFromMRAPArn = ({ disableMultiregionAccessPoints, dualstackEndpoint = false, isCustomEndpoint, mrapAlias, hostnameSuffix }) => {
+    if (disableMultiregionAccessPoints === true) {
+      throw new Error("SDK is attempting to use a MRAP ARN. Please enable to feature.");
+    }
+    validateMrapAlias(mrapAlias);
+    return {
+      bucketEndpoint: true,
+      hostname: `${mrapAlias}${isCustomEndpoint ? "" : `.accesspoint.s3-global`}.${hostnameSuffix}`,
+      signingRegion: "*"
+    };
+  };
+  var getEndpointFromOutpostArn = ({ useArnRegion, clientRegion, clientSigningRegion = clientRegion, bucketName, outpostId, dualstackEndpoint = false, fipsEndpoint = false, tlsCompatible = true, accesspointName, isCustomEndpoint, hostnameSuffix }) => {
+    validateRegionalClient(clientRegion);
+    const DNSHostLabel = `${accesspointName}-${bucketName.accountId}`;
+    validateDNSHostLabel(DNSHostLabel, { tlsCompatible });
+    const endpointRegion = useArnRegion ? bucketName.region : clientRegion;
+    const signingRegion = useArnRegion ? bucketName.region : clientSigningRegion;
+    validateOutpostService(bucketName.service);
+    validateDNSHostLabel(outpostId, { tlsCompatible });
+    validateNoFIPS(fipsEndpoint);
+    const hostnamePrefix = `${DNSHostLabel}.${outpostId}`;
+    return {
+      bucketEndpoint: true,
+      hostname: `${hostnamePrefix}${isCustomEndpoint ? "" : `.s3-outposts.${endpointRegion}`}.${hostnameSuffix}`,
+      signingRegion,
+      signingService: "s3-outposts"
+    };
+  };
+  var getEndpointFromAccessPointArn = ({ useArnRegion, clientRegion, clientSigningRegion = clientRegion, bucketName, dualstackEndpoint = false, fipsEndpoint = false, tlsCompatible = true, accesspointName, isCustomEndpoint, hostnameSuffix }) => {
+    validateRegionalClient(clientRegion);
+    const hostnamePrefix = `${accesspointName}-${bucketName.accountId}`;
+    validateDNSHostLabel(hostnamePrefix, { tlsCompatible });
+    const endpointRegion = useArnRegion ? bucketName.region : clientRegion;
+    const signingRegion = useArnRegion ? bucketName.region : clientSigningRegion;
+    validateS3Service(bucketName.service);
+    return {
+      bucketEndpoint: true,
+      hostname: `${hostnamePrefix}${isCustomEndpoint ? "" : `.s3-accesspoint${fipsEndpoint ? "-fips" : ""}${dualstackEndpoint ? ".dualstack" : ""}.${endpointRegion}`}.${hostnameSuffix}`,
+      signingRegion
+    };
+  };
+  var bucketEndpointMiddleware = (options) => (next, context) => async (args) => {
+    const { Bucket: bucketName } = args.input;
+    let replaceBucketInPath = options.bucketEndpoint;
+    const request = args.request;
+    if (protocols.HttpRequest.isInstance(request)) {
+      if (options.bucketEndpoint) {
+        request.hostname = bucketName;
+      } else if (util.validate(bucketName)) {
+        const bucketArn = util.parse(bucketName);
+        const clientRegion = await options.region();
+        const useDualstackEndpoint = await options.useDualstackEndpoint();
+        const useFipsEndpoint = await options.useFipsEndpoint();
+        const { partition, signingRegion = clientRegion } = await options.regionInfoProvider(clientRegion, { useDualstackEndpoint, useFipsEndpoint }) || {};
+        const useArnRegion = await options.useArnRegion();
+        const { hostname, bucketEndpoint, signingRegion: modifiedSigningRegion, signingService } = bucketHostname({
+          bucketName: bucketArn,
+          baseHostname: request.hostname,
+          accelerateEndpoint: options.useAccelerateEndpoint,
+          dualstackEndpoint: useDualstackEndpoint,
+          fipsEndpoint: useFipsEndpoint,
+          pathStyleEndpoint: options.forcePathStyle,
+          tlsCompatible: request.protocol === "https:",
+          useArnRegion,
+          clientPartition: partition,
+          clientSigningRegion: signingRegion,
+          clientRegion,
+          isCustomEndpoint: options.isCustomEndpoint,
+          disableMultiregionAccessPoints: await options.disableMultiregionAccessPoints()
+        });
+        if (modifiedSigningRegion && modifiedSigningRegion !== signingRegion) {
+          context["signing_region"] = modifiedSigningRegion;
+        }
+        if (signingService && signingService !== "s3") {
+          context["signing_service"] = signingService;
+        }
+        request.hostname = hostname;
+        replaceBucketInPath = bucketEndpoint;
+      } else {
+        const clientRegion = await options.region();
+        const dualstackEndpoint = await options.useDualstackEndpoint();
+        const fipsEndpoint = await options.useFipsEndpoint();
+        const { hostname, bucketEndpoint } = bucketHostname({
+          bucketName,
+          clientRegion,
+          baseHostname: request.hostname,
+          accelerateEndpoint: options.useAccelerateEndpoint,
+          dualstackEndpoint,
+          fipsEndpoint,
+          pathStyleEndpoint: options.forcePathStyle,
+          tlsCompatible: request.protocol === "https:",
+          isCustomEndpoint: options.isCustomEndpoint
+        });
+        request.hostname = hostname;
+        replaceBucketInPath = bucketEndpoint;
+      }
+      if (replaceBucketInPath) {
+        request.path = request.path.replace(/^(\/)?[^\/]+/, "");
+        if (request.path === "") {
+          request.path = "/";
+        }
+      }
+    }
+    return next({ ...args, request });
+  };
+  var bucketEndpointMiddlewareOptions = {
+    tags: ["BUCKET_ENDPOINT"],
+    name: "bucketEndpointMiddleware",
+    relation: "before",
+    toMiddleware: "hostHeaderMiddleware",
+    override: true
+  };
+  var getBucketEndpointPlugin = (options) => ({
+    applyToStack: (clientStack) => {
+      clientStack.addRelativeTo(bucketEndpointMiddleware(options), bucketEndpointMiddlewareOptions);
+    }
+  });
+  function resolveBucketEndpointConfig(input) {
+    const { bucketEndpoint = false, forcePathStyle = false, useAccelerateEndpoint = false, useArnRegion, disableMultiregionAccessPoints = false } = input;
+    return Object.assign(input, {
+      bucketEndpoint,
+      forcePathStyle,
+      useAccelerateEndpoint,
+      useArnRegion: typeof useArnRegion === "function" ? useArnRegion : () => Promise.resolve(useArnRegion),
+      disableMultiregionAccessPoints: typeof disableMultiregionAccessPoints === "function" ? disableMultiregionAccessPoints : () => Promise.resolve(disableMultiregionAccessPoints)
+    });
+  }
+  exports2.NODE_DISABLE_MULTIREGION_ACCESS_POINT_CONFIG_OPTIONS = NODE_DISABLE_MULTIREGION_ACCESS_POINT_CONFIG_OPTIONS;
+  exports2.NODE_DISABLE_MULTIREGION_ACCESS_POINT_ENV_NAME = NODE_DISABLE_MULTIREGION_ACCESS_POINT_ENV_NAME;
+  exports2.NODE_DISABLE_MULTIREGION_ACCESS_POINT_INI_NAME = NODE_DISABLE_MULTIREGION_ACCESS_POINT_INI_NAME;
+  exports2.NODE_USE_ARN_REGION_CONFIG_OPTIONS = NODE_USE_ARN_REGION_CONFIG_OPTIONS;
+  exports2.NODE_USE_ARN_REGION_ENV_NAME = NODE_USE_ARN_REGION_ENV_NAME;
+  exports2.NODE_USE_ARN_REGION_INI_NAME = NODE_USE_ARN_REGION_INI_NAME;
+  exports2.bucketEndpointMiddleware = bucketEndpointMiddleware;
+  exports2.bucketEndpointMiddlewareOptions = bucketEndpointMiddlewareOptions;
+  exports2.bucketHostname = bucketHostname;
+  exports2.getArnResources = getArnResources;
+  exports2.getBucketEndpointPlugin = getBucketEndpointPlugin;
+  exports2.getSuffixForArnEndpoint = getSuffixForArnEndpoint;
+  exports2.resolveBucketEndpointConfig = resolveBucketEndpointConfig;
+  exports2.validateAccountId = validateAccountId;
+  exports2.validateDNSHostLabel = validateDNSHostLabel;
+  exports2.validateNoDualstack = validateNoDualstack;
+  exports2.validateNoFIPS = validateNoFIPS;
+  exports2.validateOutpostService = validateOutpostService;
+  exports2.validatePartition = validatePartition;
+  exports2.validateRegion = validateRegion;
+});
+
+// ../../node_modules/.bun/@smithy+core@3.24.4/node_modules/@smithy/core/dist-cjs/submodules/checksum/index.js
+var require_checksum = __commonJS((exports2) => {
+  var node_fs = require("node:fs");
+  var node_stream = require("node:stream");
+  var serde = require_serde();
+  async function blobReader(blob, onChunk, chunkSize = 1024 * 1024) {
+    const size = blob.size;
+    let totalBytesRead = 0;
+    while (totalBytesRead < size) {
+      const slice = blob.slice(totalBytesRead, Math.min(size, totalBytesRead + chunkSize));
+      onChunk(new Uint8Array(await slice.arrayBuffer()));
+      totalBytesRead += slice.size;
+    }
+  }
+  var blobHasher = async function blobHasher2(hashCtor, blob) {
+    const hash3 = new hashCtor;
+    await blobReader(blob, (chunk) => {
+      hash3.update(chunk);
+    });
+    return hash3.digest();
+  };
+
+  class HashCalculator extends node_stream.Writable {
+    hash;
+    constructor(hash3, options) {
+      super(options);
+      this.hash = hash3;
+    }
+    _write(chunk, encoding, callback) {
+      try {
+        this.hash.update(serde.toUint8Array(chunk));
+      } catch (err) {
+        return callback(err);
+      }
+      callback();
+    }
+  }
+  var fileStreamHasher = (hashCtor, fileStream) => new Promise((resolve, reject) => {
+    if (!isReadStream(fileStream)) {
+      reject(new Error("Unable to calculate hash for non-file streams."));
+      return;
+    }
+    const fileStreamTee = node_fs.createReadStream(fileStream.path, {
+      start: fileStream.start,
+      end: fileStream.end
+    });
+    const hash3 = new hashCtor;
+    const hashCalculator = new HashCalculator(hash3);
+    fileStreamTee.pipe(hashCalculator);
+    fileStreamTee.on("error", (err) => {
+      hashCalculator.end();
+      reject(err);
+    });
+    hashCalculator.on("error", reject);
+    hashCalculator.on("finish", function() {
+      hash3.digest().then(resolve).catch(reject);
+    });
+  });
+  var isReadStream = (stream) => typeof stream.path === "string";
+  var readableStreamHasher = (hashCtor, readableStream) => {
+    if (readableStream.readableFlowing !== null) {
+      throw new Error("Unable to calculate hash for flowing readable stream");
+    }
+    const hash3 = new hashCtor;
+    const hashCalculator = new HashCalculator(hash3);
+    readableStream.pipe(hashCalculator);
+    return new Promise((resolve, reject) => {
+      readableStream.on("error", (err) => {
+        hashCalculator.end();
+        reject(err);
+      });
+      hashCalculator.on("error", reject);
+      hashCalculator.on("finish", () => {
+        hash3.digest().then(resolve).catch(reject);
+      });
+    });
+  };
+  var BLOCK_SIZE = 64;
+  var DIGEST_LENGTH = 16;
+  var INIT = [1732584193, 4023233417, 2562383102, 271733878];
+
+  class Md5 {
+    state;
+    buffer;
+    bufferLength;
+    bytesHashed;
+    finished;
+    constructor() {
+      this.reset();
+    }
+    update(sourceData) {
+      if (isEmptyData(sourceData)) {
+        return;
+      } else if (this.finished) {
+        throw new Error("Attempted to update an already finished hash.");
+      }
+      const data = convertToBuffer(sourceData);
+      let position = 0;
+      let { byteLength } = data;
+      this.bytesHashed += byteLength;
+      while (byteLength > 0) {
+        this.buffer.setUint8(this.bufferLength++, data[position++]);
+        byteLength--;
+        if (this.bufferLength === BLOCK_SIZE) {
+          this.hashBuffer();
+          this.bufferLength = 0;
+        }
+      }
+    }
+    async digest() {
+      if (!this.finished) {
+        const { buffer, bufferLength: undecoratedLength, bytesHashed } = this;
+        const bitsHashed = bytesHashed * 8;
+        buffer.setUint8(this.bufferLength++, 128);
+        if (undecoratedLength % BLOCK_SIZE >= BLOCK_SIZE - 8) {
+          for (let i = this.bufferLength;i < BLOCK_SIZE; i++) {
+            buffer.setUint8(i, 0);
+          }
+          this.hashBuffer();
+          this.bufferLength = 0;
+        }
+        for (let i = this.bufferLength;i < BLOCK_SIZE - 8; i++) {
+          buffer.setUint8(i, 0);
+        }
+        buffer.setUint32(BLOCK_SIZE - 8, bitsHashed >>> 0, true);
+        buffer.setUint32(BLOCK_SIZE - 4, Math.floor(bitsHashed / 4294967296), true);
+        this.hashBuffer();
+        this.finished = true;
+      }
+      const out = new DataView(new ArrayBuffer(DIGEST_LENGTH));
+      for (let i = 0;i < 4; i++) {
+        out.setUint32(i * 4, this.state[i], true);
+      }
+      return new Uint8Array(out.buffer, out.byteOffset, out.byteLength);
+    }
+    hashBuffer() {
+      const { buffer, state } = this;
+      let a = state[0], b = state[1], c = state[2], d = state[3];
+      a = ff(a, b, c, d, buffer.getUint32(0, true), 7, 3614090360);
+      d = ff(d, a, b, c, buffer.getUint32(4, true), 12, 3905402710);
+      c = ff(c, d, a, b, buffer.getUint32(8, true), 17, 606105819);
+      b = ff(b, c, d, a, buffer.getUint32(12, true), 22, 3250441966);
+      a = ff(a, b, c, d, buffer.getUint32(16, true), 7, 4118548399);
+      d = ff(d, a, b, c, buffer.getUint32(20, true), 12, 1200080426);
+      c = ff(c, d, a, b, buffer.getUint32(24, true), 17, 2821735955);
+      b = ff(b, c, d, a, buffer.getUint32(28, true), 22, 4249261313);
+      a = ff(a, b, c, d, buffer.getUint32(32, true), 7, 1770035416);
+      d = ff(d, a, b, c, buffer.getUint32(36, true), 12, 2336552879);
+      c = ff(c, d, a, b, buffer.getUint32(40, true), 17, 4294925233);
+      b = ff(b, c, d, a, buffer.getUint32(44, true), 22, 2304563134);
+      a = ff(a, b, c, d, buffer.getUint32(48, true), 7, 1804603682);
+      d = ff(d, a, b, c, buffer.getUint32(52, true), 12, 4254626195);
+      c = ff(c, d, a, b, buffer.getUint32(56, true), 17, 2792965006);
+      b = ff(b, c, d, a, buffer.getUint32(60, true), 22, 1236535329);
+      a = gg(a, b, c, d, buffer.getUint32(4, true), 5, 4129170786);
+      d = gg(d, a, b, c, buffer.getUint32(24, true), 9, 3225465664);
+      c = gg(c, d, a, b, buffer.getUint32(44, true), 14, 643717713);
+      b = gg(b, c, d, a, buffer.getUint32(0, true), 20, 3921069994);
+      a = gg(a, b, c, d, buffer.getUint32(20, true), 5, 3593408605);
+      d = gg(d, a, b, c, buffer.getUint32(40, true), 9, 38016083);
+      c = gg(c, d, a, b, buffer.getUint32(60, true), 14, 3634488961);
+      b = gg(b, c, d, a, buffer.getUint32(16, true), 20, 3889429448);
+      a = gg(a, b, c, d, buffer.getUint32(36, true), 5, 568446438);
+      d = gg(d, a, b, c, buffer.getUint32(56, true), 9, 3275163606);
+      c = gg(c, d, a, b, buffer.getUint32(12, true), 14, 4107603335);
+      b = gg(b, c, d, a, buffer.getUint32(32, true), 20, 1163531501);
+      a = gg(a, b, c, d, buffer.getUint32(52, true), 5, 2850285829);
+      d = gg(d, a, b, c, buffer.getUint32(8, true), 9, 4243563512);
+      c = gg(c, d, a, b, buffer.getUint32(28, true), 14, 1735328473);
+      b = gg(b, c, d, a, buffer.getUint32(48, true), 20, 2368359562);
+      a = hh(a, b, c, d, buffer.getUint32(20, true), 4, 4294588738);
+      d = hh(d, a, b, c, buffer.getUint32(32, true), 11, 2272392833);
+      c = hh(c, d, a, b, buffer.getUint32(44, true), 16, 1839030562);
+      b = hh(b, c, d, a, buffer.getUint32(56, true), 23, 4259657740);
+      a = hh(a, b, c, d, buffer.getUint32(4, true), 4, 2763975236);
+      d = hh(d, a, b, c, buffer.getUint32(16, true), 11, 1272893353);
+      c = hh(c, d, a, b, buffer.getUint32(28, true), 16, 4139469664);
+      b = hh(b, c, d, a, buffer.getUint32(40, true), 23, 3200236656);
+      a = hh(a, b, c, d, buffer.getUint32(52, true), 4, 681279174);
+      d = hh(d, a, b, c, buffer.getUint32(0, true), 11, 3936430074);
+      c = hh(c, d, a, b, buffer.getUint32(12, true), 16, 3572445317);
+      b = hh(b, c, d, a, buffer.getUint32(24, true), 23, 76029189);
+      a = hh(a, b, c, d, buffer.getUint32(36, true), 4, 3654602809);
+      d = hh(d, a, b, c, buffer.getUint32(48, true), 11, 3873151461);
+      c = hh(c, d, a, b, buffer.getUint32(60, true), 16, 530742520);
+      b = hh(b, c, d, a, buffer.getUint32(8, true), 23, 3299628645);
+      a = ii(a, b, c, d, buffer.getUint32(0, true), 6, 4096336452);
+      d = ii(d, a, b, c, buffer.getUint32(28, true), 10, 1126891415);
+      c = ii(c, d, a, b, buffer.getUint32(56, true), 15, 2878612391);
+      b = ii(b, c, d, a, buffer.getUint32(20, true), 21, 4237533241);
+      a = ii(a, b, c, d, buffer.getUint32(48, true), 6, 1700485571);
+      d = ii(d, a, b, c, buffer.getUint32(12, true), 10, 2399980690);
+      c = ii(c, d, a, b, buffer.getUint32(40, true), 15, 4293915773);
+      b = ii(b, c, d, a, buffer.getUint32(4, true), 21, 2240044497);
+      a = ii(a, b, c, d, buffer.getUint32(32, true), 6, 1873313359);
+      d = ii(d, a, b, c, buffer.getUint32(60, true), 10, 4264355552);
+      c = ii(c, d, a, b, buffer.getUint32(24, true), 15, 2734768916);
+      b = ii(b, c, d, a, buffer.getUint32(52, true), 21, 1309151649);
+      a = ii(a, b, c, d, buffer.getUint32(16, true), 6, 4149444226);
+      d = ii(d, a, b, c, buffer.getUint32(44, true), 10, 3174756917);
+      c = ii(c, d, a, b, buffer.getUint32(8, true), 15, 718787259);
+      b = ii(b, c, d, a, buffer.getUint32(36, true), 21, 3951481745);
+      state[0] = a + state[0] & 4294967295;
+      state[1] = b + state[1] & 4294967295;
+      state[2] = c + state[2] & 4294967295;
+      state[3] = d + state[3] & 4294967295;
+    }
+    reset() {
+      this.state = Uint32Array.from(INIT);
+      this.buffer = new DataView(new ArrayBuffer(BLOCK_SIZE));
+      this.bufferLength = 0;
+      this.bytesHashed = 0;
+      this.finished = false;
+    }
+  }
+  function cmn(q, a, b, x, s, t3) {
+    a = (a + q & 4294967295) + (x + t3 & 4294967295) & 4294967295;
+    return (a << s | a >>> 32 - s) + b & 4294967295;
+  }
+  function ff(a, b, c, d, x, s, t3) {
+    return cmn(b & c | ~b & d, a, b, x, s, t3);
+  }
+  function gg(a, b, c, d, x, s, t3) {
+    return cmn(b & d | c & ~d, a, b, x, s, t3);
+  }
+  function hh(a, b, c, d, x, s, t3) {
+    return cmn(b ^ c ^ d, a, b, x, s, t3);
+  }
+  function ii(a, b, c, d, x, s, t3) {
+    return cmn(c ^ (b | ~d), a, b, x, s, t3);
+  }
+  function isEmptyData(data) {
+    if (typeof data === "string") {
+      return data.length === 0;
+    }
+    return data.byteLength === 0;
+  }
+  function convertToBuffer(data) {
+    if (typeof data === "string") {
+      return serde.fromUtf8(data);
+    }
+    if (ArrayBuffer.isView(data)) {
+      return new Uint8Array(data.buffer, data.byteOffset, data.byteLength / Uint8Array.BYTES_PER_ELEMENT);
+    }
+    return new Uint8Array(data);
+  }
+  exports2.Md5 = Md5;
+  exports2.blobHasher = blobHasher;
+  exports2.blobReader = blobReader;
+  exports2.fileStreamHasher = fileStreamHasher;
+  exports2.readableStreamHasher = readableStreamHasher;
+});
+
+// ../../node_modules/.bun/@aws-sdk+client-s3@3.1053.0/node_modules/@aws-sdk/client-s3/dist-cjs/runtimeConfig.shared.js
+var require_runtimeConfig_shared = __commonJS((exports2) => {
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.getRuntimeConfig = undefined;
+  var httpAuthSchemes_1 = require_httpAuthSchemes();
+  var middleware_sdk_s3_1 = require_dist_cjs12();
+  var signature_v4_multi_region_1 = require_dist_cjs11();
+  var client_1 = require_client();
+  var protocols_1 = require_protocols();
+  var serde_1 = require_serde();
+  var httpAuthSchemeProvider_1 = require_httpAuthSchemeProvider();
+  var endpointResolver_1 = require_endpointResolver();
+  var schemas_0_1 = require_schemas_0();
+  var getRuntimeConfig = (config) => {
+    return {
+      apiVersion: "2006-03-01",
+      base64Decoder: config?.base64Decoder ?? serde_1.fromBase64,
+      base64Encoder: config?.base64Encoder ?? serde_1.toBase64,
+      disableHostPrefix: config?.disableHostPrefix ?? false,
+      endpointProvider: config?.endpointProvider ?? endpointResolver_1.defaultEndpointResolver,
+      extensions: config?.extensions ?? [],
+      getAwsChunkedEncodingStream: config?.getAwsChunkedEncodingStream ?? serde_1.getAwsChunkedEncodingStream,
+      httpAuthSchemeProvider: config?.httpAuthSchemeProvider ?? httpAuthSchemeProvider_1.defaultS3HttpAuthSchemeProvider,
+      httpAuthSchemes: config?.httpAuthSchemes ?? [
+        {
+          schemeId: "aws.auth#sigv4",
+          identityProvider: (ipc) => ipc.getIdentityProvider("aws.auth#sigv4"),
+          signer: new httpAuthSchemes_1.AwsSdkSigV4Signer
+        },
+        {
+          schemeId: "aws.auth#sigv4a",
+          identityProvider: (ipc) => ipc.getIdentityProvider("aws.auth#sigv4a"),
+          signer: new httpAuthSchemes_1.AwsSdkSigV4ASigner
+        }
+      ],
+      logger: config?.logger ?? new client_1.NoOpLogger,
+      protocol: config?.protocol ?? middleware_sdk_s3_1.S3RestXmlProtocol,
+      protocolSettings: config?.protocolSettings ?? {
+        defaultNamespace: "com.amazonaws.s3",
+        errorTypeRegistries: schemas_0_1.errorTypeRegistries,
+        xmlNamespace: "http://s3.amazonaws.com/doc/2006-03-01/",
+        version: "2006-03-01",
+        serviceTarget: "AmazonS3"
+      },
+      sdkStreamMixin: config?.sdkStreamMixin ?? serde_1.sdkStreamMixin,
+      serviceId: config?.serviceId ?? "S3",
+      signerConstructor: config?.signerConstructor ?? signature_v4_multi_region_1.SignatureV4MultiRegion,
+      signingEscapePath: config?.signingEscapePath ?? false,
+      urlParser: config?.urlParser ?? protocols_1.parseUrl,
+      useArnRegion: config?.useArnRegion ?? undefined,
+      utf8Decoder: config?.utf8Decoder ?? serde_1.fromUtf8,
+      utf8Encoder: config?.utf8Encoder ?? serde_1.toUtf8
+    };
+  };
+  exports2.getRuntimeConfig = getRuntimeConfig;
+});
+
+// ../../node_modules/.bun/@aws-sdk+client-s3@3.1053.0/node_modules/@aws-sdk/client-s3/dist-cjs/runtimeConfig.js
+var require_runtimeConfig = __commonJS((exports2) => {
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.getRuntimeConfig = undefined;
+  var tslib_1 = require_tslib();
+  var package_json_1 = tslib_1.__importDefault(require_package());
+  var client_1 = require_client2();
+  var httpAuthSchemes_1 = require_httpAuthSchemes();
+  var credential_provider_node_1 = require_dist_cjs23();
+  var middleware_bucket_endpoint_1 = require_dist_cjs24();
+  var middleware_flexible_checksums_1 = require_dist_cjs8();
+  var middleware_sdk_s3_1 = require_dist_cjs12();
+  var checksum_1 = require_checksum();
+  var client_2 = require_client();
+  var config_1 = require_config();
+  var event_streams_1 = require_event_streams();
+  var retry_1 = require_retry();
+  var serde_1 = require_serde();
+  var node_http_handler_1 = require_dist_cjs15();
+  var runtimeConfig_shared_1 = require_runtimeConfig_shared();
+  var getRuntimeConfig = (config) => {
+    (0, client_2.emitWarningIfUnsupportedVersion)(process.version);
+    const defaultsMode = (0, config_1.resolveDefaultsModeConfig)(config);
+    const defaultConfigProvider = () => defaultsMode().then(client_2.loadConfigsForDefaultMode);
+    const clientSharedValues = (0, runtimeConfig_shared_1.getRuntimeConfig)(config);
+    (0, client_1.emitWarningIfUnsupportedVersion)(process.version);
+    const loaderConfig = {
+      profile: config?.profile,
+      logger: clientSharedValues.logger
+    };
+    return {
+      ...clientSharedValues,
+      ...config,
+      runtime: "node",
+      defaultsMode,
+      authSchemePreference: config?.authSchemePreference ?? (0, config_1.loadConfig)(httpAuthSchemes_1.NODE_AUTH_SCHEME_PREFERENCE_OPTIONS, loaderConfig),
+      bodyLengthChecker: config?.bodyLengthChecker ?? serde_1.calculateBodyLength,
+      credentialDefaultProvider: config?.credentialDefaultProvider ?? credential_provider_node_1.defaultProvider,
+      defaultUserAgentProvider: config?.defaultUserAgentProvider ?? (0, client_1.createDefaultUserAgentProvider)({ serviceId: clientSharedValues.serviceId, clientVersion: package_json_1.default.version }),
+      disableS3ExpressSessionAuth: config?.disableS3ExpressSessionAuth ?? (0, config_1.loadConfig)(middleware_sdk_s3_1.NODE_DISABLE_S3_EXPRESS_SESSION_AUTH_OPTIONS, loaderConfig),
+      eventStreamSerdeProvider: config?.eventStreamSerdeProvider ?? event_streams_1.eventStreamSerdeProvider,
+      maxAttempts: config?.maxAttempts ?? (0, config_1.loadConfig)(retry_1.NODE_MAX_ATTEMPT_CONFIG_OPTIONS, config),
+      md5: config?.md5 ?? serde_1.Hash.bind(null, "md5"),
+      region: config?.region ?? (0, config_1.loadConfig)(config_1.NODE_REGION_CONFIG_OPTIONS, { ...config_1.NODE_REGION_CONFIG_FILE_OPTIONS, ...loaderConfig }),
+      requestChecksumCalculation: config?.requestChecksumCalculation ?? (0, config_1.loadConfig)(middleware_flexible_checksums_1.NODE_REQUEST_CHECKSUM_CALCULATION_CONFIG_OPTIONS, loaderConfig),
+      requestHandler: node_http_handler_1.NodeHttpHandler.create(config?.requestHandler ?? defaultConfigProvider),
+      responseChecksumValidation: config?.responseChecksumValidation ?? (0, config_1.loadConfig)(middleware_flexible_checksums_1.NODE_RESPONSE_CHECKSUM_VALIDATION_CONFIG_OPTIONS, loaderConfig),
+      retryMode: config?.retryMode ?? (0, config_1.loadConfig)({
+        ...retry_1.NODE_RETRY_MODE_CONFIG_OPTIONS,
+        default: async () => (await defaultConfigProvider()).retryMode || retry_1.DEFAULT_RETRY_MODE
+      }, config),
+      sha1: config?.sha1 ?? serde_1.Hash.bind(null, "sha1"),
+      sha256: config?.sha256 ?? serde_1.Hash.bind(null, "sha256"),
+      sigv4aSigningRegionSet: config?.sigv4aSigningRegionSet ?? (0, config_1.loadConfig)(httpAuthSchemes_1.NODE_SIGV4A_CONFIG_OPTIONS, loaderConfig),
+      streamCollector: config?.streamCollector ?? node_http_handler_1.streamCollector,
+      streamHasher: config?.streamHasher ?? checksum_1.readableStreamHasher,
+      useArnRegion: config?.useArnRegion ?? (0, config_1.loadConfig)(middleware_bucket_endpoint_1.NODE_USE_ARN_REGION_CONFIG_OPTIONS, loaderConfig),
+      useDualstackEndpoint: config?.useDualstackEndpoint ?? (0, config_1.loadConfig)(config_1.NODE_USE_DUALSTACK_ENDPOINT_CONFIG_OPTIONS, loaderConfig),
+      useFipsEndpoint: config?.useFipsEndpoint ?? (0, config_1.loadConfig)(config_1.NODE_USE_FIPS_ENDPOINT_CONFIG_OPTIONS, loaderConfig),
+      userAgentAppId: config?.userAgentAppId ?? (0, config_1.loadConfig)(client_1.NODE_APP_ID_CONFIG_OPTIONS, loaderConfig)
+    };
+  };
+  exports2.getRuntimeConfig = getRuntimeConfig;
+});
+
+// ../../node_modules/.bun/@aws-sdk+middleware-ssec@3.972.11/node_modules/@aws-sdk/middleware-ssec/dist-cjs/index.js
+var require_dist_cjs25 = __commonJS((exports2) => {
+  function ssecMiddleware(options) {
+    return (next) => async (args) => {
+      const input = { ...args.input };
+      const properties = [
+        {
+          target: "SSECustomerKey",
+          hash: "SSECustomerKeyMD5"
+        },
+        {
+          target: "CopySourceSSECustomerKey",
+          hash: "CopySourceSSECustomerKeyMD5"
+        }
+      ];
+      for (const prop of properties) {
+        const value = input[prop.target];
+        if (value) {
+          let valueForHash;
+          if (typeof value === "string") {
+            if (isValidBase64EncodedSSECustomerKey(value, options)) {
+              valueForHash = options.base64Decoder(value);
+            } else {
+              valueForHash = options.utf8Decoder(value);
+              input[prop.target] = options.base64Encoder(valueForHash);
+            }
+          } else {
+            valueForHash = ArrayBuffer.isView(value) ? new Uint8Array(value.buffer, value.byteOffset, value.byteLength) : new Uint8Array(value);
+            input[prop.target] = options.base64Encoder(valueForHash);
+          }
+          const hash3 = new options.md5;
+          hash3.update(valueForHash);
+          input[prop.hash] = options.base64Encoder(await hash3.digest());
+        }
+      }
+      return next({
+        ...args,
+        input
+      });
+    };
+  }
+  var ssecMiddlewareOptions = {
+    name: "ssecMiddleware",
+    step: "initialize",
+    tags: ["SSE"],
+    override: true
+  };
+  var getSsecPlugin = (config) => ({
+    applyToStack: (clientStack) => {
+      clientStack.add(ssecMiddleware(config), ssecMiddlewareOptions);
+    }
+  });
+  function isValidBase64EncodedSSECustomerKey(str, options) {
+    const base64Regex = /^(?:[A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+    if (!base64Regex.test(str))
+      return false;
+    try {
+      const decodedBytes = options.base64Decoder(str);
+      return decodedBytes.length === 32;
+    } catch {
+      return false;
+    }
+  }
+  exports2.getSsecPlugin = getSsecPlugin;
+  exports2.isValidBase64EncodedSSECustomerKey = isValidBase64EncodedSSECustomerKey;
+  exports2.ssecMiddleware = ssecMiddleware;
+  exports2.ssecMiddlewareOptions = ssecMiddlewareOptions;
+});
+
+// ../../node_modules/.bun/@aws-sdk+middleware-location-constraint@3.972.11/node_modules/@aws-sdk/middleware-location-constraint/dist-cjs/index.js
+var require_dist_cjs26 = __commonJS((exports2) => {
+  function locationConstraintMiddleware(options) {
+    return (next) => async (args) => {
+      const { CreateBucketConfiguration } = args.input;
+      const region = await options.region();
+      if (!CreateBucketConfiguration?.LocationConstraint && !CreateBucketConfiguration?.Location) {
+        if (region !== "us-east-1") {
+          args.input.CreateBucketConfiguration = args.input.CreateBucketConfiguration ?? {};
+          args.input.CreateBucketConfiguration.LocationConstraint = region;
+        }
+      }
+      return next(args);
+    };
+  }
+  var locationConstraintMiddlewareOptions = {
+    step: "initialize",
+    tags: ["LOCATION_CONSTRAINT", "CREATE_BUCKET_CONFIGURATION"],
+    name: "locationConstraintMiddleware",
+    override: true
+  };
+  var getLocationConstraintPlugin = (config) => ({
+    applyToStack: (clientStack) => {
+      clientStack.add(locationConstraintMiddleware(config), locationConstraintMiddlewareOptions);
+    }
+  });
+  exports2.getLocationConstraintPlugin = getLocationConstraintPlugin;
+  exports2.locationConstraintMiddleware = locationConstraintMiddleware;
+  exports2.locationConstraintMiddlewareOptions = locationConstraintMiddlewareOptions;
+});
+
+// ../../node_modules/.bun/@aws-sdk+client-s3@3.1053.0/node_modules/@aws-sdk/client-s3/dist-cjs/index.js
+var require_dist_cjs27 = __commonJS((exports2) => {
+  var client$1 = require_client2();
+  var middlewareExpectContinue = require_dist_cjs6();
+  var middlewareFlexibleChecksums = require_dist_cjs8();
+  var middlewareSdkS3 = require_dist_cjs12();
+  var core = require_dist_cjs5();
+  var client = require_client();
+  var config = require_config();
+  var endpoints = require_endpoints();
+  var eventStreams = require_event_streams();
+  var protocols = require_protocols();
+  var retry = require_retry();
+  var schema = require_schema4();
+  var httpAuthSchemeProvider = require_httpAuthSchemeProvider();
+  var schemas_0 = require_schemas_0();
+  var runtimeConfig = require_runtimeConfig();
+  var middlewareSsec = require_dist_cjs25();
+  var middlewareLocationConstraint = require_dist_cjs26();
+  var errors = require_errors3();
+  var S3ServiceException = require_S3ServiceException();
+  var resolveClientEndpointParameters = (options) => {
+    return Object.assign(options, {
+      useFipsEndpoint: options.useFipsEndpoint ?? false,
+      useDualstackEndpoint: options.useDualstackEndpoint ?? false,
+      forcePathStyle: options.forcePathStyle ?? false,
+      useAccelerateEndpoint: options.useAccelerateEndpoint ?? false,
+      useGlobalEndpoint: options.useGlobalEndpoint ?? false,
+      disableMultiregionAccessPoints: options.disableMultiregionAccessPoints ?? false,
+      defaultSigningName: "s3",
+      clientContextParams: options.clientContextParams ?? {}
+    });
+  };
+  var commonParams = {
+    ForcePathStyle: { type: "clientContextParams", name: "forcePathStyle" },
+    UseArnRegion: { type: "clientContextParams", name: "useArnRegion" },
+    DisableMultiRegionAccessPoints: { type: "clientContextParams", name: "disableMultiregionAccessPoints" },
+    Accelerate: { type: "clientContextParams", name: "useAccelerateEndpoint" },
+    DisableS3ExpressSessionAuth: { type: "clientContextParams", name: "disableS3ExpressSessionAuth" },
+    UseGlobalEndpoint: { type: "builtInParams", name: "useGlobalEndpoint" },
+    UseFIPS: { type: "builtInParams", name: "useFipsEndpoint" },
+    Endpoint: { type: "builtInParams", name: "endpoint" },
+    Region: { type: "builtInParams", name: "region" },
+    UseDualStack: { type: "builtInParams", name: "useDualstackEndpoint" }
+  };
+
+  class CreateSessionCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    DisableS3ExpressSessionAuth: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "CreateSession", {}).n("S3Client", "CreateSessionCommand").sc(schemas_0.CreateSession$).build() {
+  }
+  var getHttpAuthExtensionConfiguration = (runtimeConfig2) => {
+    const _httpAuthSchemes = runtimeConfig2.httpAuthSchemes;
+    let _httpAuthSchemeProvider = runtimeConfig2.httpAuthSchemeProvider;
+    let _credentials = runtimeConfig2.credentials;
+    return {
+      setHttpAuthScheme(httpAuthScheme) {
+        const index = _httpAuthSchemes.findIndex((scheme) => scheme.schemeId === httpAuthScheme.schemeId);
+        if (index === -1) {
+          _httpAuthSchemes.push(httpAuthScheme);
+        } else {
+          _httpAuthSchemes.splice(index, 1, httpAuthScheme);
+        }
+      },
+      httpAuthSchemes() {
+        return _httpAuthSchemes;
+      },
+      setHttpAuthSchemeProvider(httpAuthSchemeProvider2) {
+        _httpAuthSchemeProvider = httpAuthSchemeProvider2;
+      },
+      httpAuthSchemeProvider() {
+        return _httpAuthSchemeProvider;
+      },
+      setCredentials(credentials) {
+        _credentials = credentials;
+      },
+      credentials() {
+        return _credentials;
+      }
+    };
+  };
+  var resolveHttpAuthRuntimeConfig = (config2) => {
+    return {
+      httpAuthSchemes: config2.httpAuthSchemes(),
+      httpAuthSchemeProvider: config2.httpAuthSchemeProvider(),
+      credentials: config2.credentials()
+    };
+  };
+  var resolveRuntimeExtensions = (runtimeConfig2, extensions2) => {
+    const extensionConfiguration = Object.assign(client$1.getAwsRegionExtensionConfiguration(runtimeConfig2), client.getDefaultExtensionConfiguration(runtimeConfig2), protocols.getHttpHandlerExtensionConfiguration(runtimeConfig2), getHttpAuthExtensionConfiguration(runtimeConfig2));
+    extensions2.forEach((extension) => extension.configure(extensionConfiguration));
+    return Object.assign(runtimeConfig2, client$1.resolveAwsRegionExtensionConfiguration(extensionConfiguration), client.resolveDefaultRuntimeConfig(extensionConfiguration), protocols.resolveHttpHandlerRuntimeConfig(extensionConfiguration), resolveHttpAuthRuntimeConfig(extensionConfiguration));
+  };
+
+  class S3Client extends client.Client {
+    config;
+    constructor(...[configuration]) {
+      const _config_0 = runtimeConfig.getRuntimeConfig(configuration || {});
+      super(_config_0);
+      this.initConfig = _config_0;
+      const _config_1 = resolveClientEndpointParameters(_config_0);
+      const _config_2 = client$1.resolveUserAgentConfig(_config_1);
+      const _config_3 = middlewareFlexibleChecksums.resolveFlexibleChecksumsConfig(_config_2);
+      const _config_4 = retry.resolveRetryConfig(_config_3);
+      const _config_5 = config.resolveRegionConfig(_config_4);
+      const _config_6 = client$1.resolveHostHeaderConfig(_config_5);
+      const _config_7 = endpoints.resolveEndpointConfig(_config_6);
+      const _config_8 = eventStreams.resolveEventStreamSerdeConfig(_config_7);
+      const _config_9 = httpAuthSchemeProvider.resolveHttpAuthSchemeConfig(_config_8);
+      const _config_10 = middlewareSdkS3.resolveS3Config(_config_9, { session: [() => this, CreateSessionCommand] });
+      const _config_11 = resolveRuntimeExtensions(_config_10, configuration?.extensions || []);
+      this.config = _config_11;
+      this.middlewareStack.use(schema.getSchemaSerdePlugin(this.config));
+      this.middlewareStack.use(client$1.getUserAgentPlugin(this.config));
+      this.middlewareStack.use(retry.getRetryPlugin(this.config));
+      this.middlewareStack.use(protocols.getContentLengthPlugin(this.config));
+      this.middlewareStack.use(client$1.getHostHeaderPlugin(this.config));
+      this.middlewareStack.use(client$1.getLoggerPlugin(this.config));
+      this.middlewareStack.use(client$1.getRecursionDetectionPlugin(this.config));
+      this.middlewareStack.use(core.getHttpAuthSchemeEndpointRuleSetPlugin(this.config, {
+        httpAuthSchemeParametersProvider: httpAuthSchemeProvider.defaultS3HttpAuthSchemeParametersProvider,
+        identityProviderConfigProvider: async (config2) => new core.DefaultIdentityProviderConfig({
+          "aws.auth#sigv4": config2.credentials,
+          "aws.auth#sigv4a": config2.credentials
+        })
+      }));
+      this.middlewareStack.use(core.getHttpSigningPlugin(this.config));
+      this.middlewareStack.use(middlewareSdkS3.getValidateBucketNamePlugin(this.config));
+      this.middlewareStack.use(middlewareExpectContinue.getAddExpectContinuePlugin(this.config));
+      this.middlewareStack.use(middlewareSdkS3.getRegionRedirectMiddlewarePlugin(this.config));
+      this.middlewareStack.use(middlewareSdkS3.getS3ExpressPlugin(this.config));
+      this.middlewareStack.use(middlewareSdkS3.getS3ExpressHttpSigningPlugin(this.config));
+    }
+    destroy() {
+      super.destroy();
+    }
+  }
+
+  class AbortMultipartUploadCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" },
+    Key: { type: "contextParams", name: "Key" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "AbortMultipartUpload", {}).n("S3Client", "AbortMultipartUploadCommand").sc(schemas_0.AbortMultipartUpload$).build() {
+  }
+
+  class CompleteMultipartUploadCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" },
+    Key: { type: "contextParams", name: "Key" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2),
+      middlewareSsec.getSsecPlugin(config2)
+    ];
+  }).s("AmazonS3", "CompleteMultipartUpload", {}).n("S3Client", "CompleteMultipartUploadCommand").sc(schemas_0.CompleteMultipartUpload$).build() {
+  }
+
+  class CopyObjectCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    DisableS3ExpressSessionAuth: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" },
+    Key: { type: "contextParams", name: "Key" },
+    CopySource: { type: "contextParams", name: "CopySource" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2),
+      middlewareSsec.getSsecPlugin(config2)
+    ];
+  }).s("AmazonS3", "CopyObject", {}).n("S3Client", "CopyObjectCommand").sc(schemas_0.CopyObject$).build() {
+  }
+
+  class CreateBucketCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    DisableAccessPoints: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2),
+      middlewareLocationConstraint.getLocationConstraintPlugin(config2)
+    ];
+  }).s("AmazonS3", "CreateBucket", {}).n("S3Client", "CreateBucketCommand").sc(schemas_0.CreateBucket$).build() {
+  }
+
+  class CreateBucketMetadataConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: true
+      })
+    ];
+  }).s("AmazonS3", "CreateBucketMetadataConfiguration", {}).n("S3Client", "CreateBucketMetadataConfigurationCommand").sc(schemas_0.CreateBucketMetadataConfiguration$).build() {
+  }
+
+  class CreateBucketMetadataTableConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: true
+      })
+    ];
+  }).s("AmazonS3", "CreateBucketMetadataTableConfiguration", {}).n("S3Client", "CreateBucketMetadataTableConfigurationCommand").sc(schemas_0.CreateBucketMetadataTableConfiguration$).build() {
+  }
+
+  class CreateMultipartUploadCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" },
+    Key: { type: "contextParams", name: "Key" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2),
+      middlewareSsec.getSsecPlugin(config2)
+    ];
+  }).s("AmazonS3", "CreateMultipartUpload", {}).n("S3Client", "CreateMultipartUploadCommand").sc(schemas_0.CreateMultipartUpload$).build() {
+  }
+
+  class DeleteBucketAnalyticsConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AmazonS3", "DeleteBucketAnalyticsConfiguration", {}).n("S3Client", "DeleteBucketAnalyticsConfigurationCommand").sc(schemas_0.DeleteBucketAnalyticsConfiguration$).build() {
+  }
+
+  class DeleteBucketCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AmazonS3", "DeleteBucket", {}).n("S3Client", "DeleteBucketCommand").sc(schemas_0.DeleteBucket$).build() {
+  }
+
+  class DeleteBucketCorsCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AmazonS3", "DeleteBucketCors", {}).n("S3Client", "DeleteBucketCorsCommand").sc(schemas_0.DeleteBucketCors$).build() {
+  }
+
+  class DeleteBucketEncryptionCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AmazonS3", "DeleteBucketEncryption", {}).n("S3Client", "DeleteBucketEncryptionCommand").sc(schemas_0.DeleteBucketEncryption$).build() {
+  }
+
+  class DeleteBucketIntelligentTieringConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AmazonS3", "DeleteBucketIntelligentTieringConfiguration", {}).n("S3Client", "DeleteBucketIntelligentTieringConfigurationCommand").sc(schemas_0.DeleteBucketIntelligentTieringConfiguration$).build() {
+  }
+
+  class DeleteBucketInventoryConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AmazonS3", "DeleteBucketInventoryConfiguration", {}).n("S3Client", "DeleteBucketInventoryConfigurationCommand").sc(schemas_0.DeleteBucketInventoryConfiguration$).build() {
+  }
+
+  class DeleteBucketLifecycleCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AmazonS3", "DeleteBucketLifecycle", {}).n("S3Client", "DeleteBucketLifecycleCommand").sc(schemas_0.DeleteBucketLifecycle$).build() {
+  }
+
+  class DeleteBucketMetadataConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AmazonS3", "DeleteBucketMetadataConfiguration", {}).n("S3Client", "DeleteBucketMetadataConfigurationCommand").sc(schemas_0.DeleteBucketMetadataConfiguration$).build() {
+  }
+
+  class DeleteBucketMetadataTableConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AmazonS3", "DeleteBucketMetadataTableConfiguration", {}).n("S3Client", "DeleteBucketMetadataTableConfigurationCommand").sc(schemas_0.DeleteBucketMetadataTableConfiguration$).build() {
+  }
+
+  class DeleteBucketMetricsConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AmazonS3", "DeleteBucketMetricsConfiguration", {}).n("S3Client", "DeleteBucketMetricsConfigurationCommand").sc(schemas_0.DeleteBucketMetricsConfiguration$).build() {
+  }
+
+  class DeleteBucketOwnershipControlsCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AmazonS3", "DeleteBucketOwnershipControls", {}).n("S3Client", "DeleteBucketOwnershipControlsCommand").sc(schemas_0.DeleteBucketOwnershipControls$).build() {
+  }
+
+  class DeleteBucketPolicyCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AmazonS3", "DeleteBucketPolicy", {}).n("S3Client", "DeleteBucketPolicyCommand").sc(schemas_0.DeleteBucketPolicy$).build() {
+  }
+
+  class DeleteBucketReplicationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AmazonS3", "DeleteBucketReplication", {}).n("S3Client", "DeleteBucketReplicationCommand").sc(schemas_0.DeleteBucketReplication$).build() {
+  }
+
+  class DeleteBucketTaggingCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AmazonS3", "DeleteBucketTagging", {}).n("S3Client", "DeleteBucketTaggingCommand").sc(schemas_0.DeleteBucketTagging$).build() {
+  }
+
+  class DeleteBucketWebsiteCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AmazonS3", "DeleteBucketWebsite", {}).n("S3Client", "DeleteBucketWebsiteCommand").sc(schemas_0.DeleteBucketWebsite$).build() {
+  }
+
+  class DeleteObjectCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" },
+    Key: { type: "contextParams", name: "Key" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "DeleteObject", {}).n("S3Client", "DeleteObjectCommand").sc(schemas_0.DeleteObject$).build() {
+  }
+
+  class DeleteObjectsCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: true
+      }),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "DeleteObjects", {}).n("S3Client", "DeleteObjectsCommand").sc(schemas_0.DeleteObjects$).build() {
+  }
+
+  class DeleteObjectTaggingCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "DeleteObjectTagging", {}).n("S3Client", "DeleteObjectTaggingCommand").sc(schemas_0.DeleteObjectTagging$).build() {
+  }
+
+  class DeletePublicAccessBlockCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AmazonS3", "DeletePublicAccessBlock", {}).n("S3Client", "DeletePublicAccessBlockCommand").sc(schemas_0.DeletePublicAccessBlock$).build() {
+  }
+
+  class GetBucketAbacCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetBucketAbac", {}).n("S3Client", "GetBucketAbacCommand").sc(schemas_0.GetBucketAbac$).build() {
+  }
+
+  class GetBucketAccelerateConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetBucketAccelerateConfiguration", {}).n("S3Client", "GetBucketAccelerateConfigurationCommand").sc(schemas_0.GetBucketAccelerateConfiguration$).build() {
+  }
+
+  class GetBucketAclCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetBucketAcl", {}).n("S3Client", "GetBucketAclCommand").sc(schemas_0.GetBucketAcl$).build() {
+  }
+
+  class GetBucketAnalyticsConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetBucketAnalyticsConfiguration", {}).n("S3Client", "GetBucketAnalyticsConfigurationCommand").sc(schemas_0.GetBucketAnalyticsConfiguration$).build() {
+  }
+
+  class GetBucketCorsCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetBucketCors", {}).n("S3Client", "GetBucketCorsCommand").sc(schemas_0.GetBucketCors$).build() {
+  }
+
+  class GetBucketEncryptionCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetBucketEncryption", {}).n("S3Client", "GetBucketEncryptionCommand").sc(schemas_0.GetBucketEncryption$).build() {
+  }
+
+  class GetBucketIntelligentTieringConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetBucketIntelligentTieringConfiguration", {}).n("S3Client", "GetBucketIntelligentTieringConfigurationCommand").sc(schemas_0.GetBucketIntelligentTieringConfiguration$).build() {
+  }
+
+  class GetBucketInventoryConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetBucketInventoryConfiguration", {}).n("S3Client", "GetBucketInventoryConfigurationCommand").sc(schemas_0.GetBucketInventoryConfiguration$).build() {
+  }
+
+  class GetBucketLifecycleConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetBucketLifecycleConfiguration", {}).n("S3Client", "GetBucketLifecycleConfigurationCommand").sc(schemas_0.GetBucketLifecycleConfiguration$).build() {
+  }
+
+  class GetBucketLocationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetBucketLocation", {}).n("S3Client", "GetBucketLocationCommand").sc(schemas_0.GetBucketLocation$).build() {
+  }
+
+  class GetBucketLoggingCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetBucketLogging", {}).n("S3Client", "GetBucketLoggingCommand").sc(schemas_0.GetBucketLogging$).build() {
+  }
+
+  class GetBucketMetadataConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetBucketMetadataConfiguration", {}).n("S3Client", "GetBucketMetadataConfigurationCommand").sc(schemas_0.GetBucketMetadataConfiguration$).build() {
+  }
+
+  class GetBucketMetadataTableConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetBucketMetadataTableConfiguration", {}).n("S3Client", "GetBucketMetadataTableConfigurationCommand").sc(schemas_0.GetBucketMetadataTableConfiguration$).build() {
+  }
+
+  class GetBucketMetricsConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetBucketMetricsConfiguration", {}).n("S3Client", "GetBucketMetricsConfigurationCommand").sc(schemas_0.GetBucketMetricsConfiguration$).build() {
+  }
+
+  class GetBucketNotificationConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetBucketNotificationConfiguration", {}).n("S3Client", "GetBucketNotificationConfigurationCommand").sc(schemas_0.GetBucketNotificationConfiguration$).build() {
+  }
+
+  class GetBucketOwnershipControlsCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetBucketOwnershipControls", {}).n("S3Client", "GetBucketOwnershipControlsCommand").sc(schemas_0.GetBucketOwnershipControls$).build() {
+  }
+
+  class GetBucketPolicyCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AmazonS3", "GetBucketPolicy", {}).n("S3Client", "GetBucketPolicyCommand").sc(schemas_0.GetBucketPolicy$).build() {
+  }
+
+  class GetBucketPolicyStatusCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetBucketPolicyStatus", {}).n("S3Client", "GetBucketPolicyStatusCommand").sc(schemas_0.GetBucketPolicyStatus$).build() {
+  }
+
+  class GetBucketReplicationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetBucketReplication", {}).n("S3Client", "GetBucketReplicationCommand").sc(schemas_0.GetBucketReplication$).build() {
+  }
+
+  class GetBucketRequestPaymentCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetBucketRequestPayment", {}).n("S3Client", "GetBucketRequestPaymentCommand").sc(schemas_0.GetBucketRequestPayment$).build() {
+  }
+
+  class GetBucketTaggingCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetBucketTagging", {}).n("S3Client", "GetBucketTaggingCommand").sc(schemas_0.GetBucketTagging$).build() {
+  }
+
+  class GetBucketVersioningCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetBucketVersioning", {}).n("S3Client", "GetBucketVersioningCommand").sc(schemas_0.GetBucketVersioning$).build() {
+  }
+
+  class GetBucketWebsiteCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetBucketWebsite", {}).n("S3Client", "GetBucketWebsiteCommand").sc(schemas_0.GetBucketWebsite$).build() {
+  }
+
+  class GetObjectAclCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" },
+    Key: { type: "contextParams", name: "Key" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetObjectAcl", {}).n("S3Client", "GetObjectAclCommand").sc(schemas_0.GetObjectAcl$).build() {
+  }
+
+  class GetObjectAttributesCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2),
+      middlewareSsec.getSsecPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetObjectAttributes", {}).n("S3Client", "GetObjectAttributesCommand").sc(schemas_0.GetObjectAttributes$).build() {
+  }
+
+  class GetObjectCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" },
+    Key: { type: "contextParams", name: "Key" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestChecksumRequired: false,
+        requestValidationModeMember: "ChecksumMode",
+        responseAlgorithms: ["CRC64NVME", "CRC32", "CRC32C", "SHA256", "SHA1", "SHA512", "MD5", "XXHASH64", "XXHASH3", "XXHASH128"]
+      }),
+      middlewareSsec.getSsecPlugin(config2),
+      middlewareSdkS3.getS3ExpiresMiddlewarePlugin(config2)
+    ];
+  }).s("AmazonS3", "GetObject", {}).n("S3Client", "GetObjectCommand").sc(schemas_0.GetObject$).build() {
+  }
+
+  class GetObjectLegalHoldCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetObjectLegalHold", {}).n("S3Client", "GetObjectLegalHoldCommand").sc(schemas_0.GetObjectLegalHold$).build() {
+  }
+
+  class GetObjectLockConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetObjectLockConfiguration", {}).n("S3Client", "GetObjectLockConfigurationCommand").sc(schemas_0.GetObjectLockConfiguration$).build() {
+  }
+
+  class GetObjectRetentionCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetObjectRetention", {}).n("S3Client", "GetObjectRetentionCommand").sc(schemas_0.GetObjectRetention$).build() {
+  }
+
+  class GetObjectTaggingCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetObjectTagging", {}).n("S3Client", "GetObjectTaggingCommand").sc(schemas_0.GetObjectTagging$).build() {
+  }
+
+  class GetObjectTorrentCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AmazonS3", "GetObjectTorrent", {}).n("S3Client", "GetObjectTorrentCommand").sc(schemas_0.GetObjectTorrent$).build() {
+  }
+
+  class GetPublicAccessBlockCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "GetPublicAccessBlock", {}).n("S3Client", "GetPublicAccessBlockCommand").sc(schemas_0.GetPublicAccessBlock$).build() {
+  }
+
+  class HeadBucketCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "HeadBucket", {}).n("S3Client", "HeadBucketCommand").sc(schemas_0.HeadBucket$).build() {
+  }
+
+  class HeadObjectCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" },
+    Key: { type: "contextParams", name: "Key" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2),
+      middlewareSsec.getSsecPlugin(config2),
+      middlewareSdkS3.getS3ExpiresMiddlewarePlugin(config2)
+    ];
+  }).s("AmazonS3", "HeadObject", {}).n("S3Client", "HeadObjectCommand").sc(schemas_0.HeadObject$).build() {
+  }
+
+  class ListBucketAnalyticsConfigurationsCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "ListBucketAnalyticsConfigurations", {}).n("S3Client", "ListBucketAnalyticsConfigurationsCommand").sc(schemas_0.ListBucketAnalyticsConfigurations$).build() {
+  }
+
+  class ListBucketIntelligentTieringConfigurationsCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "ListBucketIntelligentTieringConfigurations", {}).n("S3Client", "ListBucketIntelligentTieringConfigurationsCommand").sc(schemas_0.ListBucketIntelligentTieringConfigurations$).build() {
+  }
+
+  class ListBucketInventoryConfigurationsCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "ListBucketInventoryConfigurations", {}).n("S3Client", "ListBucketInventoryConfigurationsCommand").sc(schemas_0.ListBucketInventoryConfigurations$).build() {
+  }
+
+  class ListBucketMetricsConfigurationsCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "ListBucketMetricsConfigurations", {}).n("S3Client", "ListBucketMetricsConfigurationsCommand").sc(schemas_0.ListBucketMetricsConfigurations$).build() {
+  }
+
+  class ListBucketsCommand extends client.Command.classBuilder().ep(commonParams).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "ListBuckets", {}).n("S3Client", "ListBucketsCommand").sc(schemas_0.ListBuckets$).build() {
+  }
+
+  class ListDirectoryBucketsCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "ListDirectoryBuckets", {}).n("S3Client", "ListDirectoryBucketsCommand").sc(schemas_0.ListDirectoryBuckets$).build() {
+  }
+
+  class ListMultipartUploadsCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" },
+    Prefix: { type: "contextParams", name: "Prefix" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "ListMultipartUploads", {}).n("S3Client", "ListMultipartUploadsCommand").sc(schemas_0.ListMultipartUploads$).build() {
+  }
+
+  class ListObjectsCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" },
+    Prefix: { type: "contextParams", name: "Prefix" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "ListObjects", {}).n("S3Client", "ListObjectsCommand").sc(schemas_0.ListObjects$).build() {
+  }
+
+  class ListObjectsV2Command extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" },
+    Prefix: { type: "contextParams", name: "Prefix" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "ListObjectsV2", {}).n("S3Client", "ListObjectsV2Command").sc(schemas_0.ListObjectsV2$).build() {
+  }
+
+  class ListObjectVersionsCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" },
+    Prefix: { type: "contextParams", name: "Prefix" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "ListObjectVersions", {}).n("S3Client", "ListObjectVersionsCommand").sc(schemas_0.ListObjectVersions$).build() {
+  }
+
+  class ListPartsCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" },
+    Key: { type: "contextParams", name: "Key" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2),
+      middlewareSsec.getSsecPlugin(config2)
+    ];
+  }).s("AmazonS3", "ListParts", {}).n("S3Client", "ListPartsCommand").sc(schemas_0.ListParts$).build() {
+  }
+
+  class PutBucketAbacCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: false
+      })
+    ];
+  }).s("AmazonS3", "PutBucketAbac", {}).n("S3Client", "PutBucketAbacCommand").sc(schemas_0.PutBucketAbac$).build() {
+  }
+
+  class PutBucketAccelerateConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: false
+      })
+    ];
+  }).s("AmazonS3", "PutBucketAccelerateConfiguration", {}).n("S3Client", "PutBucketAccelerateConfigurationCommand").sc(schemas_0.PutBucketAccelerateConfiguration$).build() {
+  }
+
+  class PutBucketAclCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: true
+      })
+    ];
+  }).s("AmazonS3", "PutBucketAcl", {}).n("S3Client", "PutBucketAclCommand").sc(schemas_0.PutBucketAcl$).build() {
+  }
+
+  class PutBucketAnalyticsConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AmazonS3", "PutBucketAnalyticsConfiguration", {}).n("S3Client", "PutBucketAnalyticsConfigurationCommand").sc(schemas_0.PutBucketAnalyticsConfiguration$).build() {
+  }
+
+  class PutBucketCorsCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: true
+      })
+    ];
+  }).s("AmazonS3", "PutBucketCors", {}).n("S3Client", "PutBucketCorsCommand").sc(schemas_0.PutBucketCors$).build() {
+  }
+
+  class PutBucketEncryptionCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: true
+      })
+    ];
+  }).s("AmazonS3", "PutBucketEncryption", {}).n("S3Client", "PutBucketEncryptionCommand").sc(schemas_0.PutBucketEncryption$).build() {
+  }
+
+  class PutBucketIntelligentTieringConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AmazonS3", "PutBucketIntelligentTieringConfiguration", {}).n("S3Client", "PutBucketIntelligentTieringConfigurationCommand").sc(schemas_0.PutBucketIntelligentTieringConfiguration$).build() {
+  }
+
+  class PutBucketInventoryConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AmazonS3", "PutBucketInventoryConfiguration", {}).n("S3Client", "PutBucketInventoryConfigurationCommand").sc(schemas_0.PutBucketInventoryConfiguration$).build() {
+  }
+
+  class PutBucketLifecycleConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: true
+      }),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "PutBucketLifecycleConfiguration", {}).n("S3Client", "PutBucketLifecycleConfigurationCommand").sc(schemas_0.PutBucketLifecycleConfiguration$).build() {
+  }
+
+  class PutBucketLoggingCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: true
+      })
+    ];
+  }).s("AmazonS3", "PutBucketLogging", {}).n("S3Client", "PutBucketLoggingCommand").sc(schemas_0.PutBucketLogging$).build() {
+  }
+
+  class PutBucketMetricsConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AmazonS3", "PutBucketMetricsConfiguration", {}).n("S3Client", "PutBucketMetricsConfigurationCommand").sc(schemas_0.PutBucketMetricsConfiguration$).build() {
+  }
+
+  class PutBucketNotificationConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AmazonS3", "PutBucketNotificationConfiguration", {}).n("S3Client", "PutBucketNotificationConfigurationCommand").sc(schemas_0.PutBucketNotificationConfiguration$).build() {
+  }
+
+  class PutBucketOwnershipControlsCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: true
+      })
+    ];
+  }).s("AmazonS3", "PutBucketOwnershipControls", {}).n("S3Client", "PutBucketOwnershipControlsCommand").sc(schemas_0.PutBucketOwnershipControls$).build() {
+  }
+
+  class PutBucketPolicyCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: true
+      })
+    ];
+  }).s("AmazonS3", "PutBucketPolicy", {}).n("S3Client", "PutBucketPolicyCommand").sc(schemas_0.PutBucketPolicy$).build() {
+  }
+
+  class PutBucketReplicationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: true
+      })
+    ];
+  }).s("AmazonS3", "PutBucketReplication", {}).n("S3Client", "PutBucketReplicationCommand").sc(schemas_0.PutBucketReplication$).build() {
+  }
+
+  class PutBucketRequestPaymentCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: true
+      })
+    ];
+  }).s("AmazonS3", "PutBucketRequestPayment", {}).n("S3Client", "PutBucketRequestPaymentCommand").sc(schemas_0.PutBucketRequestPayment$).build() {
+  }
+
+  class PutBucketTaggingCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: true
+      })
+    ];
+  }).s("AmazonS3", "PutBucketTagging", {}).n("S3Client", "PutBucketTaggingCommand").sc(schemas_0.PutBucketTagging$).build() {
+  }
+
+  class PutBucketVersioningCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: true
+      })
+    ];
+  }).s("AmazonS3", "PutBucketVersioning", {}).n("S3Client", "PutBucketVersioningCommand").sc(schemas_0.PutBucketVersioning$).build() {
+  }
+
+  class PutBucketWebsiteCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: true
+      })
+    ];
+  }).s("AmazonS3", "PutBucketWebsite", {}).n("S3Client", "PutBucketWebsiteCommand").sc(schemas_0.PutBucketWebsite$).build() {
+  }
+
+  class PutObjectAclCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" },
+    Key: { type: "contextParams", name: "Key" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: true
+      }),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "PutObjectAcl", {}).n("S3Client", "PutObjectAclCommand").sc(schemas_0.PutObjectAcl$).build() {
+  }
+
+  class PutObjectCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" },
+    Key: { type: "contextParams", name: "Key" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: false
+      }),
+      middlewareSdkS3.getCheckContentLengthHeaderPlugin(config2),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2),
+      middlewareSsec.getSsecPlugin(config2)
+    ];
+  }).s("AmazonS3", "PutObject", {}).n("S3Client", "PutObjectCommand").sc(schemas_0.PutObject$).build() {
+  }
+
+  class PutObjectLegalHoldCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: true
+      }),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "PutObjectLegalHold", {}).n("S3Client", "PutObjectLegalHoldCommand").sc(schemas_0.PutObjectLegalHold$).build() {
+  }
+
+  class PutObjectLockConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: true
+      }),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "PutObjectLockConfiguration", {}).n("S3Client", "PutObjectLockConfigurationCommand").sc(schemas_0.PutObjectLockConfiguration$).build() {
+  }
+
+  class PutObjectRetentionCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: true
+      }),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "PutObjectRetention", {}).n("S3Client", "PutObjectRetentionCommand").sc(schemas_0.PutObjectRetention$).build() {
+  }
+
+  class PutObjectTaggingCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: true
+      }),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "PutObjectTagging", {}).n("S3Client", "PutObjectTaggingCommand").sc(schemas_0.PutObjectTagging$).build() {
+  }
+
+  class PutPublicAccessBlockCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: true
+      })
+    ];
+  }).s("AmazonS3", "PutPublicAccessBlock", {}).n("S3Client", "PutPublicAccessBlockCommand").sc(schemas_0.PutPublicAccessBlock$).build() {
+  }
+
+  class RenameObjectCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" },
+    Key: { type: "contextParams", name: "Key" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "RenameObject", {}).n("S3Client", "RenameObjectCommand").sc(schemas_0.RenameObject$).build() {
+  }
+
+  class RestoreObjectCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: false
+      }),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "RestoreObject", {}).n("S3Client", "RestoreObjectCommand").sc(schemas_0.RestoreObject$).build() {
+  }
+
+  class SelectObjectContentCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSsec.getSsecPlugin(config2)
+    ];
+  }).s("AmazonS3", "SelectObjectContent", {
+    eventStream: {
+      output: true
+    }
+  }).n("S3Client", "SelectObjectContentCommand").sc(schemas_0.SelectObjectContent$).build() {
+  }
+
+  class UpdateBucketMetadataInventoryTableConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: true
+      })
+    ];
+  }).s("AmazonS3", "UpdateBucketMetadataInventoryTableConfiguration", {}).n("S3Client", "UpdateBucketMetadataInventoryTableConfigurationCommand").sc(schemas_0.UpdateBucketMetadataInventoryTableConfiguration$).build() {
+  }
+
+  class UpdateBucketMetadataJournalTableConfigurationCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseS3ExpressControlEndpoint: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: true
+      })
+    ];
+  }).s("AmazonS3", "UpdateBucketMetadataJournalTableConfiguration", {}).n("S3Client", "UpdateBucketMetadataJournalTableConfigurationCommand").sc(schemas_0.UpdateBucketMetadataJournalTableConfiguration$).build() {
+  }
+
+  class UpdateObjectEncryptionCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: true
+      }),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2)
+    ];
+  }).s("AmazonS3", "UpdateObjectEncryption", {}).n("S3Client", "UpdateObjectEncryptionCommand").sc(schemas_0.UpdateObjectEncryption$).build() {
+  }
+
+  class UploadPartCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    Bucket: { type: "contextParams", name: "Bucket" },
+    Key: { type: "contextParams", name: "Key" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareFlexibleChecksums.getFlexibleChecksumsPlugin(config2, {
+        requestAlgorithmMember: { httpHeader: "x-amz-sdk-checksum-algorithm", name: "ChecksumAlgorithm" },
+        requestChecksumRequired: false
+      }),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2),
+      middlewareSsec.getSsecPlugin(config2)
+    ];
+  }).s("AmazonS3", "UploadPart", {}).n("S3Client", "UploadPartCommand").sc(schemas_0.UploadPart$).build() {
+  }
+
+  class UploadPartCopyCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    DisableS3ExpressSessionAuth: { type: "staticContextParams", value: true },
+    Bucket: { type: "contextParams", name: "Bucket" }
+  }).m(function(Command, cs, config2, o) {
+    return [
+      endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions()),
+      middlewareSdkS3.getThrow200ExceptionsPlugin(config2),
+      middlewareSsec.getSsecPlugin(config2)
+    ];
+  }).s("AmazonS3", "UploadPartCopy", {}).n("S3Client", "UploadPartCopyCommand").sc(schemas_0.UploadPartCopy$).build() {
+  }
+
+  class WriteGetObjectResponseCommand extends client.Command.classBuilder().ep({
+    ...commonParams,
+    UseObjectLambdaEndpoint: { type: "staticContextParams", value: true }
+  }).m(function(Command, cs, config2, o) {
+    return [endpoints.getEndpointPlugin(config2, Command.getEndpointParameterInstructions())];
+  }).s("AmazonS3", "WriteGetObjectResponse", {}).n("S3Client", "WriteGetObjectResponseCommand").sc(schemas_0.WriteGetObjectResponse$).build() {
+  }
+  var paginateListBuckets = core.createPaginator(S3Client, ListBucketsCommand, "ContinuationToken", "ContinuationToken", "MaxBuckets");
+  var paginateListDirectoryBuckets = core.createPaginator(S3Client, ListDirectoryBucketsCommand, "ContinuationToken", "ContinuationToken", "MaxDirectoryBuckets");
+  var paginateListObjectsV2 = core.createPaginator(S3Client, ListObjectsV2Command, "ContinuationToken", "NextContinuationToken", "MaxKeys");
+  var paginateListParts = core.createPaginator(S3Client, ListPartsCommand, "PartNumberMarker", "NextPartNumberMarker", "MaxParts");
+  var checkState$3 = async (client$12, input) => {
+    let reason;
+    try {
+      let result = await client$12.send(new HeadBucketCommand(input));
+      reason = result;
+      return { state: client.WaiterState.SUCCESS, reason };
+    } catch (exception) {
+      reason = exception;
+      if (exception.name === "NotFound") {
+        return { state: client.WaiterState.RETRY, reason };
+      }
+    }
+    return { state: client.WaiterState.RETRY, reason };
+  };
+  var waitForBucketExists = async (params, input) => {
+    const serviceDefaults = { minDelay: 5, maxDelay: 120 };
+    return client.createWaiter({ ...serviceDefaults, ...params }, input, checkState$3);
+  };
+  var waitUntilBucketExists = async (params, input) => {
+    const serviceDefaults = { minDelay: 5, maxDelay: 120 };
+    const result = await client.createWaiter({ ...serviceDefaults, ...params }, input, checkState$3);
+    return client.checkExceptions(result);
+  };
+  var checkState$2 = async (client$12, input) => {
+    let reason;
+    try {
+      let result = await client$12.send(new HeadBucketCommand(input));
+      reason = result;
+    } catch (exception) {
+      reason = exception;
+      if (exception.name === "NotFound") {
+        return { state: client.WaiterState.SUCCESS, reason };
+      }
+    }
+    return { state: client.WaiterState.RETRY, reason };
+  };
+  var waitForBucketNotExists = async (params, input) => {
+    const serviceDefaults = { minDelay: 5, maxDelay: 120 };
+    return client.createWaiter({ ...serviceDefaults, ...params }, input, checkState$2);
+  };
+  var waitUntilBucketNotExists = async (params, input) => {
+    const serviceDefaults = { minDelay: 5, maxDelay: 120 };
+    const result = await client.createWaiter({ ...serviceDefaults, ...params }, input, checkState$2);
+    return client.checkExceptions(result);
+  };
+  var checkState$1 = async (client$12, input) => {
+    let reason;
+    try {
+      let result = await client$12.send(new HeadObjectCommand(input));
+      reason = result;
+      return { state: client.WaiterState.SUCCESS, reason };
+    } catch (exception) {
+      reason = exception;
+      if (exception.name === "NotFound") {
+        return { state: client.WaiterState.RETRY, reason };
+      }
+    }
+    return { state: client.WaiterState.RETRY, reason };
+  };
+  var waitForObjectExists = async (params, input) => {
+    const serviceDefaults = { minDelay: 5, maxDelay: 120 };
+    return client.createWaiter({ ...serviceDefaults, ...params }, input, checkState$1);
+  };
+  var waitUntilObjectExists = async (params, input) => {
+    const serviceDefaults = { minDelay: 5, maxDelay: 120 };
+    const result = await client.createWaiter({ ...serviceDefaults, ...params }, input, checkState$1);
+    return client.checkExceptions(result);
+  };
+  var checkState = async (client$12, input) => {
+    let reason;
+    try {
+      let result = await client$12.send(new HeadObjectCommand(input));
+      reason = result;
+    } catch (exception) {
+      reason = exception;
+      if (exception.name === "NotFound") {
+        return { state: client.WaiterState.SUCCESS, reason };
+      }
+    }
+    return { state: client.WaiterState.RETRY, reason };
+  };
+  var waitForObjectNotExists = async (params, input) => {
+    const serviceDefaults = { minDelay: 5, maxDelay: 120 };
+    return client.createWaiter({ ...serviceDefaults, ...params }, input, checkState);
+  };
+  var waitUntilObjectNotExists = async (params, input) => {
+    const serviceDefaults = { minDelay: 5, maxDelay: 120 };
+    const result = await client.createWaiter({ ...serviceDefaults, ...params }, input, checkState);
+    return client.checkExceptions(result);
+  };
+  var commands = {
+    AbortMultipartUploadCommand,
+    CompleteMultipartUploadCommand,
+    CopyObjectCommand,
+    CreateBucketCommand,
+    CreateBucketMetadataConfigurationCommand,
+    CreateBucketMetadataTableConfigurationCommand,
+    CreateMultipartUploadCommand,
+    CreateSessionCommand,
+    DeleteBucketCommand,
+    DeleteBucketAnalyticsConfigurationCommand,
+    DeleteBucketCorsCommand,
+    DeleteBucketEncryptionCommand,
+    DeleteBucketIntelligentTieringConfigurationCommand,
+    DeleteBucketInventoryConfigurationCommand,
+    DeleteBucketLifecycleCommand,
+    DeleteBucketMetadataConfigurationCommand,
+    DeleteBucketMetadataTableConfigurationCommand,
+    DeleteBucketMetricsConfigurationCommand,
+    DeleteBucketOwnershipControlsCommand,
+    DeleteBucketPolicyCommand,
+    DeleteBucketReplicationCommand,
+    DeleteBucketTaggingCommand,
+    DeleteBucketWebsiteCommand,
+    DeleteObjectCommand,
+    DeleteObjectsCommand,
+    DeleteObjectTaggingCommand,
+    DeletePublicAccessBlockCommand,
+    GetBucketAbacCommand,
+    GetBucketAccelerateConfigurationCommand,
+    GetBucketAclCommand,
+    GetBucketAnalyticsConfigurationCommand,
+    GetBucketCorsCommand,
+    GetBucketEncryptionCommand,
+    GetBucketIntelligentTieringConfigurationCommand,
+    GetBucketInventoryConfigurationCommand,
+    GetBucketLifecycleConfigurationCommand,
+    GetBucketLocationCommand,
+    GetBucketLoggingCommand,
+    GetBucketMetadataConfigurationCommand,
+    GetBucketMetadataTableConfigurationCommand,
+    GetBucketMetricsConfigurationCommand,
+    GetBucketNotificationConfigurationCommand,
+    GetBucketOwnershipControlsCommand,
+    GetBucketPolicyCommand,
+    GetBucketPolicyStatusCommand,
+    GetBucketReplicationCommand,
+    GetBucketRequestPaymentCommand,
+    GetBucketTaggingCommand,
+    GetBucketVersioningCommand,
+    GetBucketWebsiteCommand,
+    GetObjectCommand,
+    GetObjectAclCommand,
+    GetObjectAttributesCommand,
+    GetObjectLegalHoldCommand,
+    GetObjectLockConfigurationCommand,
+    GetObjectRetentionCommand,
+    GetObjectTaggingCommand,
+    GetObjectTorrentCommand,
+    GetPublicAccessBlockCommand,
+    HeadBucketCommand,
+    HeadObjectCommand,
+    ListBucketAnalyticsConfigurationsCommand,
+    ListBucketIntelligentTieringConfigurationsCommand,
+    ListBucketInventoryConfigurationsCommand,
+    ListBucketMetricsConfigurationsCommand,
+    ListBucketsCommand,
+    ListDirectoryBucketsCommand,
+    ListMultipartUploadsCommand,
+    ListObjectsCommand,
+    ListObjectsV2Command,
+    ListObjectVersionsCommand,
+    ListPartsCommand,
+    PutBucketAbacCommand,
+    PutBucketAccelerateConfigurationCommand,
+    PutBucketAclCommand,
+    PutBucketAnalyticsConfigurationCommand,
+    PutBucketCorsCommand,
+    PutBucketEncryptionCommand,
+    PutBucketIntelligentTieringConfigurationCommand,
+    PutBucketInventoryConfigurationCommand,
+    PutBucketLifecycleConfigurationCommand,
+    PutBucketLoggingCommand,
+    PutBucketMetricsConfigurationCommand,
+    PutBucketNotificationConfigurationCommand,
+    PutBucketOwnershipControlsCommand,
+    PutBucketPolicyCommand,
+    PutBucketReplicationCommand,
+    PutBucketRequestPaymentCommand,
+    PutBucketTaggingCommand,
+    PutBucketVersioningCommand,
+    PutBucketWebsiteCommand,
+    PutObjectCommand,
+    PutObjectAclCommand,
+    PutObjectLegalHoldCommand,
+    PutObjectLockConfigurationCommand,
+    PutObjectRetentionCommand,
+    PutObjectTaggingCommand,
+    PutPublicAccessBlockCommand,
+    RenameObjectCommand,
+    RestoreObjectCommand,
+    SelectObjectContentCommand,
+    UpdateBucketMetadataInventoryTableConfigurationCommand,
+    UpdateBucketMetadataJournalTableConfigurationCommand,
+    UpdateObjectEncryptionCommand,
+    UploadPartCommand,
+    UploadPartCopyCommand,
+    WriteGetObjectResponseCommand
+  };
+  var paginators = {
+    paginateListBuckets,
+    paginateListDirectoryBuckets,
+    paginateListObjectsV2,
+    paginateListParts
+  };
+  var waiters = {
+    waitUntilBucketExists,
+    waitUntilBucketNotExists,
+    waitUntilObjectExists,
+    waitUntilObjectNotExists
+  };
+
+  class S3 extends S3Client {
+  }
+  client.createAggregatedClient(commands, S3, { paginators, waiters });
+  var BucketAbacStatus = {
+    Disabled: "Disabled",
+    Enabled: "Enabled"
+  };
+  var RequestCharged = {
+    requester: "requester"
+  };
+  var RequestPayer = {
+    requester: "requester"
+  };
+  var BucketAccelerateStatus = {
+    Enabled: "Enabled",
+    Suspended: "Suspended"
+  };
+  var Type2 = {
+    AmazonCustomerByEmail: "AmazonCustomerByEmail",
+    CanonicalUser: "CanonicalUser",
+    Group: "Group"
+  };
+  var Permission = {
+    FULL_CONTROL: "FULL_CONTROL",
+    READ: "READ",
+    READ_ACP: "READ_ACP",
+    WRITE: "WRITE",
+    WRITE_ACP: "WRITE_ACP"
+  };
+  var OwnerOverride = {
+    Destination: "Destination"
+  };
+  var ChecksumType = {
+    COMPOSITE: "COMPOSITE",
+    FULL_OBJECT: "FULL_OBJECT"
+  };
+  var ServerSideEncryption = {
+    AES256: "AES256",
+    aws_fsx: "aws:fsx",
+    aws_kms: "aws:kms",
+    aws_kms_dsse: "aws:kms:dsse"
+  };
+  var ObjectCannedACL = {
+    authenticated_read: "authenticated-read",
+    aws_exec_read: "aws-exec-read",
+    bucket_owner_full_control: "bucket-owner-full-control",
+    bucket_owner_read: "bucket-owner-read",
+    private: "private",
+    public_read: "public-read",
+    public_read_write: "public-read-write"
+  };
+  var ChecksumAlgorithm = {
+    CRC32: "CRC32",
+    CRC32C: "CRC32C",
+    CRC64NVME: "CRC64NVME",
+    MD5: "MD5",
+    SHA1: "SHA1",
+    SHA256: "SHA256",
+    SHA512: "SHA512",
+    XXHASH128: "XXHASH128",
+    XXHASH3: "XXHASH3",
+    XXHASH64: "XXHASH64"
+  };
+  var MetadataDirective = {
+    COPY: "COPY",
+    REPLACE: "REPLACE"
+  };
+  var ObjectLockLegalHoldStatus = {
+    OFF: "OFF",
+    ON: "ON"
+  };
+  var ObjectLockMode = {
+    COMPLIANCE: "COMPLIANCE",
+    GOVERNANCE: "GOVERNANCE"
+  };
+  var StorageClass = {
+    DEEP_ARCHIVE: "DEEP_ARCHIVE",
+    EXPRESS_ONEZONE: "EXPRESS_ONEZONE",
+    FSX_ONTAP: "FSX_ONTAP",
+    FSX_OPENZFS: "FSX_OPENZFS",
+    GLACIER: "GLACIER",
+    GLACIER_IR: "GLACIER_IR",
+    INTELLIGENT_TIERING: "INTELLIGENT_TIERING",
+    ONEZONE_IA: "ONEZONE_IA",
+    OUTPOSTS: "OUTPOSTS",
+    REDUCED_REDUNDANCY: "REDUCED_REDUNDANCY",
+    SNOW: "SNOW",
+    STANDARD: "STANDARD",
+    STANDARD_IA: "STANDARD_IA"
+  };
+  var TaggingDirective = {
+    COPY: "COPY",
+    REPLACE: "REPLACE"
+  };
+  var BucketCannedACL = {
+    authenticated_read: "authenticated-read",
+    private: "private",
+    public_read: "public-read",
+    public_read_write: "public-read-write"
+  };
+  var BucketNamespace = {
+    ACCOUNT_REGIONAL: "account-regional",
+    GLOBAL: "global"
+  };
+  var DataRedundancy = {
+    SingleAvailabilityZone: "SingleAvailabilityZone",
+    SingleLocalZone: "SingleLocalZone"
+  };
+  var BucketType = {
+    Directory: "Directory"
+  };
+  var LocationType = {
+    AvailabilityZone: "AvailabilityZone",
+    LocalZone: "LocalZone"
+  };
+  var BucketLocationConstraint = {
+    EU: "EU",
+    af_south_1: "af-south-1",
+    ap_east_1: "ap-east-1",
+    ap_east_2: "ap-east-2",
+    ap_northeast_1: "ap-northeast-1",
+    ap_northeast_2: "ap-northeast-2",
+    ap_northeast_3: "ap-northeast-3",
+    ap_south_1: "ap-south-1",
+    ap_south_2: "ap-south-2",
+    ap_southeast_1: "ap-southeast-1",
+    ap_southeast_2: "ap-southeast-2",
+    ap_southeast_3: "ap-southeast-3",
+    ap_southeast_4: "ap-southeast-4",
+    ap_southeast_5: "ap-southeast-5",
+    ap_southeast_6: "ap-southeast-6",
+    ap_southeast_7: "ap-southeast-7",
+    ca_central_1: "ca-central-1",
+    ca_west_1: "ca-west-1",
+    cn_north_1: "cn-north-1",
+    cn_northwest_1: "cn-northwest-1",
+    eu_central_1: "eu-central-1",
+    eu_central_2: "eu-central-2",
+    eu_north_1: "eu-north-1",
+    eu_south_1: "eu-south-1",
+    eu_south_2: "eu-south-2",
+    eu_west_1: "eu-west-1",
+    eu_west_2: "eu-west-2",
+    eu_west_3: "eu-west-3",
+    il_central_1: "il-central-1",
+    me_central_1: "me-central-1",
+    me_south_1: "me-south-1",
+    mx_central_1: "mx-central-1",
+    sa_east_1: "sa-east-1",
+    us_east_2: "us-east-2",
+    us_gov_east_1: "us-gov-east-1",
+    us_gov_west_1: "us-gov-west-1",
+    us_west_1: "us-west-1",
+    us_west_2: "us-west-2"
+  };
+  var ObjectOwnership = {
+    BucketOwnerEnforced: "BucketOwnerEnforced",
+    BucketOwnerPreferred: "BucketOwnerPreferred",
+    ObjectWriter: "ObjectWriter"
+  };
+  var InventoryConfigurationState = {
+    DISABLED: "DISABLED",
+    ENABLED: "ENABLED"
+  };
+  var TableSseAlgorithm = {
+    AES256: "AES256",
+    aws_kms: "aws:kms"
+  };
+  var ExpirationState = {
+    DISABLED: "DISABLED",
+    ENABLED: "ENABLED"
+  };
+  var SessionMode = {
+    ReadOnly: "ReadOnly",
+    ReadWrite: "ReadWrite"
+  };
+  var AnalyticsS3ExportFileFormat = {
+    CSV: "CSV"
+  };
+  var StorageClassAnalysisSchemaVersion = {
+    V_1: "V_1"
+  };
+  var EncryptionType = {
+    NONE: "NONE",
+    SSE_C: "SSE-C"
+  };
+  var IntelligentTieringStatus = {
+    Disabled: "Disabled",
+    Enabled: "Enabled"
+  };
+  var IntelligentTieringAccessTier = {
+    ARCHIVE_ACCESS: "ARCHIVE_ACCESS",
+    DEEP_ARCHIVE_ACCESS: "DEEP_ARCHIVE_ACCESS"
+  };
+  var InventoryFormat = {
+    CSV: "CSV",
+    ORC: "ORC",
+    Parquet: "Parquet"
+  };
+  var InventoryIncludedObjectVersions = {
+    All: "All",
+    Current: "Current"
+  };
+  var InventoryOptionalField = {
+    BucketKeyStatus: "BucketKeyStatus",
+    ChecksumAlgorithm: "ChecksumAlgorithm",
+    ETag: "ETag",
+    EncryptionStatus: "EncryptionStatus",
+    IntelligentTieringAccessTier: "IntelligentTieringAccessTier",
+    IsMultipartUploaded: "IsMultipartUploaded",
+    LastModifiedDate: "LastModifiedDate",
+    LifecycleExpirationDate: "LifecycleExpirationDate",
+    ObjectAccessControlList: "ObjectAccessControlList",
+    ObjectLockLegalHoldStatus: "ObjectLockLegalHoldStatus",
+    ObjectLockMode: "ObjectLockMode",
+    ObjectLockRetainUntilDate: "ObjectLockRetainUntilDate",
+    ObjectOwner: "ObjectOwner",
+    ReplicationStatus: "ReplicationStatus",
+    Size: "Size",
+    StorageClass: "StorageClass"
+  };
+  var InventoryFrequency = {
+    Daily: "Daily",
+    Weekly: "Weekly"
+  };
+  var TransitionStorageClass = {
+    DEEP_ARCHIVE: "DEEP_ARCHIVE",
+    GLACIER: "GLACIER",
+    GLACIER_IR: "GLACIER_IR",
+    INTELLIGENT_TIERING: "INTELLIGENT_TIERING",
+    ONEZONE_IA: "ONEZONE_IA",
+    STANDARD_IA: "STANDARD_IA"
+  };
+  var ExpirationStatus = {
+    Disabled: "Disabled",
+    Enabled: "Enabled"
+  };
+  var TransitionDefaultMinimumObjectSize = {
+    all_storage_classes_128K: "all_storage_classes_128K",
+    varies_by_storage_class: "varies_by_storage_class"
+  };
+  var BucketLogsPermission = {
+    FULL_CONTROL: "FULL_CONTROL",
+    READ: "READ",
+    WRITE: "WRITE"
+  };
+  var PartitionDateSource = {
+    DeliveryTime: "DeliveryTime",
+    EventTime: "EventTime"
+  };
+  var S3TablesBucketType = {
+    aws: "aws",
+    customer: "customer"
+  };
+  var Event = {
+    s3_IntelligentTiering: "s3:IntelligentTiering",
+    s3_LifecycleExpiration_: "s3:LifecycleExpiration:*",
+    s3_LifecycleExpiration_Delete: "s3:LifecycleExpiration:Delete",
+    s3_LifecycleExpiration_DeleteMarkerCreated: "s3:LifecycleExpiration:DeleteMarkerCreated",
+    s3_LifecycleTransition: "s3:LifecycleTransition",
+    s3_ObjectAcl_Put: "s3:ObjectAcl:Put",
+    s3_ObjectCreated_: "s3:ObjectCreated:*",
+    s3_ObjectCreated_CompleteMultipartUpload: "s3:ObjectCreated:CompleteMultipartUpload",
+    s3_ObjectCreated_Copy: "s3:ObjectCreated:Copy",
+    s3_ObjectCreated_Post: "s3:ObjectCreated:Post",
+    s3_ObjectCreated_Put: "s3:ObjectCreated:Put",
+    s3_ObjectRemoved_: "s3:ObjectRemoved:*",
+    s3_ObjectRemoved_Delete: "s3:ObjectRemoved:Delete",
+    s3_ObjectRemoved_DeleteMarkerCreated: "s3:ObjectRemoved:DeleteMarkerCreated",
+    s3_ObjectRestore_: "s3:ObjectRestore:*",
+    s3_ObjectRestore_Completed: "s3:ObjectRestore:Completed",
+    s3_ObjectRestore_Delete: "s3:ObjectRestore:Delete",
+    s3_ObjectRestore_Post: "s3:ObjectRestore:Post",
+    s3_ObjectTagging_: "s3:ObjectTagging:*",
+    s3_ObjectTagging_Delete: "s3:ObjectTagging:Delete",
+    s3_ObjectTagging_Put: "s3:ObjectTagging:Put",
+    s3_ReducedRedundancyLostObject: "s3:ReducedRedundancyLostObject",
+    s3_Replication_: "s3:Replication:*",
+    s3_Replication_OperationFailedReplication: "s3:Replication:OperationFailedReplication",
+    s3_Replication_OperationMissedThreshold: "s3:Replication:OperationMissedThreshold",
+    s3_Replication_OperationNotTracked: "s3:Replication:OperationNotTracked",
+    s3_Replication_OperationReplicatedAfterThreshold: "s3:Replication:OperationReplicatedAfterThreshold"
+  };
+  var FilterRuleName = {
+    prefix: "prefix",
+    suffix: "suffix"
+  };
+  var DeleteMarkerReplicationStatus = {
+    Disabled: "Disabled",
+    Enabled: "Enabled"
+  };
+  var MetricsStatus = {
+    Disabled: "Disabled",
+    Enabled: "Enabled"
+  };
+  var ReplicationTimeStatus = {
+    Disabled: "Disabled",
+    Enabled: "Enabled"
+  };
+  var ExistingObjectReplicationStatus = {
+    Disabled: "Disabled",
+    Enabled: "Enabled"
+  };
+  var ReplicaModificationsStatus = {
+    Disabled: "Disabled",
+    Enabled: "Enabled"
+  };
+  var SseKmsEncryptedObjectsStatus = {
+    Disabled: "Disabled",
+    Enabled: "Enabled"
+  };
+  var ReplicationRuleStatus = {
+    Disabled: "Disabled",
+    Enabled: "Enabled"
+  };
+  var Payer = {
+    BucketOwner: "BucketOwner",
+    Requester: "Requester"
+  };
+  var MFADeleteStatus = {
+    Disabled: "Disabled",
+    Enabled: "Enabled"
+  };
+  var BucketVersioningStatus = {
+    Enabled: "Enabled",
+    Suspended: "Suspended"
+  };
+  var Protocol = {
+    http: "http",
+    https: "https"
+  };
+  var ReplicationStatus = {
+    COMPLETE: "COMPLETE",
+    COMPLETED: "COMPLETED",
+    FAILED: "FAILED",
+    PENDING: "PENDING",
+    REPLICA: "REPLICA"
+  };
+  var ChecksumMode = {
+    ENABLED: "ENABLED"
+  };
+  var ObjectAttributes = {
+    CHECKSUM: "Checksum",
+    ETAG: "ETag",
+    OBJECT_PARTS: "ObjectParts",
+    OBJECT_SIZE: "ObjectSize",
+    STORAGE_CLASS: "StorageClass"
+  };
+  var ObjectLockEnabled = {
+    Enabled: "Enabled"
+  };
+  var ObjectLockRetentionMode = {
+    COMPLIANCE: "COMPLIANCE",
+    GOVERNANCE: "GOVERNANCE"
+  };
+  var ArchiveStatus = {
+    ARCHIVE_ACCESS: "ARCHIVE_ACCESS",
+    DEEP_ARCHIVE_ACCESS: "DEEP_ARCHIVE_ACCESS"
+  };
+  var EncodingType = {
+    url: "url"
+  };
+  var ObjectStorageClass = {
+    DEEP_ARCHIVE: "DEEP_ARCHIVE",
+    EXPRESS_ONEZONE: "EXPRESS_ONEZONE",
+    FSX_ONTAP: "FSX_ONTAP",
+    FSX_OPENZFS: "FSX_OPENZFS",
+    GLACIER: "GLACIER",
+    GLACIER_IR: "GLACIER_IR",
+    INTELLIGENT_TIERING: "INTELLIGENT_TIERING",
+    ONEZONE_IA: "ONEZONE_IA",
+    OUTPOSTS: "OUTPOSTS",
+    REDUCED_REDUNDANCY: "REDUCED_REDUNDANCY",
+    SNOW: "SNOW",
+    STANDARD: "STANDARD",
+    STANDARD_IA: "STANDARD_IA"
+  };
+  var OptionalObjectAttributes = {
+    RESTORE_STATUS: "RestoreStatus"
+  };
+  var ObjectVersionStorageClass = {
+    STANDARD: "STANDARD"
+  };
+  var MFADelete = {
+    Disabled: "Disabled",
+    Enabled: "Enabled"
+  };
+  var Tier = {
+    Bulk: "Bulk",
+    Expedited: "Expedited",
+    Standard: "Standard"
+  };
+  var ExpressionType = {
+    SQL: "SQL"
+  };
+  var CompressionType = {
+    BZIP2: "BZIP2",
+    GZIP: "GZIP",
+    NONE: "NONE"
+  };
+  var FileHeaderInfo = {
+    IGNORE: "IGNORE",
+    NONE: "NONE",
+    USE: "USE"
+  };
+  var JSONType = {
+    DOCUMENT: "DOCUMENT",
+    LINES: "LINES"
+  };
+  var QuoteFields = {
+    ALWAYS: "ALWAYS",
+    ASNEEDED: "ASNEEDED"
+  };
+  var RestoreRequestType = {
+    SELECT: "SELECT"
+  };
+  exports2.$Command = client.Command;
+  exports2.__Client = client.Client;
+  exports2.S3ServiceException = S3ServiceException.S3ServiceException;
+  exports2.AbortMultipartUploadCommand = AbortMultipartUploadCommand;
+  exports2.AnalyticsS3ExportFileFormat = AnalyticsS3ExportFileFormat;
+  exports2.ArchiveStatus = ArchiveStatus;
+  exports2.BucketAbacStatus = BucketAbacStatus;
+  exports2.BucketAccelerateStatus = BucketAccelerateStatus;
+  exports2.BucketCannedACL = BucketCannedACL;
+  exports2.BucketLocationConstraint = BucketLocationConstraint;
+  exports2.BucketLogsPermission = BucketLogsPermission;
+  exports2.BucketNamespace = BucketNamespace;
+  exports2.BucketType = BucketType;
+  exports2.BucketVersioningStatus = BucketVersioningStatus;
+  exports2.ChecksumAlgorithm = ChecksumAlgorithm;
+  exports2.ChecksumMode = ChecksumMode;
+  exports2.ChecksumType = ChecksumType;
+  exports2.CompleteMultipartUploadCommand = CompleteMultipartUploadCommand;
+  exports2.CompressionType = CompressionType;
+  exports2.CopyObjectCommand = CopyObjectCommand;
+  exports2.CreateBucketCommand = CreateBucketCommand;
+  exports2.CreateBucketMetadataConfigurationCommand = CreateBucketMetadataConfigurationCommand;
+  exports2.CreateBucketMetadataTableConfigurationCommand = CreateBucketMetadataTableConfigurationCommand;
+  exports2.CreateMultipartUploadCommand = CreateMultipartUploadCommand;
+  exports2.CreateSessionCommand = CreateSessionCommand;
+  exports2.DataRedundancy = DataRedundancy;
+  exports2.DeleteBucketAnalyticsConfigurationCommand = DeleteBucketAnalyticsConfigurationCommand;
+  exports2.DeleteBucketCommand = DeleteBucketCommand;
+  exports2.DeleteBucketCorsCommand = DeleteBucketCorsCommand;
+  exports2.DeleteBucketEncryptionCommand = DeleteBucketEncryptionCommand;
+  exports2.DeleteBucketIntelligentTieringConfigurationCommand = DeleteBucketIntelligentTieringConfigurationCommand;
+  exports2.DeleteBucketInventoryConfigurationCommand = DeleteBucketInventoryConfigurationCommand;
+  exports2.DeleteBucketLifecycleCommand = DeleteBucketLifecycleCommand;
+  exports2.DeleteBucketMetadataConfigurationCommand = DeleteBucketMetadataConfigurationCommand;
+  exports2.DeleteBucketMetadataTableConfigurationCommand = DeleteBucketMetadataTableConfigurationCommand;
+  exports2.DeleteBucketMetricsConfigurationCommand = DeleteBucketMetricsConfigurationCommand;
+  exports2.DeleteBucketOwnershipControlsCommand = DeleteBucketOwnershipControlsCommand;
+  exports2.DeleteBucketPolicyCommand = DeleteBucketPolicyCommand;
+  exports2.DeleteBucketReplicationCommand = DeleteBucketReplicationCommand;
+  exports2.DeleteBucketTaggingCommand = DeleteBucketTaggingCommand;
+  exports2.DeleteBucketWebsiteCommand = DeleteBucketWebsiteCommand;
+  exports2.DeleteMarkerReplicationStatus = DeleteMarkerReplicationStatus;
+  exports2.DeleteObjectCommand = DeleteObjectCommand;
+  exports2.DeleteObjectTaggingCommand = DeleteObjectTaggingCommand;
+  exports2.DeleteObjectsCommand = DeleteObjectsCommand;
+  exports2.DeletePublicAccessBlockCommand = DeletePublicAccessBlockCommand;
+  exports2.EncodingType = EncodingType;
+  exports2.EncryptionType = EncryptionType;
+  exports2.Event = Event;
+  exports2.ExistingObjectReplicationStatus = ExistingObjectReplicationStatus;
+  exports2.ExpirationState = ExpirationState;
+  exports2.ExpirationStatus = ExpirationStatus;
+  exports2.ExpressionType = ExpressionType;
+  exports2.FileHeaderInfo = FileHeaderInfo;
+  exports2.FilterRuleName = FilterRuleName;
+  exports2.GetBucketAbacCommand = GetBucketAbacCommand;
+  exports2.GetBucketAccelerateConfigurationCommand = GetBucketAccelerateConfigurationCommand;
+  exports2.GetBucketAclCommand = GetBucketAclCommand;
+  exports2.GetBucketAnalyticsConfigurationCommand = GetBucketAnalyticsConfigurationCommand;
+  exports2.GetBucketCorsCommand = GetBucketCorsCommand;
+  exports2.GetBucketEncryptionCommand = GetBucketEncryptionCommand;
+  exports2.GetBucketIntelligentTieringConfigurationCommand = GetBucketIntelligentTieringConfigurationCommand;
+  exports2.GetBucketInventoryConfigurationCommand = GetBucketInventoryConfigurationCommand;
+  exports2.GetBucketLifecycleConfigurationCommand = GetBucketLifecycleConfigurationCommand;
+  exports2.GetBucketLocationCommand = GetBucketLocationCommand;
+  exports2.GetBucketLoggingCommand = GetBucketLoggingCommand;
+  exports2.GetBucketMetadataConfigurationCommand = GetBucketMetadataConfigurationCommand;
+  exports2.GetBucketMetadataTableConfigurationCommand = GetBucketMetadataTableConfigurationCommand;
+  exports2.GetBucketMetricsConfigurationCommand = GetBucketMetricsConfigurationCommand;
+  exports2.GetBucketNotificationConfigurationCommand = GetBucketNotificationConfigurationCommand;
+  exports2.GetBucketOwnershipControlsCommand = GetBucketOwnershipControlsCommand;
+  exports2.GetBucketPolicyCommand = GetBucketPolicyCommand;
+  exports2.GetBucketPolicyStatusCommand = GetBucketPolicyStatusCommand;
+  exports2.GetBucketReplicationCommand = GetBucketReplicationCommand;
+  exports2.GetBucketRequestPaymentCommand = GetBucketRequestPaymentCommand;
+  exports2.GetBucketTaggingCommand = GetBucketTaggingCommand;
+  exports2.GetBucketVersioningCommand = GetBucketVersioningCommand;
+  exports2.GetBucketWebsiteCommand = GetBucketWebsiteCommand;
+  exports2.GetObjectAclCommand = GetObjectAclCommand;
+  exports2.GetObjectAttributesCommand = GetObjectAttributesCommand;
+  exports2.GetObjectCommand = GetObjectCommand;
+  exports2.GetObjectLegalHoldCommand = GetObjectLegalHoldCommand;
+  exports2.GetObjectLockConfigurationCommand = GetObjectLockConfigurationCommand;
+  exports2.GetObjectRetentionCommand = GetObjectRetentionCommand;
+  exports2.GetObjectTaggingCommand = GetObjectTaggingCommand;
+  exports2.GetObjectTorrentCommand = GetObjectTorrentCommand;
+  exports2.GetPublicAccessBlockCommand = GetPublicAccessBlockCommand;
+  exports2.HeadBucketCommand = HeadBucketCommand;
+  exports2.HeadObjectCommand = HeadObjectCommand;
+  exports2.IntelligentTieringAccessTier = IntelligentTieringAccessTier;
+  exports2.IntelligentTieringStatus = IntelligentTieringStatus;
+  exports2.InventoryConfigurationState = InventoryConfigurationState;
+  exports2.InventoryFormat = InventoryFormat;
+  exports2.InventoryFrequency = InventoryFrequency;
+  exports2.InventoryIncludedObjectVersions = InventoryIncludedObjectVersions;
+  exports2.InventoryOptionalField = InventoryOptionalField;
+  exports2.JSONType = JSONType;
+  exports2.ListBucketAnalyticsConfigurationsCommand = ListBucketAnalyticsConfigurationsCommand;
+  exports2.ListBucketIntelligentTieringConfigurationsCommand = ListBucketIntelligentTieringConfigurationsCommand;
+  exports2.ListBucketInventoryConfigurationsCommand = ListBucketInventoryConfigurationsCommand;
+  exports2.ListBucketMetricsConfigurationsCommand = ListBucketMetricsConfigurationsCommand;
+  exports2.ListBucketsCommand = ListBucketsCommand;
+  exports2.ListDirectoryBucketsCommand = ListDirectoryBucketsCommand;
+  exports2.ListMultipartUploadsCommand = ListMultipartUploadsCommand;
+  exports2.ListObjectVersionsCommand = ListObjectVersionsCommand;
+  exports2.ListObjectsCommand = ListObjectsCommand;
+  exports2.ListObjectsV2Command = ListObjectsV2Command;
+  exports2.ListPartsCommand = ListPartsCommand;
+  exports2.LocationType = LocationType;
+  exports2.MFADelete = MFADelete;
+  exports2.MFADeleteStatus = MFADeleteStatus;
+  exports2.MetadataDirective = MetadataDirective;
+  exports2.MetricsStatus = MetricsStatus;
+  exports2.ObjectAttributes = ObjectAttributes;
+  exports2.ObjectCannedACL = ObjectCannedACL;
+  exports2.ObjectLockEnabled = ObjectLockEnabled;
+  exports2.ObjectLockLegalHoldStatus = ObjectLockLegalHoldStatus;
+  exports2.ObjectLockMode = ObjectLockMode;
+  exports2.ObjectLockRetentionMode = ObjectLockRetentionMode;
+  exports2.ObjectOwnership = ObjectOwnership;
+  exports2.ObjectStorageClass = ObjectStorageClass;
+  exports2.ObjectVersionStorageClass = ObjectVersionStorageClass;
+  exports2.OptionalObjectAttributes = OptionalObjectAttributes;
+  exports2.OwnerOverride = OwnerOverride;
+  exports2.PartitionDateSource = PartitionDateSource;
+  exports2.Payer = Payer;
+  exports2.Permission = Permission;
+  exports2.Protocol = Protocol;
+  exports2.PutBucketAbacCommand = PutBucketAbacCommand;
+  exports2.PutBucketAccelerateConfigurationCommand = PutBucketAccelerateConfigurationCommand;
+  exports2.PutBucketAclCommand = PutBucketAclCommand;
+  exports2.PutBucketAnalyticsConfigurationCommand = PutBucketAnalyticsConfigurationCommand;
+  exports2.PutBucketCorsCommand = PutBucketCorsCommand;
+  exports2.PutBucketEncryptionCommand = PutBucketEncryptionCommand;
+  exports2.PutBucketIntelligentTieringConfigurationCommand = PutBucketIntelligentTieringConfigurationCommand;
+  exports2.PutBucketInventoryConfigurationCommand = PutBucketInventoryConfigurationCommand;
+  exports2.PutBucketLifecycleConfigurationCommand = PutBucketLifecycleConfigurationCommand;
+  exports2.PutBucketLoggingCommand = PutBucketLoggingCommand;
+  exports2.PutBucketMetricsConfigurationCommand = PutBucketMetricsConfigurationCommand;
+  exports2.PutBucketNotificationConfigurationCommand = PutBucketNotificationConfigurationCommand;
+  exports2.PutBucketOwnershipControlsCommand = PutBucketOwnershipControlsCommand;
+  exports2.PutBucketPolicyCommand = PutBucketPolicyCommand;
+  exports2.PutBucketReplicationCommand = PutBucketReplicationCommand;
+  exports2.PutBucketRequestPaymentCommand = PutBucketRequestPaymentCommand;
+  exports2.PutBucketTaggingCommand = PutBucketTaggingCommand;
+  exports2.PutBucketVersioningCommand = PutBucketVersioningCommand;
+  exports2.PutBucketWebsiteCommand = PutBucketWebsiteCommand;
+  exports2.PutObjectAclCommand = PutObjectAclCommand;
+  exports2.PutObjectCommand = PutObjectCommand;
+  exports2.PutObjectLegalHoldCommand = PutObjectLegalHoldCommand;
+  exports2.PutObjectLockConfigurationCommand = PutObjectLockConfigurationCommand;
+  exports2.PutObjectRetentionCommand = PutObjectRetentionCommand;
+  exports2.PutObjectTaggingCommand = PutObjectTaggingCommand;
+  exports2.PutPublicAccessBlockCommand = PutPublicAccessBlockCommand;
+  exports2.QuoteFields = QuoteFields;
+  exports2.RenameObjectCommand = RenameObjectCommand;
+  exports2.ReplicaModificationsStatus = ReplicaModificationsStatus;
+  exports2.ReplicationRuleStatus = ReplicationRuleStatus;
+  exports2.ReplicationStatus = ReplicationStatus;
+  exports2.ReplicationTimeStatus = ReplicationTimeStatus;
+  exports2.RequestCharged = RequestCharged;
+  exports2.RequestPayer = RequestPayer;
+  exports2.RestoreObjectCommand = RestoreObjectCommand;
+  exports2.RestoreRequestType = RestoreRequestType;
+  exports2.S3 = S3;
+  exports2.S3Client = S3Client;
+  exports2.S3TablesBucketType = S3TablesBucketType;
+  exports2.SelectObjectContentCommand = SelectObjectContentCommand;
+  exports2.ServerSideEncryption = ServerSideEncryption;
+  exports2.SessionMode = SessionMode;
+  exports2.SseKmsEncryptedObjectsStatus = SseKmsEncryptedObjectsStatus;
+  exports2.StorageClass = StorageClass;
+  exports2.StorageClassAnalysisSchemaVersion = StorageClassAnalysisSchemaVersion;
+  exports2.TableSseAlgorithm = TableSseAlgorithm;
+  exports2.TaggingDirective = TaggingDirective;
+  exports2.Tier = Tier;
+  exports2.TransitionDefaultMinimumObjectSize = TransitionDefaultMinimumObjectSize;
+  exports2.TransitionStorageClass = TransitionStorageClass;
+  exports2.Type = Type2;
+  exports2.UpdateBucketMetadataInventoryTableConfigurationCommand = UpdateBucketMetadataInventoryTableConfigurationCommand;
+  exports2.UpdateBucketMetadataJournalTableConfigurationCommand = UpdateBucketMetadataJournalTableConfigurationCommand;
+  exports2.UpdateObjectEncryptionCommand = UpdateObjectEncryptionCommand;
+  exports2.UploadPartCommand = UploadPartCommand;
+  exports2.UploadPartCopyCommand = UploadPartCopyCommand;
+  exports2.WriteGetObjectResponseCommand = WriteGetObjectResponseCommand;
+  exports2.paginateListBuckets = paginateListBuckets;
+  exports2.paginateListDirectoryBuckets = paginateListDirectoryBuckets;
+  exports2.paginateListObjectsV2 = paginateListObjectsV2;
+  exports2.paginateListParts = paginateListParts;
+  exports2.waitForBucketExists = waitForBucketExists;
+  exports2.waitForBucketNotExists = waitForBucketNotExists;
+  exports2.waitForObjectExists = waitForObjectExists;
+  exports2.waitForObjectNotExists = waitForObjectNotExists;
+  exports2.waitUntilBucketExists = waitUntilBucketExists;
+  exports2.waitUntilBucketNotExists = waitUntilBucketNotExists;
+  exports2.waitUntilObjectExists = waitUntilObjectExists;
+  exports2.waitUntilObjectNotExists = waitUntilObjectNotExists;
+  Object.prototype.hasOwnProperty.call(schemas_0, "__proto__") && !Object.prototype.hasOwnProperty.call(exports2, "__proto__") && Object.defineProperty(exports2, "__proto__", {
+    enumerable: true,
+    value: schemas_0["__proto__"]
+  });
+  Object.keys(schemas_0).forEach(function(k) {
+    if (k !== "default" && !Object.prototype.hasOwnProperty.call(exports2, k))
+      exports2[k] = schemas_0[k];
+  });
+  Object.prototype.hasOwnProperty.call(errors, "__proto__") && !Object.prototype.hasOwnProperty.call(exports2, "__proto__") && Object.defineProperty(exports2, "__proto__", {
+    enumerable: true,
+    value: errors["__proto__"]
+  });
+  Object.keys(errors).forEach(function(k) {
+    if (k !== "default" && !Object.prototype.hasOwnProperty.call(exports2, k))
+      exports2[k] = errors[k];
+  });
+});
+
+// ../../node_modules/.bun/@aws-sdk+core@3.974.14/node_modules/@aws-sdk/core/dist-cjs/submodules/client/index.js
+var require_client3 = __commonJS((exports2) => {
+  var __dirname = "E:\\PPWL\\ppwl14-CapstoneThreads\\node_modules\\.bun\\@aws-sdk+core@3.974.14\\node_modules\\@aws-sdk\\core\\dist-cjs\\submodules\\client";
+  var retry = require_retry();
+  var protocols = require_protocols();
+  var lambdaInvokeStore = require_invoke_store();
+  var core = require_dist_cjs5();
+  var node_os = require("node:os");
+  var node_process = require("node:process");
+  var config = require_config();
+  var promises = require("node:fs/promises");
+  var node_path = require("node:path");
+  var endpoints = require_endpoints();
+  var state = {
+    warningEmitted: false
+  };
+  var emitWarningIfUnsupportedVersion = (version) => {
+    if (version && !state.warningEmitted) {
+      if (process.env.AWS_SDK_JS_NODE_VERSION_SUPPORT_WARNING_DISABLED === "true") {
+        state.warningEmitted = true;
+        return;
+      }
+      const userMajorVersion = parseInt(version.substring(1, version.indexOf(".")));
+      const vv = 22;
+      if (userMajorVersion < vv) {
+        state.warningEmitted = true;
+        process.emitWarning(`NodeVersionSupportWarning: The AWS SDK for JavaScript (v3)
+versions published after the first week of January 2027
+will require node >=${vv}. You are running node ${version}.
+
+To continue receiving updates to AWS services, bug fixes,
+and security updates please upgrade to node >=${vv}.
+
+More information can be found at: https://a.co/c895JFp`);
+      }
+    }
+  };
+  var longPollMiddleware = () => (next, context) => async (args) => {
+    context.__retryLongPoll = true;
+    return next(args);
+  };
+  var longPollMiddlewareOptions = {
+    name: "longPollMiddleware",
+    tags: ["RETRY"],
+    step: "initialize",
+    override: true
+  };
+  var getLongPollPlugin = (options) => ({
+    applyToStack: (clientStack) => {
+      clientStack.add(longPollMiddleware(), longPollMiddlewareOptions);
+    }
+  });
+  function setCredentialFeature(credentials, feature, value) {
+    if (!credentials.$source) {
+      credentials.$source = {};
+    }
+    credentials.$source[feature] = value;
+    return credentials;
+  }
+  retry.Retry.v2026 ||= typeof process === "object" && process.env?.AWS_NEW_RETRIES_2026 === "true";
+  function setFeature(context, feature, value) {
+    if (!context.__aws_sdk_context) {
+      context.__aws_sdk_context = {
+        features: {}
+      };
+    } else if (!context.__aws_sdk_context.features) {
+      context.__aws_sdk_context.features = {};
+    }
+    context.__aws_sdk_context.features[feature] = value;
+  }
+  function setTokenFeature(token, feature, value) {
+    if (!token.$source) {
+      token.$source = {};
+    }
+    token.$source[feature] = value;
+    return token;
+  }
+  function resolveHostHeaderConfig(input) {
+    return input;
+  }
+  var hostHeaderMiddleware = (options) => (next) => async (args) => {
+    if (!protocols.HttpRequest.isInstance(args.request))
+      return next(args);
+    const { request } = args;
+    const { handlerProtocol = "" } = options.requestHandler.metadata || {};
+    if (handlerProtocol.indexOf("h2") >= 0 && !request.headers[":authority"]) {
+      delete request.headers["host"];
+      request.headers[":authority"] = request.hostname + (request.port ? ":" + request.port : "");
+    } else if (!request.headers["host"]) {
+      let host = request.hostname;
+      if (request.port != null)
+        host += `:${request.port}`;
+      request.headers["host"] = host;
+    }
+    return next(args);
+  };
+  var hostHeaderMiddlewareOptions = {
+    name: "hostHeaderMiddleware",
+    step: "build",
+    priority: "low",
+    tags: ["HOST"],
+    override: true
+  };
+  var getHostHeaderPlugin = (options) => ({
+    applyToStack: (clientStack) => {
+      clientStack.add(hostHeaderMiddleware(options), hostHeaderMiddlewareOptions);
+    }
+  });
+  var loggerMiddleware = () => (next, context) => async (args) => {
+    try {
+      const response = await next(args);
+      const { clientName, commandName, logger, dynamoDbDocumentClientOptions = {} } = context;
+      const { overrideInputFilterSensitiveLog, overrideOutputFilterSensitiveLog } = dynamoDbDocumentClientOptions;
+      const inputFilterSensitiveLog = overrideInputFilterSensitiveLog ?? context.inputFilterSensitiveLog;
+      const outputFilterSensitiveLog = overrideOutputFilterSensitiveLog ?? context.outputFilterSensitiveLog;
+      const { $metadata, ...outputWithoutMetadata } = response.output;
+      logger?.info?.({
+        clientName,
+        commandName,
+        input: inputFilterSensitiveLog(args.input),
+        output: outputFilterSensitiveLog(outputWithoutMetadata),
+        metadata: $metadata
+      });
+      return response;
+    } catch (error) {
+      const { clientName, commandName, logger, dynamoDbDocumentClientOptions = {} } = context;
+      const { overrideInputFilterSensitiveLog } = dynamoDbDocumentClientOptions;
+      const inputFilterSensitiveLog = overrideInputFilterSensitiveLog ?? context.inputFilterSensitiveLog;
+      logger?.error?.({
+        clientName,
+        commandName,
+        input: inputFilterSensitiveLog(args.input),
+        error,
+        metadata: error.$metadata
+      });
+      throw error;
+    }
+  };
+  var loggerMiddlewareOptions = {
+    name: "loggerMiddleware",
+    tags: ["LOGGER"],
+    step: "initialize",
+    override: true
+  };
+  var getLoggerPlugin = (options) => ({
+    applyToStack: (clientStack) => {
+      clientStack.add(loggerMiddleware(), loggerMiddlewareOptions);
+    }
+  });
+  var recursionDetectionMiddlewareOptions = {
+    step: "build",
+    tags: ["RECURSION_DETECTION"],
+    name: "recursionDetectionMiddleware",
+    override: true,
+    priority: "low"
+  };
+  var TRACE_ID_HEADER_NAME = "X-Amzn-Trace-Id";
+  var ENV_LAMBDA_FUNCTION_NAME = "AWS_LAMBDA_FUNCTION_NAME";
+  var ENV_TRACE_ID = "_X_AMZN_TRACE_ID";
+  var recursionDetectionMiddleware = () => (next) => async (args) => {
+    const { request } = args;
+    if (!protocols.HttpRequest.isInstance(request)) {
+      return next(args);
+    }
+    const traceIdHeader = Object.keys(request.headers ?? {}).find((h) => h.toLowerCase() === TRACE_ID_HEADER_NAME.toLowerCase()) ?? TRACE_ID_HEADER_NAME;
+    if (request.headers.hasOwnProperty(traceIdHeader)) {
+      return next(args);
+    }
+    const functionName = process.env[ENV_LAMBDA_FUNCTION_NAME];
+    const traceIdFromEnv = process.env[ENV_TRACE_ID];
+    const invokeStore = await lambdaInvokeStore.InvokeStore.getInstanceAsync();
+    const traceIdFromInvokeStore = invokeStore?.getXRayTraceId();
+    const traceId = traceIdFromInvokeStore ?? traceIdFromEnv;
+    const nonEmptyString = (str) => typeof str === "string" && str.length > 0;
+    if (nonEmptyString(functionName) && nonEmptyString(traceId)) {
+      request.headers[TRACE_ID_HEADER_NAME] = traceId;
+    }
+    return next({
+      ...args,
+      request
+    });
+  };
+  var getRecursionDetectionPlugin = (options) => ({
+    applyToStack: (clientStack) => {
+      clientStack.add(recursionDetectionMiddleware(), recursionDetectionMiddlewareOptions);
+    }
+  });
+  var DEFAULT_UA_APP_ID = undefined;
+  function isValidUserAgentAppId(appId) {
+    if (appId === undefined) {
+      return true;
+    }
+    return typeof appId === "string" && appId.length <= 50;
+  }
+  function resolveUserAgentConfig(input) {
+    const normalizedAppIdProvider = core.normalizeProvider(input.userAgentAppId ?? DEFAULT_UA_APP_ID);
+    const { customUserAgent } = input;
+    return Object.assign(input, {
+      customUserAgent: typeof customUserAgent === "string" ? [[customUserAgent]] : customUserAgent,
+      userAgentAppId: async () => {
+        const appId = await normalizedAppIdProvider();
+        if (!isValidUserAgentAppId(appId)) {
+          const logger = input.logger?.constructor?.name === "NoOpLogger" || !input.logger ? console : input.logger;
+          if (typeof appId !== "string") {
+            logger?.warn("userAgentAppId must be a string or undefined.");
+          } else if (appId.length > 50) {
+            logger?.warn("The provided userAgentAppId exceeds the maximum length of 50 characters.");
+          }
+        }
+        return appId;
+      }
+    });
+  }
+  var partitionsInfo = { partitions: [{ id: "aws", outputs: { dnsSuffix: "amazonaws.com", dualStackDnsSuffix: "api.aws", implicitGlobalRegion: "us-east-1", name: "aws", supportsDualStack: true, supportsFIPS: true }, regionRegex: "^(us|eu|ap|sa|ca|me|af|il|mx)\\-\\w+\\-\\d+$", regions: { "af-south-1": { description: "Africa (Cape Town)" }, "ap-east-1": { description: "Asia Pacific (Hong Kong)" }, "ap-east-2": { description: "Asia Pacific (Taipei)" }, "ap-northeast-1": { description: "Asia Pacific (Tokyo)" }, "ap-northeast-2": { description: "Asia Pacific (Seoul)" }, "ap-northeast-3": { description: "Asia Pacific (Osaka)" }, "ap-south-1": { description: "Asia Pacific (Mumbai)" }, "ap-south-2": { description: "Asia Pacific (Hyderabad)" }, "ap-southeast-1": { description: "Asia Pacific (Singapore)" }, "ap-southeast-2": { description: "Asia Pacific (Sydney)" }, "ap-southeast-3": { description: "Asia Pacific (Jakarta)" }, "ap-southeast-4": { description: "Asia Pacific (Melbourne)" }, "ap-southeast-5": { description: "Asia Pacific (Malaysia)" }, "ap-southeast-6": { description: "Asia Pacific (New Zealand)" }, "ap-southeast-7": { description: "Asia Pacific (Thailand)" }, "aws-global": { description: "aws global region" }, "ca-central-1": { description: "Canada (Central)" }, "ca-west-1": { description: "Canada West (Calgary)" }, "eu-central-1": { description: "Europe (Frankfurt)" }, "eu-central-2": { description: "Europe (Zurich)" }, "eu-north-1": { description: "Europe (Stockholm)" }, "eu-south-1": { description: "Europe (Milan)" }, "eu-south-2": { description: "Europe (Spain)" }, "eu-west-1": { description: "Europe (Ireland)" }, "eu-west-2": { description: "Europe (London)" }, "eu-west-3": { description: "Europe (Paris)" }, "il-central-1": { description: "Israel (Tel Aviv)" }, "me-central-1": { description: "Middle East (UAE)" }, "me-south-1": { description: "Middle East (Bahrain)" }, "mx-central-1": { description: "Mexico (Central)" }, "sa-east-1": { description: "South America (Sao Paulo)" }, "us-east-1": { description: "US East (N. Virginia)" }, "us-east-2": { description: "US East (Ohio)" }, "us-west-1": { description: "US West (N. California)" }, "us-west-2": { description: "US West (Oregon)" } } }, { id: "aws-cn", outputs: { dnsSuffix: "amazonaws.com.cn", dualStackDnsSuffix: "api.amazonwebservices.com.cn", implicitGlobalRegion: "cn-northwest-1", name: "aws-cn", supportsDualStack: true, supportsFIPS: true }, regionRegex: "^cn\\-\\w+\\-\\d+$", regions: { "aws-cn-global": { description: "aws-cn global region" }, "cn-north-1": { description: "China (Beijing)" }, "cn-northwest-1": { description: "China (Ningxia)" } } }, { id: "aws-eusc", outputs: { dnsSuffix: "amazonaws.eu", dualStackDnsSuffix: "api.amazonwebservices.eu", implicitGlobalRegion: "eusc-de-east-1", name: "aws-eusc", supportsDualStack: true, supportsFIPS: true }, regionRegex: "^eusc\\-(de)\\-\\w+\\-\\d+$", regions: { "eusc-de-east-1": { description: "AWS European Sovereign Cloud (Germany)" } } }, { id: "aws-iso", outputs: { dnsSuffix: "c2s.ic.gov", dualStackDnsSuffix: "api.aws.ic.gov", implicitGlobalRegion: "us-iso-east-1", name: "aws-iso", supportsDualStack: true, supportsFIPS: true }, regionRegex: "^us\\-iso\\-\\w+\\-\\d+$", regions: { "aws-iso-global": { description: "aws-iso global region" }, "us-iso-east-1": { description: "US ISO East" }, "us-iso-west-1": { description: "US ISO WEST" } } }, { id: "aws-iso-b", outputs: { dnsSuffix: "sc2s.sgov.gov", dualStackDnsSuffix: "api.aws.scloud", implicitGlobalRegion: "us-isob-east-1", name: "aws-iso-b", supportsDualStack: true, supportsFIPS: true }, regionRegex: "^us\\-isob\\-\\w+\\-\\d+$", regions: { "aws-iso-b-global": { description: "aws-iso-b global region" }, "us-isob-east-1": { description: "US ISOB East (Ohio)" }, "us-isob-west-1": { description: "US ISOB West" } } }, { id: "aws-iso-e", outputs: { dnsSuffix: "cloud.adc-e.uk", dualStackDnsSuffix: "api.cloud-aws.adc-e.uk", implicitGlobalRegion: "eu-isoe-west-1", name: "aws-iso-e", supportsDualStack: true, supportsFIPS: true }, regionRegex: "^eu\\-isoe\\-\\w+\\-\\d+$", regions: { "aws-iso-e-global": { description: "aws-iso-e global region" }, "eu-isoe-west-1": { description: "EU ISOE West" } } }, { id: "aws-iso-f", outputs: { dnsSuffix: "csp.hci.ic.gov", dualStackDnsSuffix: "api.aws.hci.ic.gov", implicitGlobalRegion: "us-isof-south-1", name: "aws-iso-f", supportsDualStack: true, supportsFIPS: true }, regionRegex: "^us\\-isof\\-\\w+\\-\\d+$", regions: { "aws-iso-f-global": { description: "aws-iso-f global region" }, "us-isof-east-1": { description: "US ISOF EAST" }, "us-isof-south-1": { description: "US ISOF SOUTH" } } }, { id: "aws-us-gov", outputs: { dnsSuffix: "amazonaws.com", dualStackDnsSuffix: "api.aws", implicitGlobalRegion: "us-gov-west-1", name: "aws-us-gov", supportsDualStack: true, supportsFIPS: true }, regionRegex: "^us\\-gov\\-\\w+\\-\\d+$", regions: { "aws-us-gov-global": { description: "aws-us-gov global region" }, "us-gov-east-1": { description: "AWS GovCloud (US-East)" }, "us-gov-west-1": { description: "AWS GovCloud (US-West)" } } }], version: "1.1" };
+  var selectedPartitionsInfo = partitionsInfo;
+  var selectedUserAgentPrefix = "";
+  var partition = (value) => {
+    const { partitions } = selectedPartitionsInfo;
+    for (const partition2 of partitions) {
+      const { regions, outputs } = partition2;
+      for (const [region, regionData] of Object.entries(regions)) {
+        if (region === value) {
+          return {
+            ...outputs,
+            ...regionData
+          };
+        }
+      }
+    }
+    for (const partition2 of partitions) {
+      const { regionRegex, outputs } = partition2;
+      if (new RegExp(regionRegex).test(value)) {
+        return {
+          ...outputs
+        };
+      }
+    }
+    const DEFAULT_PARTITION = partitions.find((partition2) => partition2.id === "aws");
+    if (!DEFAULT_PARTITION) {
+      throw new Error("Provided region was not found in the partition array or regex," + " and default partition with id 'aws' doesn't exist.");
+    }
+    return {
+      ...DEFAULT_PARTITION.outputs
+    };
+  };
+  var setPartitionInfo = (partitionsInfo2, userAgentPrefix = "") => {
+    selectedPartitionsInfo = partitionsInfo2;
+    selectedUserAgentPrefix = userAgentPrefix;
+  };
+  var useDefaultPartitionInfo = () => {
+    setPartitionInfo(partitionsInfo, "");
+  };
+  var getUserAgentPrefix = () => selectedUserAgentPrefix;
+  var ACCOUNT_ID_ENDPOINT_REGEX = /\d{12}\.ddb/;
+  async function checkFeatures(context, config2, args) {
+    const request = args.request;
+    if (request?.headers?.["smithy-protocol"] === "rpc-v2-cbor") {
+      setFeature(context, "PROTOCOL_RPC_V2_CBOR", "M");
+    }
+    if (typeof config2.retryStrategy === "function") {
+      const retryStrategy = await config2.retryStrategy();
+      if (typeof retryStrategy.mode === "string") {
+        switch (retryStrategy.mode) {
+          case retry.RETRY_MODES.ADAPTIVE:
+            setFeature(context, "RETRY_MODE_ADAPTIVE", "F");
+            break;
+          case retry.RETRY_MODES.STANDARD:
+            setFeature(context, "RETRY_MODE_STANDARD", "E");
+            break;
+        }
+      }
+    }
+    if (typeof config2.accountIdEndpointMode === "function") {
+      const endpointV2 = context.endpointV2;
+      if (String(endpointV2?.url?.hostname).match(ACCOUNT_ID_ENDPOINT_REGEX)) {
+        setFeature(context, "ACCOUNT_ID_ENDPOINT", "O");
+      }
+      switch (await config2.accountIdEndpointMode?.()) {
+        case "disabled":
+          setFeature(context, "ACCOUNT_ID_MODE_DISABLED", "Q");
+          break;
+        case "preferred":
+          setFeature(context, "ACCOUNT_ID_MODE_PREFERRED", "P");
+          break;
+        case "required":
+          setFeature(context, "ACCOUNT_ID_MODE_REQUIRED", "R");
+          break;
+      }
+    }
+    const identity = context.__smithy_context?.selectedHttpAuthScheme?.identity;
+    if (identity?.$source) {
+      const credentials = identity;
+      if (credentials.accountId) {
+        setFeature(context, "RESOLVED_ACCOUNT_ID", "T");
+      }
+      for (const [key, value] of Object.entries(credentials.$source ?? {})) {
+        setFeature(context, key, value);
+      }
+    }
+  }
+  var USER_AGENT = "user-agent";
+  var X_AMZ_USER_AGENT = "x-amz-user-agent";
+  var SPACE = " ";
+  var UA_NAME_SEPARATOR = "/";
+  var UA_NAME_ESCAPE_REGEX = /[^!$%&'*+\-.^_`|~\w]/g;
+  var UA_VALUE_ESCAPE_REGEX = /[^!$%&'*+\-.^_`|~\w#]/g;
+  var UA_ESCAPE_CHAR = "-";
+  var BYTE_LIMIT = 1024;
+  function encodeFeatures(features) {
+    let buffer = "";
+    for (const key in features) {
+      const val = features[key];
+      if (buffer.length + val.length + 1 <= BYTE_LIMIT) {
+        if (buffer.length) {
+          buffer += "," + val;
+        } else {
+          buffer += val;
+        }
+        continue;
+      }
+      break;
+    }
+    return buffer;
+  }
+  var userAgentMiddleware = (options) => (next, context) => async (args) => {
+    const { request } = args;
+    if (!protocols.HttpRequest.isInstance(request)) {
+      return next(args);
+    }
+    const { headers } = request;
+    const userAgent = context?.userAgent?.map(escapeUserAgent) || [];
+    const defaultUserAgent2 = (await options.defaultUserAgentProvider()).map(escapeUserAgent);
+    await checkFeatures(context, options, args);
+    const awsContext = context;
+    defaultUserAgent2.push(`m/${encodeFeatures(Object.assign({}, context.__smithy_context?.features, awsContext.__aws_sdk_context?.features))}`);
+    const customUserAgent = options?.customUserAgent?.map(escapeUserAgent) || [];
+    const appId = await options.userAgentAppId();
+    if (appId) {
+      defaultUserAgent2.push(escapeUserAgent([`app`, `${appId}`]));
+    }
+    const prefix = getUserAgentPrefix();
+    const sdkUserAgentValue = (prefix ? [prefix] : []).concat([...defaultUserAgent2, ...userAgent, ...customUserAgent]).join(SPACE);
+    const normalUAValue = [
+      ...defaultUserAgent2.filter((section) => section.startsWith("aws-sdk-")),
+      ...customUserAgent
+    ].join(SPACE);
+    if (options.runtime !== "browser") {
+      if (normalUAValue) {
+        headers[X_AMZ_USER_AGENT] = headers[X_AMZ_USER_AGENT] ? `${headers[USER_AGENT]} ${normalUAValue}` : normalUAValue;
+      }
+      headers[USER_AGENT] = sdkUserAgentValue;
+    } else {
+      headers[X_AMZ_USER_AGENT] = sdkUserAgentValue;
+    }
+    return next({
+      ...args,
+      request
+    });
+  };
+  var escapeUserAgent = (userAgentPair) => {
+    const name = userAgentPair[0].split(UA_NAME_SEPARATOR).map((part) => part.replace(UA_NAME_ESCAPE_REGEX, UA_ESCAPE_CHAR)).join(UA_NAME_SEPARATOR);
+    const version = userAgentPair[1]?.replace(UA_VALUE_ESCAPE_REGEX, UA_ESCAPE_CHAR);
+    const prefixSeparatorIndex = name.indexOf(UA_NAME_SEPARATOR);
+    const prefix = name.substring(0, prefixSeparatorIndex);
+    let uaName = name.substring(prefixSeparatorIndex + 1);
+    if (prefix === "api") {
+      uaName = uaName.toLowerCase();
+    }
+    return [prefix, uaName, version].filter((item) => item && item.length > 0).reduce((acc, item, index) => {
+      switch (index) {
+        case 0:
+          return item;
+        case 1:
+          return `${acc}/${item}`;
+        default:
+          return `${acc}#${item}`;
+      }
+    }, "");
+  };
+  var getUserAgentMiddlewareOptions = {
+    name: "getUserAgentMiddleware",
+    step: "build",
+    priority: "low",
+    tags: ["SET_USER_AGENT", "USER_AGENT"],
+    override: true
+  };
+  var getUserAgentPlugin = (config2) => ({
+    applyToStack: (clientStack) => {
+      clientStack.add(userAgentMiddleware(config2), getUserAgentMiddlewareOptions);
+    }
+  });
+  var getRuntimeUserAgentPair = () => {
+    const runtimesToCheck = ["deno", "bun", "llrt"];
+    for (const runtime of runtimesToCheck) {
+      if (node_process.versions[runtime]) {
+        return [`md/${runtime}`, node_process.versions[runtime]];
+      }
+    }
+    return ["md/nodejs", node_process.versions.node];
+  };
+  var getNodeModulesParentDirs = (dirname) => {
+    const cwd = process.cwd();
+    if (!dirname) {
+      return [cwd];
+    }
+    const normalizedPath = node_path.normalize(dirname);
+    const parts = normalizedPath.split(node_path.sep);
+    const nodeModulesIndex = parts.indexOf("node_modules");
+    const parentDir = nodeModulesIndex !== -1 ? parts.slice(0, nodeModulesIndex).join(node_path.sep) : normalizedPath;
+    if (cwd === parentDir) {
+      return [cwd];
+    }
+    return [parentDir, cwd];
+  };
+  var SEMVER_REGEX = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*)?$/;
+  var getSanitizedTypeScriptVersion = (version = "") => {
+    const match = version.match(SEMVER_REGEX);
+    if (!match) {
+      return;
+    }
+    const [major, minor, patch, prerelease] = [match[1], match[2], match[3], match[4]];
+    return prerelease ? `${major}.${minor}.${patch}-${prerelease}` : `${major}.${minor}.${patch}`;
+  };
+  var ALLOWED_PREFIXES = ["^", "~", ">=", "<=", ">", "<"];
+  var ALLOWED_DIST_TAGS = ["latest", "beta", "dev", "rc", "insiders", "next"];
+  var getSanitizedDevTypeScriptVersion = (version = "") => {
+    if (ALLOWED_DIST_TAGS.includes(version)) {
+      return version;
+    }
+    const prefix = ALLOWED_PREFIXES.find((p) => version.startsWith(p)) ?? "";
+    const sanitizedTypeScriptVersion = getSanitizedTypeScriptVersion(version.slice(prefix.length));
+    if (!sanitizedTypeScriptVersion) {
+      return;
+    }
+    return `${prefix}${sanitizedTypeScriptVersion}`;
+  };
+  var tscVersion;
+  var TS_PACKAGE_JSON = node_path.join("node_modules", "typescript", "package.json");
+  var getTypeScriptUserAgentPair = async () => {
+    if (tscVersion === null) {
+      return;
+    } else if (typeof tscVersion === "string") {
+      return ["md/tsc", tscVersion];
+    }
+    let isTypeScriptDetectionDisabled = false;
+    try {
+      isTypeScriptDetectionDisabled = config.booleanSelector(process.env, "AWS_SDK_JS_TYPESCRIPT_DETECTION_DISABLED", config.SelectorType.ENV) || false;
+    } catch {}
+    if (isTypeScriptDetectionDisabled) {
+      tscVersion = null;
+      return;
+    }
+    const dirname = typeof __dirname !== "undefined" ? __dirname : undefined;
+    const nodeModulesParentDirs = getNodeModulesParentDirs(dirname);
+    let versionFromApp;
+    for (const nodeModulesParentDir of nodeModulesParentDirs) {
+      try {
+        const appPackageJsonPath = node_path.join(nodeModulesParentDir, "package.json");
+        const packageJson = await promises.readFile(appPackageJsonPath, "utf-8");
+        const { dependencies, devDependencies } = JSON.parse(packageJson);
+        const version = devDependencies?.typescript ?? dependencies?.typescript;
+        if (typeof version !== "string") {
+          continue;
+        }
+        versionFromApp = version;
+        break;
+      } catch {}
+    }
+    if (!versionFromApp) {
+      tscVersion = null;
+      return;
+    }
+    let versionFromNodeModules;
+    for (const nodeModulesParentDir of nodeModulesParentDirs) {
+      try {
+        const tsPackageJsonPath = node_path.join(nodeModulesParentDir, TS_PACKAGE_JSON);
+        const packageJson = await promises.readFile(tsPackageJsonPath, "utf-8");
+        const { version } = JSON.parse(packageJson);
+        const sanitizedVersion2 = getSanitizedTypeScriptVersion(version);
+        if (typeof sanitizedVersion2 !== "string") {
+          continue;
+        }
+        versionFromNodeModules = sanitizedVersion2;
+        break;
+      } catch {}
+    }
+    if (versionFromNodeModules) {
+      tscVersion = versionFromNodeModules;
+      return ["md/tsc", tscVersion];
+    }
+    const sanitizedVersion = getSanitizedDevTypeScriptVersion(versionFromApp);
+    if (typeof sanitizedVersion !== "string") {
+      tscVersion = null;
+      return;
+    }
+    tscVersion = `dev_${sanitizedVersion}`;
+    return ["md/tsc", tscVersion];
+  };
+  var crtAvailability = {
+    isCrtAvailable: false
+  };
+  var isCrtAvailable = () => {
+    if (crtAvailability.isCrtAvailable) {
+      return ["md/crt-avail"];
+    }
+    return null;
+  };
+  var createDefaultUserAgentProvider = ({ serviceId, clientVersion }) => {
+    const runtimeUserAgentPair = getRuntimeUserAgentPair();
+    return async (config2) => {
+      const sections = [
+        ["aws-sdk-js", clientVersion],
+        ["ua", "2.1"],
+        [`os/${node_os.platform()}`, node_os.release()],
+        ["lang/js"],
+        runtimeUserAgentPair
+      ];
+      const typescriptUserAgentPair = await getTypeScriptUserAgentPair();
+      if (typescriptUserAgentPair) {
+        sections.push(typescriptUserAgentPair);
+      }
+      const crtAvailable = isCrtAvailable();
+      if (crtAvailable) {
+        sections.push(crtAvailable);
+      }
+      if (serviceId) {
+        sections.push([`api/${serviceId}`, clientVersion]);
+      }
+      if (node_process.env.AWS_EXECUTION_ENV) {
+        sections.push([`exec-env/${node_process.env.AWS_EXECUTION_ENV}`]);
+      }
+      const appId = await config2?.userAgentAppId?.();
+      const resolvedUserAgent = appId ? [...sections, [`app/${appId}`]] : [...sections];
+      return resolvedUserAgent;
+    };
+  };
+  var defaultUserAgent = createDefaultUserAgentProvider;
+  var UA_APP_ID_ENV_NAME = "AWS_SDK_UA_APP_ID";
+  var UA_APP_ID_INI_NAME = "sdk_ua_app_id";
+  var UA_APP_ID_INI_NAME_DEPRECATED = "sdk-ua-app-id";
+  var NODE_APP_ID_CONFIG_OPTIONS = {
+    environmentVariableSelector: (env4) => env4[UA_APP_ID_ENV_NAME],
+    configFileSelector: (profile) => profile[UA_APP_ID_INI_NAME] ?? profile[UA_APP_ID_INI_NAME_DEPRECATED],
+    default: DEFAULT_UA_APP_ID
+  };
+  var createUserAgentStringParsingProvider = ({ serviceId, clientVersion }) => async (config2) => {
+    const module3 = await Promise.resolve().then(() => __toESM(require_es5()));
+    const parse3 = module3.parse ?? module3.default.parse ?? (() => "");
+    const parsedUA = typeof window !== "undefined" && window?.navigator?.userAgent ? parse3(window.navigator.userAgent) : undefined;
+    const sections = [
+      ["aws-sdk-js", clientVersion],
+      ["ua", "2.1"],
+      [`os/${parsedUA?.os?.name || "other"}`, parsedUA?.os?.version],
+      ["lang/js"],
+      ["md/browser", `${parsedUA?.browser?.name ?? "unknown"}_${parsedUA?.browser?.version ?? "unknown"}`]
+    ];
+    if (serviceId) {
+      sections.push([`api/${serviceId}`, clientVersion]);
+    }
+    const appId = await config2?.userAgentAppId?.();
+    if (appId) {
+      sections.push([`app/${appId}`]);
+    }
+    return sections;
+  };
+  var fallback = {
+    os(ua) {
+      if (/iPhone|iPad|iPod/.test(ua))
+        return "iOS";
+      if (/Macintosh|Mac OS X/.test(ua))
+        return "macOS";
+      if (/Windows NT/.test(ua))
+        return "Windows";
+      if (/Android/.test(ua))
+        return "Android";
+      if (/Linux/.test(ua))
+        return "Linux";
+      return;
+    },
+    browser(ua) {
+      if (/EdgiOS|EdgA|Edg\//.test(ua))
+        return "Microsoft Edge";
+      if (/Firefox\//.test(ua))
+        return "Firefox";
+      if (/Chrome\//.test(ua))
+        return "Chrome";
+      if (/Safari\//.test(ua))
+        return "Safari";
+      return;
+    }
+  };
+  var isVirtualHostableS3Bucket = (value, allowSubDomains = false) => {
+    if (allowSubDomains) {
+      for (const label of value.split(".")) {
+        if (!isVirtualHostableS3Bucket(label)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    if (!endpoints.isValidHostLabel(value)) {
+      return false;
+    }
+    if (value.length < 3 || value.length > 63) {
+      return false;
+    }
+    if (value !== value.toLowerCase()) {
+      return false;
+    }
+    if (endpoints.isIpAddress(value)) {
+      return false;
+    }
+    return true;
+  };
+  var ARN_DELIMITER = ":";
+  var RESOURCE_DELIMITER = "/";
+  var parseArn = (value) => {
+    const segments = value.split(ARN_DELIMITER);
+    if (segments.length < 6)
+      return null;
+    const [arn, partition2, service, region, accountId, ...resourcePath] = segments;
+    if (arn !== "arn" || partition2 === "" || service === "" || resourcePath.join(ARN_DELIMITER) === "")
+      return null;
+    const resourceId = resourcePath.map((resource) => resource.split(RESOURCE_DELIMITER)).flat();
+    return {
+      partition: partition2,
+      service,
+      region,
+      accountId,
+      resourceId
+    };
+  };
+  var awsEndpointFunctions = {
+    isVirtualHostableS3Bucket,
+    parseArn,
+    partition
+  };
+  endpoints.customEndpointFunctions.aws = awsEndpointFunctions;
+  var resolveDefaultAwsRegionalEndpointsConfig = (input) => {
+    if (typeof input.endpointProvider !== "function") {
+      throw new Error("@aws-sdk/util-endpoint - endpointProvider and endpoint missing in config for this client.");
+    }
+    const { endpoint } = input;
+    if (endpoint === undefined) {
+      input.endpoint = async () => {
+        return toEndpointV1(input.endpointProvider({
+          Region: typeof input.region === "function" ? await input.region() : input.region,
+          UseDualStack: typeof input.useDualstackEndpoint === "function" ? await input.useDualstackEndpoint() : input.useDualstackEndpoint,
+          UseFIPS: typeof input.useFipsEndpoint === "function" ? await input.useFipsEndpoint() : input.useFipsEndpoint,
+          Endpoint: undefined
+        }, { logger: input.logger }));
+      };
+    }
+    return input;
+  };
+  var toEndpointV1 = (endpoint) => protocols.parseUrl(endpoint.url);
+  function stsRegionDefaultResolver(loaderConfig = {}) {
+    return config.loadConfig({
+      ...config.NODE_REGION_CONFIG_OPTIONS,
+      async default() {
+        if (!warning.silence) {
+          console.warn("@aws-sdk - WARN - default STS region of us-east-1 used. See @aws-sdk/credential-providers README and set a region explicitly.");
+        }
+        return "us-east-1";
+      }
+    }, { ...config.NODE_REGION_CONFIG_FILE_OPTIONS, ...loaderConfig });
+  }
+  var warning = {
+    silence: false
+  };
+  var getAwsRegionExtensionConfiguration = (runtimeConfig) => {
+    return {
+      setRegion(region) {
+        runtimeConfig.region = region;
+      },
+      region() {
+        return runtimeConfig.region;
+      }
+    };
+  };
+  var resolveAwsRegionExtensionConfiguration = (awsRegionExtensionConfiguration) => {
+    return {
+      region: awsRegionExtensionConfiguration.region()
+    };
+  };
+  exports2.NODE_REGION_CONFIG_FILE_OPTIONS = config.NODE_REGION_CONFIG_FILE_OPTIONS;
+  exports2.NODE_REGION_CONFIG_OPTIONS = config.NODE_REGION_CONFIG_OPTIONS;
+  exports2.REGION_ENV_NAME = config.REGION_ENV_NAME;
+  exports2.REGION_INI_NAME = config.REGION_INI_NAME;
+  exports2.resolveRegionConfig = config.resolveRegionConfig;
+  exports2.EndpointError = endpoints.EndpointError;
+  exports2.isIpAddress = endpoints.isIpAddress;
+  exports2.resolveEndpoint = endpoints.resolveEndpoint;
+  exports2.DEFAULT_UA_APP_ID = DEFAULT_UA_APP_ID;
+  exports2.NODE_APP_ID_CONFIG_OPTIONS = NODE_APP_ID_CONFIG_OPTIONS;
+  exports2.UA_APP_ID_ENV_NAME = UA_APP_ID_ENV_NAME;
+  exports2.UA_APP_ID_INI_NAME = UA_APP_ID_INI_NAME;
+  exports2.awsEndpointFunctions = awsEndpointFunctions;
+  exports2.createDefaultUserAgentProvider = createDefaultUserAgentProvider;
+  exports2.createUserAgentStringParsingProvider = createUserAgentStringParsingProvider;
+  exports2.crtAvailability = crtAvailability;
+  exports2.defaultUserAgent = defaultUserAgent;
+  exports2.emitWarningIfUnsupportedVersion = emitWarningIfUnsupportedVersion;
+  exports2.fallback = fallback;
+  exports2.getAwsRegionExtensionConfiguration = getAwsRegionExtensionConfiguration;
+  exports2.getHostHeaderPlugin = getHostHeaderPlugin;
+  exports2.getLoggerPlugin = getLoggerPlugin;
+  exports2.getLongPollPlugin = getLongPollPlugin;
+  exports2.getRecursionDetectionPlugin = getRecursionDetectionPlugin;
+  exports2.getUserAgentMiddlewareOptions = getUserAgentMiddlewareOptions;
+  exports2.getUserAgentPlugin = getUserAgentPlugin;
+  exports2.getUserAgentPrefix = getUserAgentPrefix;
+  exports2.hostHeaderMiddleware = hostHeaderMiddleware;
+  exports2.hostHeaderMiddlewareOptions = hostHeaderMiddlewareOptions;
+  exports2.isVirtualHostableS3Bucket = isVirtualHostableS3Bucket;
+  exports2.loggerMiddleware = loggerMiddleware;
+  exports2.loggerMiddlewareOptions = loggerMiddlewareOptions;
+  exports2.parseArn = parseArn;
+  exports2.partition = partition;
+  exports2.recursionDetectionMiddleware = recursionDetectionMiddleware;
+  exports2.recursionDetectionMiddlewareOptions = recursionDetectionMiddlewareOptions;
+  exports2.resolveAwsRegionExtensionConfiguration = resolveAwsRegionExtensionConfiguration;
+  exports2.resolveDefaultAwsRegionalEndpointsConfig = resolveDefaultAwsRegionalEndpointsConfig;
+  exports2.resolveHostHeaderConfig = resolveHostHeaderConfig;
+  exports2.resolveUserAgentConfig = resolveUserAgentConfig;
+  exports2.setCredentialFeature = setCredentialFeature;
+  exports2.setFeature = setFeature;
+  exports2.setPartitionInfo = setPartitionInfo;
+  exports2.setTokenFeature = setTokenFeature;
+  exports2.state = state;
+  exports2.stsRegionDefaultResolver = stsRegionDefaultResolver;
+  exports2.stsRegionWarning = warning;
+  exports2.toEndpointV1 = toEndpointV1;
+  exports2.useDefaultPartitionInfo = useDefaultPartitionInfo;
+  exports2.userAgentMiddleware = userAgentMiddleware;
+});
+
+// ../../node_modules/.bun/@aws-sdk+core@3.974.14/node_modules/@aws-sdk/core/dist-cjs/submodules/httpAuthSchemes/index.js
+var require_httpAuthSchemes2 = __commonJS((exports2) => {
+  var protocols = require_protocols();
+  var core = require_dist_cjs5();
+  var config = require_config();
+  var client = require_client3();
+  var signatureV4 = require_dist_cjs10();
+  var getDateHeader = (response) => protocols.HttpResponse.isInstance(response) ? response.headers?.date ?? response.headers?.Date : undefined;
+  var getSkewCorrectedDate = (systemClockOffset) => new Date(Date.now() + systemClockOffset);
+  var isClockSkewed = (clockTime, systemClockOffset) => Math.abs(getSkewCorrectedDate(systemClockOffset).getTime() - clockTime) >= 300000;
+  var getUpdatedSystemClockOffset = (clockTime, currentSystemClockOffset) => {
+    const clockTimeInMs = Date.parse(clockTime);
+    if (isClockSkewed(clockTimeInMs, currentSystemClockOffset)) {
+      return clockTimeInMs - Date.now();
+    }
+    return currentSystemClockOffset;
+  };
+  var throwSigningPropertyError = (name, property) => {
+    if (!property) {
+      throw new Error(`Property \`${name}\` is not resolved for AWS SDK SigV4Auth`);
+    }
+    return property;
+  };
+  var validateSigningProperties = async (signingProperties) => {
+    const context = throwSigningPropertyError("context", signingProperties.context);
+    const config2 = throwSigningPropertyError("config", signingProperties.config);
+    const authScheme = context.endpointV2?.properties?.authSchemes?.[0];
+    const signerFunction = throwSigningPropertyError("signer", config2.signer);
+    const signer = await signerFunction(authScheme);
+    const signingRegion = signingProperties?.signingRegion;
+    const signingRegionSet = signingProperties?.signingRegionSet;
+    const signingName = signingProperties?.signingName;
+    return {
+      config: config2,
+      signer,
+      signingRegion,
+      signingRegionSet,
+      signingName
+    };
+  };
+
+  class AwsSdkSigV4Signer {
+    async sign(httpRequest, identity, signingProperties) {
+      if (!protocols.HttpRequest.isInstance(httpRequest)) {
+        throw new Error("The request is not an instance of `HttpRequest` and cannot be signed");
+      }
+      const validatedProps = await validateSigningProperties(signingProperties);
+      const { config: config2, signer } = validatedProps;
+      let { signingRegion, signingName } = validatedProps;
+      const handlerExecutionContext = signingProperties.context;
+      if (handlerExecutionContext?.authSchemes?.length ?? 0 > 1) {
+        const [first, second] = handlerExecutionContext.authSchemes;
+        if (first?.name === "sigv4a" && second?.name === "sigv4") {
+          signingRegion = second?.signingRegion ?? signingRegion;
+          signingName = second?.signingName ?? signingName;
+        }
+      }
+      const signedRequest = await signer.sign(httpRequest, {
+        signingDate: getSkewCorrectedDate(config2.systemClockOffset),
+        signingRegion,
+        signingService: signingName
+      });
+      return signedRequest;
+    }
+    errorHandler(signingProperties) {
+      return (error) => {
+        const serverTime = error.ServerTime ?? getDateHeader(error.$response);
+        if (serverTime) {
+          const config2 = throwSigningPropertyError("config", signingProperties.config);
+          const initialSystemClockOffset = config2.systemClockOffset;
+          config2.systemClockOffset = getUpdatedSystemClockOffset(serverTime, config2.systemClockOffset);
+          const clockSkewCorrected = config2.systemClockOffset !== initialSystemClockOffset;
+          if (clockSkewCorrected && error.$metadata) {
+            error.$metadata.clockSkewCorrected = true;
+          }
+        }
+        throw error;
+      };
+    }
+    successHandler(httpResponse, signingProperties) {
+      const dateHeader = getDateHeader(httpResponse);
+      if (dateHeader) {
+        const config2 = throwSigningPropertyError("config", signingProperties.config);
+        config2.systemClockOffset = getUpdatedSystemClockOffset(dateHeader, config2.systemClockOffset);
+      }
+    }
+  }
+  var AWSSDKSigV4Signer = AwsSdkSigV4Signer;
+
+  class AwsSdkSigV4ASigner extends AwsSdkSigV4Signer {
+    async sign(httpRequest, identity, signingProperties) {
+      if (!protocols.HttpRequest.isInstance(httpRequest)) {
+        throw new Error("The request is not an instance of `HttpRequest` and cannot be signed");
+      }
+      const { config: config2, signer, signingRegion, signingRegionSet, signingName } = await validateSigningProperties(signingProperties);
+      const configResolvedSigningRegionSet = await config2.sigv4aSigningRegionSet?.();
+      const multiRegionOverride = (configResolvedSigningRegionSet ?? signingRegionSet ?? [signingRegion]).join(",");
+      const signedRequest = await signer.sign(httpRequest, {
+        signingDate: getSkewCorrectedDate(config2.systemClockOffset),
+        signingRegion: multiRegionOverride,
+        signingService: signingName
+      });
+      return signedRequest;
+    }
+  }
+  var getArrayForCommaSeparatedString = (str) => typeof str === "string" && str.length > 0 ? str.split(",").map((item) => item.trim()) : [];
+  var getBearerTokenEnvKey = (signingName) => `AWS_BEARER_TOKEN_${signingName.replace(/[\s-]/g, "_").toUpperCase()}`;
+  var NODE_AUTH_SCHEME_PREFERENCE_ENV_KEY = "AWS_AUTH_SCHEME_PREFERENCE";
+  var NODE_AUTH_SCHEME_PREFERENCE_CONFIG_KEY = "auth_scheme_preference";
+  var NODE_AUTH_SCHEME_PREFERENCE_OPTIONS = {
+    environmentVariableSelector: (env4, options) => {
+      if (options?.signingName) {
+        const bearerTokenKey = getBearerTokenEnvKey(options.signingName);
+        if (bearerTokenKey in env4)
+          return ["httpBearerAuth"];
+      }
+      if (!(NODE_AUTH_SCHEME_PREFERENCE_ENV_KEY in env4))
+        return;
+      return getArrayForCommaSeparatedString(env4[NODE_AUTH_SCHEME_PREFERENCE_ENV_KEY]);
+    },
+    configFileSelector: (profile) => {
+      if (!(NODE_AUTH_SCHEME_PREFERENCE_CONFIG_KEY in profile))
+        return;
+      return getArrayForCommaSeparatedString(profile[NODE_AUTH_SCHEME_PREFERENCE_CONFIG_KEY]);
+    },
+    default: []
+  };
+  var resolveAwsSdkSigV4AConfig = (config2) => {
+    config2.sigv4aSigningRegionSet = core.normalizeProvider(config2.sigv4aSigningRegionSet);
+    return config2;
+  };
+  var NODE_SIGV4A_CONFIG_OPTIONS = {
+    environmentVariableSelector(env4) {
+      if (env4.AWS_SIGV4A_SIGNING_REGION_SET) {
+        return env4.AWS_SIGV4A_SIGNING_REGION_SET.split(",").map((_) => _.trim());
+      }
+      throw new config.ProviderError("AWS_SIGV4A_SIGNING_REGION_SET not set in env.", {
+        tryNextLink: true
+      });
+    },
+    configFileSelector(profile) {
+      if (profile.sigv4a_signing_region_set) {
+        return (profile.sigv4a_signing_region_set ?? "").split(",").map((_) => _.trim());
+      }
+      throw new config.ProviderError("sigv4a_signing_region_set not set in profile.", {
+        tryNextLink: true
+      });
+    },
+    default: undefined
+  };
+  var resolveAwsSdkSigV4Config = (config2) => {
+    let inputCredentials = config2.credentials;
+    let isUserSupplied = !!config2.credentials;
+    let resolvedCredentials = undefined;
+    Object.defineProperty(config2, "credentials", {
+      set(credentials) {
+        if (credentials && credentials !== inputCredentials && credentials !== resolvedCredentials) {
+          isUserSupplied = true;
+        }
+        inputCredentials = credentials;
+        const memoizedProvider = normalizeCredentialProvider(config2, {
+          credentials: inputCredentials,
+          credentialDefaultProvider: config2.credentialDefaultProvider
+        });
+        const boundProvider = bindCallerConfig(config2, memoizedProvider);
+        if (isUserSupplied && !boundProvider.attributed) {
+          const isCredentialObject = typeof inputCredentials === "object" && inputCredentials !== null;
+          resolvedCredentials = async (options) => {
+            const creds = await boundProvider(options);
+            const attributedCreds = creds;
+            if (isCredentialObject && (!attributedCreds.$source || Object.keys(attributedCreds.$source).length === 0)) {
+              return client.setCredentialFeature(attributedCreds, "CREDENTIALS_CODE", "e");
+            }
+            return attributedCreds;
+          };
+          resolvedCredentials.memoized = boundProvider.memoized;
+          resolvedCredentials.configBound = boundProvider.configBound;
+          resolvedCredentials.attributed = true;
+        } else {
+          resolvedCredentials = boundProvider;
+        }
+      },
+      get() {
+        return resolvedCredentials;
+      },
+      enumerable: true,
+      configurable: true
+    });
+    config2.credentials = inputCredentials;
+    const { signingEscapePath = true, systemClockOffset = config2.systemClockOffset || 0, sha256 } = config2;
+    let signer;
+    if (config2.signer) {
+      signer = core.normalizeProvider(config2.signer);
+    } else if (config2.regionInfoProvider) {
+      signer = () => core.normalizeProvider(config2.region)().then(async (region) => [
+        await config2.regionInfoProvider(region, {
+          useFipsEndpoint: await config2.useFipsEndpoint(),
+          useDualstackEndpoint: await config2.useDualstackEndpoint()
+        }) || {},
+        region
+      ]).then(([regionInfo, region]) => {
+        const { signingRegion, signingService } = regionInfo;
+        config2.signingRegion = config2.signingRegion || signingRegion || region;
+        config2.signingName = config2.signingName || signingService || config2.serviceId;
+        const params = {
+          ...config2,
+          credentials: config2.credentials,
+          region: config2.signingRegion,
+          service: config2.signingName,
+          sha256,
+          uriEscapePath: signingEscapePath
+        };
+        const SignerCtor = config2.signerConstructor || signatureV4.SignatureV4;
+        return new SignerCtor(params);
+      });
+    } else {
+      signer = async (authScheme) => {
+        authScheme = Object.assign({}, {
+          name: "sigv4",
+          signingName: config2.signingName || config2.defaultSigningName,
+          signingRegion: await core.normalizeProvider(config2.region)(),
+          properties: {}
+        }, authScheme);
+        const signingRegion = authScheme.signingRegion;
+        const signingService = authScheme.signingName;
+        config2.signingRegion = config2.signingRegion || signingRegion;
+        config2.signingName = config2.signingName || signingService || config2.serviceId;
+        const params = {
+          ...config2,
+          credentials: config2.credentials,
+          region: config2.signingRegion,
+          service: config2.signingName,
+          sha256,
+          uriEscapePath: signingEscapePath
+        };
+        const SignerCtor = config2.signerConstructor || signatureV4.SignatureV4;
+        return new SignerCtor(params);
+      };
+    }
+    const resolvedConfig = Object.assign(config2, {
+      systemClockOffset,
+      signingEscapePath,
+      signer
+    });
+    return resolvedConfig;
+  };
+  var resolveAWSSDKSigV4Config = resolveAwsSdkSigV4Config;
+  function normalizeCredentialProvider(config2, { credentials, credentialDefaultProvider }) {
+    let credentialsProvider;
+    if (credentials) {
+      if (!credentials?.memoized) {
+        credentialsProvider = core.memoizeIdentityProvider(credentials, core.isIdentityExpired, core.doesIdentityRequireRefresh);
+      } else {
+        credentialsProvider = credentials;
+      }
+    } else {
+      if (credentialDefaultProvider) {
+        credentialsProvider = core.normalizeProvider(credentialDefaultProvider(Object.assign({}, config2, {
+          parentClientConfig: config2
+        })));
+      } else {
+        credentialsProvider = async () => {
+          throw new Error("@aws-sdk/core::resolveAwsSdkSigV4Config - `credentials` not provided and no credentialDefaultProvider was configured.");
+        };
+      }
+    }
+    credentialsProvider.memoized = true;
+    return credentialsProvider;
+  }
+  function bindCallerConfig(config2, credentialsProvider) {
+    if (credentialsProvider.configBound) {
+      return credentialsProvider;
+    }
+    const fn = async (options) => credentialsProvider({ ...options, callerClientConfig: config2 });
+    fn.memoized = credentialsProvider.memoized;
+    fn.configBound = true;
+    return fn;
+  }
+  exports2.AWSSDKSigV4Signer = AWSSDKSigV4Signer;
+  exports2.AwsSdkSigV4ASigner = AwsSdkSigV4ASigner;
+  exports2.AwsSdkSigV4Signer = AwsSdkSigV4Signer;
+  exports2.NODE_AUTH_SCHEME_PREFERENCE_OPTIONS = NODE_AUTH_SCHEME_PREFERENCE_OPTIONS;
+  exports2.NODE_SIGV4A_CONFIG_OPTIONS = NODE_SIGV4A_CONFIG_OPTIONS;
+  exports2.getBearerTokenEnvKey = getBearerTokenEnvKey;
+  exports2.resolveAWSSDKSigV4Config = resolveAWSSDKSigV4Config;
+  exports2.resolveAwsSdkSigV4AConfig = resolveAwsSdkSigV4AConfig;
+  exports2.resolveAwsSdkSigV4Config = resolveAwsSdkSigV4Config;
+  exports2.validateSigningProperties = validateSigningProperties;
+});
+
+// ../../node_modules/.bun/@aws-sdk+client-ssm@3.1054.0/node_modules/@aws-sdk/client-ssm/dist-cjs/auth/httpAuthSchemeProvider.js
+var require_httpAuthSchemeProvider2 = __commonJS((exports2) => {
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.resolveHttpAuthSchemeConfig = exports2.defaultSSMHttpAuthSchemeProvider = exports2.defaultSSMHttpAuthSchemeParametersProvider = undefined;
+  var httpAuthSchemes_1 = require_httpAuthSchemes2();
+  var client_1 = require_client();
+  var defaultSSMHttpAuthSchemeParametersProvider = async (config, context, input) => {
+    return {
+      operation: (0, client_1.getSmithyContext)(context).operation,
+      region: await (0, client_1.normalizeProvider)(config.region)() || (() => {
+        throw new Error("expected `region` to be configured for `aws.auth#sigv4`");
+      })()
+    };
+  };
+  exports2.defaultSSMHttpAuthSchemeParametersProvider = defaultSSMHttpAuthSchemeParametersProvider;
+  function createAwsAuthSigv4HttpAuthOption(authParameters) {
+    return {
+      schemeId: "aws.auth#sigv4",
+      signingProperties: {
+        name: "ssm",
+        region: authParameters.region
+      },
+      propertiesExtractor: (config, context) => ({
+        signingProperties: {
+          config,
+          context
+        }
+      })
+    };
+  }
+  var defaultSSMHttpAuthSchemeProvider = (authParameters) => {
+    const options = [];
+    switch (authParameters.operation) {
+      default: {
+        options.push(createAwsAuthSigv4HttpAuthOption(authParameters));
+      }
+    }
+    return options;
+  };
+  exports2.defaultSSMHttpAuthSchemeProvider = defaultSSMHttpAuthSchemeProvider;
+  var resolveHttpAuthSchemeConfig = (config) => {
+    const config_0 = (0, httpAuthSchemes_1.resolveAwsSdkSigV4Config)(config);
+    return Object.assign(config_0, {
+      authSchemePreference: (0, client_1.normalizeProvider)(config.authSchemePreference ?? [])
+    });
+  };
+  exports2.resolveHttpAuthSchemeConfig = resolveHttpAuthSchemeConfig;
+});
+
+// ../../node_modules/.bun/@aws-sdk+client-ssm@3.1054.0/node_modules/@aws-sdk/client-ssm/package.json
+var require_package2 = __commonJS((exports2, module2) => {
+  module2.exports = {
+    name: "@aws-sdk/client-ssm",
+    description: "AWS SDK for JavaScript Ssm Client for Node.js, Browser and React Native",
+    version: "3.1054.0",
+    scripts: {
+      build: "concurrently 'yarn:build:types' 'yarn:build:es' && yarn build:cjs",
+      "build:cjs": "node ../../scripts/compilation/inline client-ssm",
+      "build:es": "tsc -p tsconfig.es.json",
+      "build:include:deps": 'yarn g:turbo run build -F="$npm_package_name"',
+      "build:types": "tsc -p tsconfig.types.json",
+      "build:types:downlevel": "downlevel-dts dist-types dist-types/ts3.4",
+      clean: "premove dist-cjs dist-es dist-types tsconfig.cjs.tsbuildinfo tsconfig.es.tsbuildinfo tsconfig.types.tsbuildinfo",
+      "extract:docs": "api-extractor run --local",
+      "generate:client": "node ../../scripts/generate-clients/single-service --solo ssm",
+      "test:e2e": "yarn g:vitest run -c vitest.config.e2e.mts --mode development",
+      "test:e2e:watch": "yarn g:vitest watch -c vitest.config.e2e.mts",
+      "test:index": "tsc --noEmit ./test/index-types.ts && node ./test/index-objects.spec.mjs"
+    },
+    main: "./dist-cjs/index.js",
+    types: "./dist-types/index.d.ts",
+    module: "./dist-es/index.js",
+    sideEffects: false,
+    dependencies: {
+      "@aws-crypto/sha256-browser": "5.2.0",
+      "@aws-crypto/sha256-js": "5.2.0",
+      "@aws-sdk/core": "^3.974.14",
+      "@aws-sdk/credential-provider-node": "^3.972.45",
+      "@aws-sdk/types": "^3.973.9",
+      "@smithy/core": "^3.24.3",
+      "@smithy/fetch-http-handler": "^5.4.3",
+      "@smithy/node-http-handler": "^4.7.3",
+      "@smithy/types": "^4.14.2",
+      tslib: "^2.6.2"
+    },
+    devDependencies: {
+      "@tsconfig/node20": "20.1.8",
+      "@types/node": "^20.14.8",
+      concurrently: "7.0.0",
+      "downlevel-dts": "0.10.1",
+      premove: "4.0.0",
+      typescript: "~5.8.3"
+    },
+    engines: {
+      node: ">=20.0.0"
+    },
+    typesVersions: {
+      "<4.5": {
+        "dist-types/*": [
+          "dist-types/ts3.4/*"
+        ]
+      }
+    },
+    files: [
+      "dist-*/**"
+    ],
+    author: {
+      name: "AWS SDK for JavaScript Team",
+      url: "https://aws.amazon.com/javascript/"
+    },
+    license: "Apache-2.0",
+    browser: {
+      "./dist-es/runtimeConfig": "./dist-es/runtimeConfig.browser"
+    },
+    "react-native": {
+      "./dist-es/runtimeConfig": "./dist-es/runtimeConfig.native"
+    },
+    homepage: "https://github.com/aws/aws-sdk-js-v3/tree/main/clients/client-ssm",
+    repository: {
+      type: "git",
+      url: "https://github.com/aws/aws-sdk-js-v3.git",
+      directory: "clients/client-ssm"
+    }
+  };
+});
+
+// ../../node_modules/.bun/@aws-sdk+credential-provider-env@3.972.40/node_modules/@aws-sdk/credential-provider-env/dist-cjs/index.js
+var require_dist_cjs28 = __commonJS((exports2) => {
+  var client = require_client3();
+  var config = require_config();
+  var ENV_KEY = "AWS_ACCESS_KEY_ID";
+  var ENV_SECRET = "AWS_SECRET_ACCESS_KEY";
+  var ENV_SESSION = "AWS_SESSION_TOKEN";
+  var ENV_EXPIRATION = "AWS_CREDENTIAL_EXPIRATION";
+  var ENV_CREDENTIAL_SCOPE = "AWS_CREDENTIAL_SCOPE";
+  var ENV_ACCOUNT_ID = "AWS_ACCOUNT_ID";
+  var fromEnv = (init) => async () => {
+    init?.logger?.debug("@aws-sdk/credential-provider-env - fromEnv");
+    const accessKeyId = process.env[ENV_KEY];
+    const secretAccessKey = process.env[ENV_SECRET];
+    const sessionToken = process.env[ENV_SESSION];
+    const expiry = process.env[ENV_EXPIRATION];
+    const credentialScope = process.env[ENV_CREDENTIAL_SCOPE];
+    const accountId = process.env[ENV_ACCOUNT_ID];
+    if (accessKeyId && secretAccessKey) {
+      const credentials = {
+        accessKeyId,
+        secretAccessKey,
+        ...sessionToken && { sessionToken },
+        ...expiry && { expiration: new Date(expiry) },
+        ...credentialScope && { credentialScope },
+        ...accountId && { accountId }
+      };
+      client.setCredentialFeature(credentials, "CREDENTIALS_ENV_VARS", "g");
+      return credentials;
+    }
+    throw new config.CredentialsProviderError("Unable to find environment variable credentials.", { logger: init?.logger });
+  };
+  exports2.ENV_ACCOUNT_ID = ENV_ACCOUNT_ID;
+  exports2.ENV_CREDENTIAL_SCOPE = ENV_CREDENTIAL_SCOPE;
+  exports2.ENV_EXPIRATION = ENV_EXPIRATION;
+  exports2.ENV_KEY = ENV_KEY;
+  exports2.ENV_SECRET = ENV_SECRET;
+  exports2.ENV_SESSION = ENV_SESSION;
+  exports2.fromEnv = fromEnv;
+});
+
+// ../../node_modules/.bun/@aws-sdk+credential-provider-http@3.972.42/node_modules/@aws-sdk/credential-provider-http/dist-cjs/fromHttp/checkUrl.js
+var require_checkUrl2 = __commonJS((exports2) => {
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.checkUrl = undefined;
+  var config_1 = require_config();
+  var ECS_CONTAINER_HOST = "169.254.170.2";
+  var EKS_CONTAINER_HOST_IPv4 = "169.254.170.23";
+  var EKS_CONTAINER_HOST_IPv6 = "[fd00:ec2::23]";
+  var checkUrl = (url, logger) => {
+    if (url.protocol === "https:") {
+      return;
+    }
+    if (url.hostname === ECS_CONTAINER_HOST || url.hostname === EKS_CONTAINER_HOST_IPv4 || url.hostname === EKS_CONTAINER_HOST_IPv6) {
+      return;
+    }
+    if (url.hostname.includes("[")) {
+      if (url.hostname === "[::1]" || url.hostname === "[0000:0000:0000:0000:0000:0000:0000:0001]") {
+        return;
+      }
+    } else {
+      if (url.hostname === "localhost") {
+        return;
+      }
+      const ipComponents = url.hostname.split(".");
+      const inRange = (component) => {
+        const num = parseInt(component, 10);
+        return 0 <= num && num <= 255;
+      };
+      if (ipComponents[0] === "127" && inRange(ipComponents[1]) && inRange(ipComponents[2]) && inRange(ipComponents[3]) && ipComponents.length === 4) {
+        return;
+      }
+    }
+    throw new config_1.CredentialsProviderError(`URL not accepted. It must either be HTTPS or match one of the following:
+  - loopback CIDR 127.0.0.0/8 or [::1/128]
+  - ECS container host 169.254.170.2
+  - EKS container host 169.254.170.23 or [fd00:ec2::23]`, { logger });
+  };
+  exports2.checkUrl = checkUrl;
+});
+
+// ../../node_modules/.bun/@aws-sdk+credential-provider-http@3.972.42/node_modules/@aws-sdk/credential-provider-http/dist-cjs/fromHttp/requestHelpers.js
+var require_requestHelpers2 = __commonJS((exports2) => {
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.createGetRequest = createGetRequest;
+  exports2.getCredentials = getCredentials;
+  var config_1 = require_config();
+  var protocols_1 = require_protocols();
+  var serde_1 = require_serde();
+  var serde_2 = require_serde();
+  function createGetRequest(url) {
+    return new protocols_1.HttpRequest({
+      protocol: url.protocol,
+      hostname: url.hostname,
+      port: Number(url.port),
+      path: url.pathname,
+      query: Array.from(url.searchParams.entries()).reduce((acc, [k, v]) => {
+        acc[k] = v;
+        return acc;
+      }, {}),
+      fragment: url.hash
+    });
+  }
+  async function getCredentials(response, logger) {
+    const stream = (0, serde_2.sdkStreamMixin)(response.body);
+    const str = await stream.transformToString();
+    if (response.statusCode === 200) {
+      const parsed = JSON.parse(str);
+      if (typeof parsed.AccessKeyId !== "string" || typeof parsed.SecretAccessKey !== "string" || typeof parsed.Token !== "string" || typeof parsed.Expiration !== "string") {
+        throw new config_1.CredentialsProviderError("HTTP credential provider response not of the required format, an object matching: " + "{ AccessKeyId: string, SecretAccessKey: string, Token: string, Expiration: string(rfc3339) }", { logger });
+      }
+      return {
+        accessKeyId: parsed.AccessKeyId,
+        secretAccessKey: parsed.SecretAccessKey,
+        sessionToken: parsed.Token,
+        expiration: (0, serde_1.parseRfc3339DateTime)(parsed.Expiration)
+      };
+    }
+    if (response.statusCode >= 400 && response.statusCode < 500) {
+      let parsedBody = {};
+      try {
+        parsedBody = JSON.parse(str);
+      } catch (e) {}
+      throw Object.assign(new config_1.CredentialsProviderError(`Server responded with status: ${response.statusCode}`, { logger }), {
+        Code: parsedBody.Code,
+        Message: parsedBody.Message
+      });
+    }
+    throw new config_1.CredentialsProviderError(`Server responded with status: ${response.statusCode}`, { logger });
+  }
+});
+
+// ../../node_modules/.bun/@aws-sdk+credential-provider-http@3.972.42/node_modules/@aws-sdk/credential-provider-http/dist-cjs/fromHttp/retry-wrapper.js
+var require_retry_wrapper2 = __commonJS((exports2) => {
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.retryWrapper = undefined;
+  var retryWrapper = (toRetry, maxRetries, delayMs) => {
+    return async () => {
+      for (let i = 0;i < maxRetries; ++i) {
+        try {
+          return await toRetry();
+        } catch (e) {
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
+      }
+      return await toRetry();
+    };
+  };
+  exports2.retryWrapper = retryWrapper;
+});
+
+// ../../node_modules/.bun/@aws-sdk+credential-provider-http@3.972.42/node_modules/@aws-sdk/credential-provider-http/dist-cjs/fromHttp/fromHttp.js
+var require_fromHttp2 = __commonJS((exports2) => {
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.fromHttp = undefined;
+  var tslib_1 = require_tslib();
+  var client_1 = require_client3();
+  var config_1 = require_config();
+  var node_http_handler_1 = require_dist_cjs15();
+  var promises_1 = tslib_1.__importDefault(require("node:fs/promises"));
+  var checkUrl_1 = require_checkUrl2();
+  var requestHelpers_1 = require_requestHelpers2();
+  var retry_wrapper_1 = require_retry_wrapper2();
+  var AWS_CONTAINER_CREDENTIALS_RELATIVE_URI = "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI";
+  var DEFAULT_LINK_LOCAL_HOST = "http://169.254.170.2";
+  var AWS_CONTAINER_CREDENTIALS_FULL_URI = "AWS_CONTAINER_CREDENTIALS_FULL_URI";
+  var AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE = "AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE";
+  var AWS_CONTAINER_AUTHORIZATION_TOKEN = "AWS_CONTAINER_AUTHORIZATION_TOKEN";
+  var fromHttp = (options = {}) => {
+    options.logger?.debug("@aws-sdk/credential-provider-http - fromHttp");
+    let host;
+    const relative = options.awsContainerCredentialsRelativeUri ?? process.env[AWS_CONTAINER_CREDENTIALS_RELATIVE_URI];
+    const full = options.awsContainerCredentialsFullUri ?? process.env[AWS_CONTAINER_CREDENTIALS_FULL_URI];
+    const token = options.awsContainerAuthorizationToken ?? process.env[AWS_CONTAINER_AUTHORIZATION_TOKEN];
+    const tokenFile = options.awsContainerAuthorizationTokenFile ?? process.env[AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE];
+    const warn = options.logger?.constructor?.name === "NoOpLogger" || !options.logger?.warn ? console.warn : options.logger.warn.bind(options.logger);
+    if (relative && full) {
+      warn("@aws-sdk/credential-provider-http: " + "you have set both awsContainerCredentialsRelativeUri and awsContainerCredentialsFullUri.");
+      warn("awsContainerCredentialsFullUri will take precedence.");
+    }
+    if (token && tokenFile) {
+      warn("@aws-sdk/credential-provider-http: " + "you have set both awsContainerAuthorizationToken and awsContainerAuthorizationTokenFile.");
+      warn("awsContainerAuthorizationToken will take precedence.");
+    }
+    if (full) {
+      host = full;
+    } else if (relative) {
+      host = `${DEFAULT_LINK_LOCAL_HOST}${relative}`;
+    } else {
+      throw new config_1.CredentialsProviderError(`No HTTP credential provider host provided.
+Set AWS_CONTAINER_CREDENTIALS_FULL_URI or AWS_CONTAINER_CREDENTIALS_RELATIVE_URI.`, { logger: options.logger });
+    }
+    const url = new URL(host);
+    (0, checkUrl_1.checkUrl)(url, options.logger);
+    const requestHandler = node_http_handler_1.NodeHttpHandler.create({ connectionTimeout: options.timeout ?? 1000 });
+    const requestTimeout = options.timeout ?? 1000;
+    const provider = (0, retry_wrapper_1.retryWrapper)(async () => {
+      const request = (0, requestHelpers_1.createGetRequest)(url);
+      if (token) {
+        request.headers.Authorization = token;
+      } else if (tokenFile) {
+        request.headers.Authorization = (await promises_1.default.readFile(tokenFile)).toString();
+      }
+      try {
+        const result = await requestHandler.handle(request, { requestTimeout });
+        return (0, requestHelpers_1.getCredentials)(result.response).then((creds) => (0, client_1.setCredentialFeature)(creds, "CREDENTIALS_HTTP", "z"));
+      } catch (e) {
+        throw new config_1.CredentialsProviderError(String(e), { logger: options.logger });
+      }
+    }, options.maxRetries ?? 3, options.timeout ?? 1000);
+    return async () => {
+      try {
+        return await provider();
+      } finally {
+        requestHandler.destroy?.();
+      }
+    };
+  };
+  exports2.fromHttp = fromHttp;
+});
+
+// ../../node_modules/.bun/@aws-sdk+credential-provider-http@3.972.42/node_modules/@aws-sdk/credential-provider-http/dist-cjs/index.js
+var require_dist_cjs29 = __commonJS((exports2) => {
+  var fromHttp = require_fromHttp2();
+  exports2.fromHttp = fromHttp.fromHttp;
+});
+
+// ../../node_modules/.bun/@aws-sdk+xml-builder@3.972.26/node_modules/@aws-sdk/xml-builder/dist-cjs/xml-external/nodable_entities.js
+var require_nodable_entities2 = __commonJS((exports2) => {
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.EntityDecoderImpl = exports2.CURRENCY = exports2.COMMON_HTML = exports2.XML = undefined;
+  exports2.XML = {
+    amp: "&",
+    apos: "'",
+    gt: ">",
+    lt: "<",
+    quot: '"'
+  };
+  exports2.COMMON_HTML = {
+    nbsp: " ",
+    copy: "©",
+    reg: "®",
+    trade: "™",
+    mdash: "—",
+    ndash: "–",
+    hellip: "…",
+    laquo: "«",
+    raquo: "»",
+    lsquo: "‘",
+    rsquo: "’",
+    ldquo: "“",
+    rdquo: "”",
+    bull: "•",
+    para: "¶",
+    sect: "§",
+    deg: "°",
+    frac12: "½",
+    frac14: "¼",
+    frac34: "¾"
+  };
+  exports2.CURRENCY = {
+    cent: "¢",
+    pound: "£",
+    curren: "¤",
+    yen: "¥",
+    euro: "€",
+    dollar: "$",
+    fnof: "ƒ",
+    inr: "₹",
+    af: "؋",
+    birr: "ብር",
+    peso: "₱",
+    rub: "₽",
+    won: "₩",
+    yuan: "¥",
+    cedil: "¸"
+  };
+  var SPECIAL_CHARS = new Set("!?\\/[]$%{}^&*()<>|+");
+  function validateEntityName(name) {
+    if (name[0] === "#") {
+      throw new Error(`[EntityReplacer] Invalid character '#' in entity name: "${name}"`);
+    }
+    for (const ch of name) {
+      if (SPECIAL_CHARS.has(ch)) {
+        throw new Error(`[EntityReplacer] Invalid character '${ch}' in entity name: "${name}"`);
+      }
+    }
+    return name;
+  }
+  function mergeEntityMaps(...maps) {
+    const out = Object.create(null);
+    for (const map3 of maps) {
+      if (!map3) {
+        continue;
+      }
+      for (const key of Object.keys(map3)) {
+        const raw2 = map3[key];
+        if (typeof raw2 === "string") {
+          out[key] = raw2;
+        } else if (raw2 && typeof raw2 === "object" && raw2.val !== undefined) {
+          const val = raw2.val;
+          if (typeof val === "string") {
+            out[key] = val;
+          }
+        }
+      }
+    }
+    return out;
+  }
+  var LIMIT_TIER_EXTERNAL = "external";
+  var LIMIT_TIER_BASE = "base";
+  var LIMIT_TIER_ALL = "all";
+  function parseLimitTiers(raw2) {
+    if (!raw2 || raw2 === LIMIT_TIER_EXTERNAL) {
+      return new Set([LIMIT_TIER_EXTERNAL]);
+    }
+    if (raw2 === LIMIT_TIER_ALL) {
+      return new Set([LIMIT_TIER_ALL]);
+    }
+    if (raw2 === LIMIT_TIER_BASE) {
+      return new Set([LIMIT_TIER_BASE]);
+    }
+    if (Array.isArray(raw2)) {
+      return new Set(raw2);
+    }
+    return new Set([LIMIT_TIER_EXTERNAL]);
+  }
+  var NCR_LEVEL = Object.freeze({ allow: 0, leave: 1, remove: 2, throw: 3 });
+  var XML10_ALLOWED_C0 = new Set([9, 10, 13]);
+  function parseNCRConfig(ncr) {
+    if (!ncr) {
+      return { xmlVersion: 1, onLevel: NCR_LEVEL.allow, nullLevel: NCR_LEVEL.remove };
+    }
+    const xmlVersion = ncr.xmlVersion === 1.1 ? 1.1 : 1;
+    const onLevel = NCR_LEVEL[ncr.onNCR ?? "allow"] ?? NCR_LEVEL.allow;
+    const nullLevel = NCR_LEVEL[ncr.nullNCR ?? "remove"] ?? NCR_LEVEL.remove;
+    const clampedNull = Math.max(nullLevel, NCR_LEVEL.remove);
+    return { xmlVersion, onLevel, nullLevel: clampedNull };
+  }
+  var EntityDecoderImpl = class EntityDecoderImpl2 {
+    _limit;
+    _maxTotalExpansions;
+    _maxExpandedLength;
+    _postCheck;
+    _limitTiers;
+    _numericAllowed;
+    _baseMap;
+    _externalMap;
+    _inputMap;
+    _totalExpansions;
+    _expandedLength;
+    _removeSet;
+    _leaveSet;
+    _ncrXmlVersion;
+    _ncrOnLevel;
+    _ncrNullLevel;
+    constructor(options = {}) {
+      this._limit = options.limit || {};
+      this._maxTotalExpansions = this._limit.maxTotalExpansions || 0;
+      this._maxExpandedLength = this._limit.maxExpandedLength || 0;
+      this._postCheck = typeof options.postCheck === "function" ? options.postCheck : (r) => r;
+      this._limitTiers = parseLimitTiers(this._limit.applyLimitsTo ?? LIMIT_TIER_EXTERNAL);
+      this._numericAllowed = options.numericAllowed ?? true;
+      this._baseMap = mergeEntityMaps(exports2.XML, options.namedEntities || null);
+      this._externalMap = Object.create(null);
+      this._inputMap = Object.create(null);
+      this._totalExpansions = 0;
+      this._expandedLength = 0;
+      this._removeSet = new Set(options.remove && Array.isArray(options.remove) ? options.remove : []);
+      this._leaveSet = new Set(options.leave && Array.isArray(options.leave) ? options.leave : []);
+      const ncrCfg = parseNCRConfig(options.ncr);
+      this._ncrXmlVersion = ncrCfg.xmlVersion;
+      this._ncrOnLevel = ncrCfg.onLevel;
+      this._ncrNullLevel = ncrCfg.nullLevel;
+    }
+    setExternalEntities(map3) {
+      if (map3) {
+        for (const key of Object.keys(map3)) {
+          validateEntityName(key);
+        }
+      }
+      this._externalMap = mergeEntityMaps(map3);
+    }
+    addExternalEntity(key, value) {
+      validateEntityName(key);
+      if (typeof value === "string" && value.indexOf("&") === -1) {
+        this._externalMap[key] = value;
+      }
+    }
+    addInputEntities(map3) {
+      this._totalExpansions = 0;
+      this._expandedLength = 0;
+      this._inputMap = mergeEntityMaps(map3);
+    }
+    reset() {
+      this._inputMap = Object.create(null);
+      this._totalExpansions = 0;
+      this._expandedLength = 0;
+      return this;
+    }
+    setXmlVersion(version) {
+      this._ncrXmlVersion = version === "1.1" || version === 1.1 ? 1.1 : 1;
+    }
+    decode(str) {
+      if (typeof str !== "string" || str.length === 0) {
+        return str;
+      }
+      const original = str;
+      const chunks = [];
+      const len = str.length;
+      let last = 0;
+      let i = 0;
+      const limitExpansions = this._maxTotalExpansions > 0;
+      const limitLength = this._maxExpandedLength > 0;
+      const checkLimits = limitExpansions || limitLength;
+      while (i < len) {
+        if (str.charCodeAt(i) !== 38) {
+          i++;
+          continue;
+        }
+        let j = i + 1;
+        while (j < len && str.charCodeAt(j) !== 59 && j - i <= 32) {
+          j++;
+        }
+        if (j >= len || str.charCodeAt(j) !== 59) {
+          i++;
+          continue;
+        }
+        const token = str.slice(i + 1, j);
+        if (token.length === 0) {
+          i++;
+          continue;
+        }
+        let replacement;
+        let tier;
+        if (this._removeSet.has(token)) {
+          replacement = "";
+          if (tier === undefined) {
+            tier = LIMIT_TIER_EXTERNAL;
+          }
+        } else if (this._leaveSet.has(token)) {
+          i++;
+          continue;
+        } else if (token.charCodeAt(0) === 35) {
+          const ncrResult = this._resolveNCR(token);
+          if (ncrResult === undefined) {
+            i++;
+            continue;
+          }
+          replacement = ncrResult;
+          tier = LIMIT_TIER_BASE;
+        } else {
+          const resolved = this._resolveName(token);
+          replacement = resolved?.value;
+          tier = resolved?.tier;
+        }
+        if (replacement === undefined) {
+          i++;
+          continue;
+        }
+        if (i > last) {
+          chunks.push(str.slice(last, i));
+        }
+        chunks.push(replacement);
+        last = j + 1;
+        i = last;
+        if (checkLimits && this._tierCounts(tier)) {
+          if (limitExpansions) {
+            this._totalExpansions++;
+            if (this._totalExpansions > this._maxTotalExpansions) {
+              throw new Error(`[EntityReplacer] Entity expansion count limit exceeded: ` + `${this._totalExpansions} > ${this._maxTotalExpansions}`);
+            }
+          }
+          if (limitLength) {
+            const delta2 = replacement.length - (token.length + 2);
+            if (delta2 > 0) {
+              this._expandedLength += delta2;
+              if (this._expandedLength > this._maxExpandedLength) {
+                throw new Error(`[EntityReplacer] Expanded content length limit exceeded: ` + `${this._expandedLength} > ${this._maxExpandedLength}`);
+              }
+            }
+          }
+        }
+      }
+      if (last < len) {
+        chunks.push(str.slice(last));
+      }
+      const result = chunks.length === 0 ? str : chunks.join("");
+      return this._postCheck(result, original);
+    }
+    _tierCounts(tier) {
+      if (this._limitTiers.has(LIMIT_TIER_ALL)) {
+        return true;
+      }
+      return this._limitTiers.has(tier);
+    }
+    _resolveName(name) {
+      if (name in this._inputMap) {
+        return { value: this._inputMap[name], tier: LIMIT_TIER_EXTERNAL };
+      }
+      if (name in this._externalMap) {
+        return { value: this._externalMap[name], tier: LIMIT_TIER_EXTERNAL };
+      }
+      if (name in this._baseMap) {
+        return { value: this._baseMap[name], tier: LIMIT_TIER_BASE };
+      }
+      return;
+    }
+    _classifyNCR(cp) {
+      if (cp === 0) {
+        return this._ncrNullLevel;
+      }
+      if (cp >= 55296 && cp <= 57343) {
+        return NCR_LEVEL.remove;
+      }
+      if (this._ncrXmlVersion === 1) {
+        if (cp >= 1 && cp <= 31 && !XML10_ALLOWED_C0.has(cp)) {
+          return NCR_LEVEL.remove;
+        }
+      }
+      return -1;
+    }
+    _applyNCRAction(action, token, cp) {
+      switch (action) {
+        case NCR_LEVEL.allow:
+          return String.fromCodePoint(cp);
+        case NCR_LEVEL.remove:
+          return "";
+        case NCR_LEVEL.leave:
+          return;
+        case NCR_LEVEL.throw:
+          throw new Error(`[EntityDecoder] Prohibited numeric character reference ` + `&${token}; (U+${cp.toString(16).toUpperCase().padStart(4, "0")})`);
+        default:
+          return String.fromCodePoint(cp);
+      }
+    }
+    _resolveNCR(token) {
+      const second = token.charCodeAt(1);
+      let cp;
+      if (second === 120 || second === 88) {
+        cp = parseInt(token.slice(2), 16);
+      } else {
+        cp = parseInt(token.slice(1), 10);
+      }
+      if (Number.isNaN(cp) || cp < 0 || cp > 1114111) {
+        return;
+      }
+      const minimum = this._classifyNCR(cp);
+      if (!this._numericAllowed && minimum < NCR_LEVEL.remove) {
+        return;
+      }
+      const effective = minimum === -1 ? this._ncrOnLevel : Math.max(this._ncrOnLevel, minimum);
+      return this._applyNCRAction(effective, token, cp);
+    }
+  };
+  exports2.EntityDecoderImpl = EntityDecoderImpl;
+});
+
+// ../../node_modules/.bun/@aws-sdk+xml-builder@3.972.26/node_modules/@aws-sdk/xml-builder/dist-cjs/xml-parser.js
+var require_xml_parser2 = __commonJS((exports2) => {
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.parseXML = parseXML;
+  var fast_xml_parser_1 = require_fxp();
+  var nodable_entities_1 = require_nodable_entities2();
+  var entityDecoder = new nodable_entities_1.EntityDecoderImpl({
+    namedEntities: { ...nodable_entities_1.XML, ...nodable_entities_1.COMMON_HTML, ...nodable_entities_1.CURRENCY },
+    numericAllowed: true,
+    limit: {
+      maxTotalExpansions: Infinity
+    },
+    ncr: {
+      xmlVersion: 1.1
+    }
+  });
+  var parser = new fast_xml_parser_1.XMLParser({
+    attributeNamePrefix: "",
+    processEntities: {
+      enabled: true,
+      maxTotalExpansions: Infinity
+    },
+    htmlEntities: true,
+    entityDecoder: {
+      setExternalEntities: (entities) => {
+        entityDecoder.setExternalEntities(entities);
+      },
+      addInputEntities: (entities) => {
+        entityDecoder.addInputEntities(entities);
+      },
+      reset: () => {
+        entityDecoder.reset();
+      },
+      decode: (text) => {
+        return entityDecoder.decode(text);
+      },
+      setXmlVersion: (version) => {
+        return;
+      }
+    },
+    ignoreAttributes: false,
+    ignoreDeclaration: true,
+    parseTagValue: false,
+    trimValues: false,
+    tagValueProcessor: (_, val) => val.trim() === "" && val.includes(`
+`) ? "" : undefined,
+    maxNestedTags: Infinity
+  });
+  function parseXML(xmlString) {
+    return parser.parse(xmlString, true);
+  }
+});
+
+// ../../node_modules/.bun/@aws-sdk+xml-builder@3.972.26/node_modules/@aws-sdk/xml-builder/dist-cjs/index.js
+var require_dist_cjs30 = __commonJS((exports2) => {
+  var xmlParser = require_xml_parser2();
+  var ATTR_ESCAPE_RE = /[&<>"]/g;
+  var ATTR_ESCAPE_MAP = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;"
+  };
+  function escapeAttribute(value) {
+    return value.replace(ATTR_ESCAPE_RE, (ch) => ATTR_ESCAPE_MAP[ch]);
+  }
+  var ELEMENT_ESCAPE_RE = /[&"'<>\r\n\u0085\u2028]/g;
+  var ELEMENT_ESCAPE_MAP = {
+    "&": "&amp;",
+    '"': "&quot;",
+    "'": "&apos;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\r": "&#x0D;",
+    "\n": "&#x0A;",
+    "": "&#x85;",
+    "\u2028": "&#x2028;"
+  };
+  function escapeElement(value) {
+    return value.replace(ELEMENT_ESCAPE_RE, (ch) => ELEMENT_ESCAPE_MAP[ch]);
+  }
+
+  class XmlText {
+    value;
+    constructor(value) {
+      this.value = value;
+    }
+    toString() {
+      return escapeElement("" + this.value);
+    }
+  }
+
+  class XmlNode {
+    name;
+    children;
+    attributes = {};
+    static of(name, childText, withName) {
+      const node = new XmlNode(name);
+      if (childText !== undefined) {
+        node.addChildNode(new XmlText(childText));
+      }
+      if (withName !== undefined) {
+        node.withName(withName);
+      }
+      return node;
+    }
+    constructor(name, children = []) {
+      this.name = name;
+      this.children = children;
+    }
+    withName(name) {
+      this.name = name;
+      return this;
+    }
+    addAttribute(name, value) {
+      this.attributes[name] = value;
+      return this;
+    }
+    addChildNode(child) {
+      this.children.push(child);
+      return this;
+    }
+    removeAttribute(name) {
+      delete this.attributes[name];
+      return this;
+    }
+    n(name) {
+      this.name = name;
+      return this;
+    }
+    c(child) {
+      this.children.push(child);
+      return this;
+    }
+    a(name, value) {
+      if (value != null) {
+        this.attributes[name] = value;
+      }
+      return this;
+    }
+    cc(input, field, withName = field) {
+      if (input[field] != null) {
+        const node = XmlNode.of(field, input[field]).withName(withName);
+        this.c(node);
+      }
+    }
+    l(input, listName, memberName, valueProvider) {
+      if (input[listName] != null) {
+        const nodes = valueProvider();
+        nodes.map((node) => {
+          node.withName(memberName);
+          this.c(node);
+        });
+      }
+    }
+    lc(input, listName, memberName, valueProvider) {
+      if (input[listName] != null) {
+        const nodes = valueProvider();
+        const containerNode = new XmlNode(memberName);
+        nodes.map((node) => {
+          containerNode.c(node);
+        });
+        this.c(containerNode);
+      }
+    }
+    toString() {
+      const hasChildren = Boolean(this.children.length);
+      let xmlText = `<${this.name}`;
+      const attributes = this.attributes;
+      for (const attributeName of Object.keys(attributes)) {
+        const attribute = attributes[attributeName];
+        if (attribute != null) {
+          xmlText += ` ${attributeName}="${escapeAttribute("" + attribute)}"`;
+        }
+      }
+      return xmlText += !hasChildren ? "/>" : `>${this.children.map((c) => c.toString()).join("")}</${this.name}>`;
+    }
+  }
+  exports2.parseXML = xmlParser.parseXML;
+  exports2.XmlNode = XmlNode;
+  exports2.XmlText = XmlText;
+});
+
+// ../../node_modules/.bun/@aws-sdk+core@3.974.14/node_modules/@aws-sdk/core/dist-cjs/submodules/protocols/index.js
+var require_protocols3 = __commonJS((exports2) => {
+  var cbor = require_cbor();
+  var schema = require_schema4();
+  var client = require_client();
+  var protocols = require_protocols();
+  var serde = require_serde();
+  var xmlBuilder = require_dist_cjs30();
 
   class ProtocolLib {
     queryCompat;
@@ -44756,8 +64563,8 @@ var require_protocols2 = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@aws-sdk+nested-clients@3.997.12/node_modules/@aws-sdk/nested-clients/dist-cjs/submodules/sso-oidc/index.js
-var require_sso_oidc = __commonJS((exports2) => {
-  var client$1 = require_client2();
+var require_sso_oidc2 = __commonJS((exports2) => {
+  var client$1 = require_client3();
   var core = require_dist_cjs5();
   var client = require_client();
   var config = require_config();
@@ -44765,10 +64572,10 @@ var require_sso_oidc = __commonJS((exports2) => {
   var protocols = require_protocols();
   var retry = require_retry();
   var schema = require_schema4();
-  var httpAuthSchemes = require_httpAuthSchemes();
+  var httpAuthSchemes = require_httpAuthSchemes2();
   var serde = require_serde();
-  var nodeHttpHandler = require_dist_cjs9();
-  var protocols$1 = require_protocols2();
+  var nodeHttpHandler = require_dist_cjs15();
+  var protocols$1 = require_protocols3();
   var defaultSSOOIDCHttpAuthSchemeParametersProvider = async (config2, context, input) => {
     return {
       operation: client.getSmithyContext(context).operation,
@@ -45463,9 +65270,9 @@ var require_sso_oidc = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@aws-sdk+token-providers@3.1054.0/node_modules/@aws-sdk/token-providers/dist-cjs/index.js
-var require_dist_cjs12 = __commonJS((exports2) => {
-  var client = require_client2();
-  var httpAuthSchemes = require_httpAuthSchemes();
+var require_dist_cjs31 = __commonJS((exports2) => {
+  var client = require_client3();
+  var httpAuthSchemes = require_httpAuthSchemes2();
   var config = require_config();
   var node_fs = require("node:fs");
   var fromEnvSigningName = ({ logger, signingName } = {}) => async () => {
@@ -45484,7 +65291,7 @@ var require_dist_cjs12 = __commonJS((exports2) => {
   var EXPIRE_WINDOW_MS = 5 * 60 * 1000;
   var REFRESH_MESSAGE = `To refresh this SSO session run 'aws sso login' with the corresponding profile.`;
   var getSsoOidcClient = async (ssoRegion, init = {}, callerClientConfig) => {
-    const { SSOOIDCClient } = await Promise.resolve().then(() => __toESM(require_sso_oidc()));
+    const { SSOOIDCClient } = await Promise.resolve().then(() => __toESM(require_sso_oidc2()));
     const coalesce = (prop) => init.clientConfig?.[prop] ?? init.parentClientConfig?.[prop] ?? callerClientConfig?.[prop];
     const ssoOidcClient = new SSOOIDCClient(Object.assign({}, init.clientConfig ?? {}, {
       region: ssoRegion ?? init.clientConfig?.region,
@@ -45494,7 +65301,7 @@ var require_dist_cjs12 = __commonJS((exports2) => {
     return ssoOidcClient;
   };
   var getNewSsoOidcToken = async (ssoToken, ssoRegion, init = {}, callerClientConfig) => {
-    const { CreateTokenCommand } = await Promise.resolve().then(() => __toESM(require_sso_oidc()));
+    const { CreateTokenCommand } = await Promise.resolve().then(() => __toESM(require_sso_oidc2()));
     const ssoOidcClient = await getSsoOidcClient(ssoRegion, init, callerClientConfig);
     return ssoOidcClient.send(new CreateTokenCommand({
       clientId: ssoToken.clientId,
@@ -45605,8 +65412,8 @@ var require_dist_cjs12 = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@aws-sdk+nested-clients@3.997.12/node_modules/@aws-sdk/nested-clients/dist-cjs/submodules/sso/index.js
-var require_sso = __commonJS((exports2) => {
-  var client$1 = require_client2();
+var require_sso2 = __commonJS((exports2) => {
+  var client$1 = require_client3();
   var core = require_dist_cjs5();
   var client = require_client();
   var config = require_config();
@@ -45614,10 +65421,10 @@ var require_sso = __commonJS((exports2) => {
   var protocols = require_protocols();
   var retry = require_retry();
   var schema = require_schema4();
-  var httpAuthSchemes = require_httpAuthSchemes();
+  var httpAuthSchemes = require_httpAuthSchemes2();
   var serde = require_serde();
-  var nodeHttpHandler = require_dist_cjs9();
-  var protocols$1 = require_protocols2();
+  var nodeHttpHandler = require_dist_cjs15();
+  var protocols$1 = require_protocols3();
   var defaultSSOHttpAuthSchemeParametersProvider = async (config2, context, input) => {
     return {
       operation: client.getSmithyContext(context).operation,
@@ -46100,17 +65907,17 @@ var require_sso = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@aws-sdk+credential-provider-sso@3.972.44/node_modules/@aws-sdk/credential-provider-sso/dist-cjs/loadSso-BKDNrsal.js
-var require_loadSso_BKDNrsal = __commonJS((exports2) => {
-  var sso = require_sso();
+var require_loadSso_BKDNrsal2 = __commonJS((exports2) => {
+  var sso = require_sso2();
   exports2.GetRoleCredentialsCommand = sso.GetRoleCredentialsCommand;
   exports2.SSOClient = sso.SSOClient;
 });
 
 // ../../node_modules/.bun/@aws-sdk+credential-provider-sso@3.972.44/node_modules/@aws-sdk/credential-provider-sso/dist-cjs/index.js
-var require_dist_cjs13 = __commonJS((exports2) => {
+var require_dist_cjs32 = __commonJS((exports2) => {
   var config = require_config();
-  var client = require_client2();
-  var tokenProviders = require_dist_cjs12();
+  var client = require_client3();
+  var tokenProviders = require_dist_cjs31();
   var isSsoProfile = (arg) => arg && (typeof arg.sso_start_url === "string" || typeof arg.sso_account_id === "string" || typeof arg.sso_session === "string" || typeof arg.sso_region === "string" || typeof arg.sso_role_name === "string");
   var SHOULD_FAIL_CREDENTIAL_CHAIN = false;
   var resolveSSOCredentials = async ({ ssoStartUrl, ssoSession, ssoAccountId, ssoRegion, ssoRoleName, ssoClient, clientConfig, parentClientConfig, callerClientConfig, profile, filepath, configFilepath, ignoreCache, logger }) => {
@@ -46152,7 +65959,7 @@ var require_dist_cjs13 = __commonJS((exports2) => {
     }
     const { accessToken } = token;
     const { SSOClient, GetRoleCredentialsCommand } = await Promise.resolve().then(function() {
-      return require_loadSso_BKDNrsal();
+      return require_loadSso_BKDNrsal2();
     });
     const sso = ssoClient || new SSOClient(Object.assign({}, clientConfig ?? {}, {
       logger: clientConfig?.logger ?? callerClientConfig?.logger ?? parentClientConfig?.logger,
@@ -46283,8 +66090,8 @@ Reference: https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sso.ht
 });
 
 // ../../node_modules/.bun/@aws-sdk+nested-clients@3.997.12/node_modules/@aws-sdk/nested-clients/dist-cjs/submodules/signin/index.js
-var require_signin = __commonJS((exports2) => {
-  var client$1 = require_client2();
+var require_signin2 = __commonJS((exports2) => {
+  var client$1 = require_client3();
   var core = require_dist_cjs5();
   var client = require_client();
   var config = require_config();
@@ -46292,10 +66099,10 @@ var require_signin = __commonJS((exports2) => {
   var protocols = require_protocols();
   var retry = require_retry();
   var schema = require_schema4();
-  var httpAuthSchemes = require_httpAuthSchemes();
+  var httpAuthSchemes = require_httpAuthSchemes2();
   var serde = require_serde();
-  var nodeHttpHandler = require_dist_cjs9();
-  var protocols$1 = require_protocols2();
+  var nodeHttpHandler = require_dist_cjs15();
+  var protocols$1 = require_protocols3();
   var defaultSigninHttpAuthSchemeParametersProvider = async (config2, context, input) => {
     return {
       operation: client.getSmithyContext(context).operation,
@@ -46844,8 +66651,8 @@ var require_signin = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@aws-sdk+credential-provider-login@3.972.44/node_modules/@aws-sdk/credential-provider-login/dist-cjs/index.js
-var require_dist_cjs14 = __commonJS((exports2) => {
-  var client = require_client2();
+var require_dist_cjs33 = __commonJS((exports2) => {
+  var client = require_client3();
   var config = require_config();
   var protocols = require_protocols();
   var node_crypto = require("node:crypto");
@@ -46890,7 +66697,7 @@ var require_dist_cjs14 = __commonJS((exports2) => {
       return this.profileData.login_session;
     }
     async refresh(token) {
-      const { SigninClient, CreateOAuth2TokenCommand } = await Promise.resolve().then(() => __toESM(require_signin()));
+      const { SigninClient, CreateOAuth2TokenCommand } = await Promise.resolve().then(() => __toESM(require_signin2()));
       const { logger, userAgentAppId } = this.callerClientConfig ?? {};
       const isH2 = (requestHandler2) => {
         return requestHandler2?.metadata?.handlerProtocol === "h2";
@@ -47119,8 +66926,8 @@ var require_dist_cjs14 = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@aws-sdk+signature-v4-multi-region@3.996.29/node_modules/@aws-sdk/signature-v4-multi-region/dist-cjs/index.js
-var require_dist_cjs15 = __commonJS((exports2) => {
-  var signatureV4 = require_dist_cjs6();
+var require_dist_cjs34 = __commonJS((exports2) => {
+  var signatureV4 = require_dist_cjs10();
   var signatureV4CrtContainer = {
     CrtSignerV4: null
   };
@@ -47251,8 +67058,8 @@ var require_dist_cjs15 = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@aws-sdk+nested-clients@3.997.12/node_modules/@aws-sdk/nested-clients/dist-cjs/submodules/sts/index.js
-var require_sts = __commonJS((exports2) => {
-  var client$1 = require_client2();
+var require_sts2 = __commonJS((exports2) => {
+  var client$1 = require_client3();
   var core = require_dist_cjs5();
   var client = require_client();
   var config = require_config();
@@ -47260,11 +67067,11 @@ var require_sts = __commonJS((exports2) => {
   var protocols = require_protocols();
   var retry = require_retry();
   var schema = require_schema4();
-  var httpAuthSchemes = require_httpAuthSchemes();
-  var signatureV4MultiRegion = require_dist_cjs15();
+  var httpAuthSchemes = require_httpAuthSchemes2();
+  var signatureV4MultiRegion = require_dist_cjs34();
   var serde = require_serde();
-  var nodeHttpHandler = require_dist_cjs9();
-  var protocols$1 = require_protocols2();
+  var nodeHttpHandler = require_dist_cjs15();
+  var protocols$1 = require_protocols3();
   var q = "ref";
   var a = -1;
   var b = true;
@@ -48214,11 +68021,11 @@ var require_sts = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@aws-sdk+credential-provider-process@3.972.40/node_modules/@aws-sdk/credential-provider-process/dist-cjs/index.js
-var require_dist_cjs16 = __commonJS((exports2) => {
+var require_dist_cjs35 = __commonJS((exports2) => {
   var config = require_config();
   var node_child_process = require("node:child_process");
   var node_util = require("node:util");
-  var client = require_client2();
+  var client = require_client3();
   var getValidatedProcessCredentials = (profileName, data, profiles) => {
     if (data.Version !== 1) {
       throw Error(`Profile ${profileName} credential_process did not return Version 1.`);
@@ -48286,7 +68093,7 @@ var require_dist_cjs16 = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@aws-sdk+credential-provider-web-identity@3.972.44/node_modules/@aws-sdk/credential-provider-web-identity/dist-cjs/fromWebToken.js
-var require_fromWebToken = __commonJS((exports2) => {
+var require_fromWebToken2 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.fromWebToken = undefined;
   var fromWebToken = (init) => async (awsIdentityProperties) => {
@@ -48294,7 +68101,7 @@ var require_fromWebToken = __commonJS((exports2) => {
     const { roleArn, roleSessionName, webIdentityToken, providerId, policyArns, policy, durationSeconds } = init;
     let { roleAssumerWithWebIdentity } = init;
     if (!roleAssumerWithWebIdentity) {
-      const { getDefaultRoleAssumerWithWebIdentity } = await Promise.resolve().then(() => __toESM(require_sts()));
+      const { getDefaultRoleAssumerWithWebIdentity } = await Promise.resolve().then(() => __toESM(require_sts2()));
       roleAssumerWithWebIdentity = getDefaultRoleAssumerWithWebIdentity({
         ...init.clientConfig,
         credentialProviderLogger: init.logger,
@@ -48318,13 +68125,13 @@ var require_fromWebToken = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@aws-sdk+credential-provider-web-identity@3.972.44/node_modules/@aws-sdk/credential-provider-web-identity/dist-cjs/fromTokenFile.js
-var require_fromTokenFile = __commonJS((exports2) => {
+var require_fromTokenFile2 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.fromTokenFile = undefined;
-  var client_1 = require_client2();
+  var client_1 = require_client3();
   var config_1 = require_config();
   var node_fs_1 = require("node:fs");
-  var fromWebToken_1 = require_fromWebToken();
+  var fromWebToken_1 = require_fromWebToken2();
   var ENV_TOKEN_FILE = "AWS_WEB_IDENTITY_TOKEN_FILE";
   var ENV_ROLE_ARN = "AWS_ROLE_ARN";
   var ENV_ROLE_SESSION_NAME = "AWS_ROLE_SESSION_NAME";
@@ -48353,9 +68160,9 @@ var require_fromTokenFile = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@aws-sdk+credential-provider-web-identity@3.972.44/node_modules/@aws-sdk/credential-provider-web-identity/dist-cjs/index.js
-var require_dist_cjs17 = __commonJS((exports2) => {
-  var fromTokenFile = require_fromTokenFile();
-  var fromWebToken = require_fromWebToken();
+var require_dist_cjs36 = __commonJS((exports2) => {
+  var fromTokenFile = require_fromTokenFile2();
+  var fromWebToken = require_fromWebToken2();
   Object.prototype.hasOwnProperty.call(fromTokenFile, "__proto__") && !Object.prototype.hasOwnProperty.call(exports2, "__proto__") && Object.defineProperty(exports2, "__proto__", {
     enumerable: true,
     value: fromTokenFile["__proto__"]
@@ -48375,26 +68182,26 @@ var require_dist_cjs17 = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@aws-sdk+credential-provider-ini@3.972.44/node_modules/@aws-sdk/credential-provider-ini/dist-cjs/index.js
-var require_dist_cjs18 = __commonJS((exports2) => {
+var require_dist_cjs37 = __commonJS((exports2) => {
   var config = require_config();
-  var client = require_client2();
-  var credentialProviderLogin = require_dist_cjs14();
+  var client = require_client3();
+  var credentialProviderLogin = require_dist_cjs33();
   var resolveCredentialSource = (credentialSource, profileName, logger) => {
     const sourceProvidersMap = {
       EcsContainer: async (options) => {
-        const { fromHttp } = await Promise.resolve().then(() => __toESM(require_dist_cjs10()));
-        const { fromContainerMetadata } = await Promise.resolve().then(() => __toESM(require_dist_cjs8()));
+        const { fromHttp } = await Promise.resolve().then(() => __toESM(require_dist_cjs29()));
+        const { fromContainerMetadata } = await Promise.resolve().then(() => __toESM(require_dist_cjs14()));
         logger?.debug("@aws-sdk/credential-provider-ini - credential_source is EcsContainer");
         return async () => config.chain(fromHttp(options ?? {}), fromContainerMetadata(options))().then(setNamedProvider);
       },
       Ec2InstanceMetadata: async (options) => {
         logger?.debug("@aws-sdk/credential-provider-ini - credential_source is Ec2InstanceMetadata");
-        const { fromInstanceMetadata } = await Promise.resolve().then(() => __toESM(require_dist_cjs8()));
+        const { fromInstanceMetadata } = await Promise.resolve().then(() => __toESM(require_dist_cjs14()));
         return async () => fromInstanceMetadata(options)().then(setNamedProvider);
       },
       Environment: async (options) => {
         logger?.debug("@aws-sdk/credential-provider-ini - credential_source is Environment");
-        const { fromEnv } = await Promise.resolve().then(() => __toESM(require_dist_cjs7()));
+        const { fromEnv } = await Promise.resolve().then(() => __toESM(require_dist_cjs28()));
         return async () => fromEnv(options)().then(setNamedProvider);
       }
     };
@@ -48427,7 +68234,7 @@ var require_dist_cjs18 = __commonJS((exports2) => {
     const profileData = profiles[profileName];
     const { source_profile, region } = profileData;
     if (!options.roleAssumer) {
-      const { getDefaultRoleAssumer } = await Promise.resolve().then(() => __toESM(require_sts()));
+      const { getDefaultRoleAssumer } = await Promise.resolve().then(() => __toESM(require_sts2()));
       options.roleAssumer = getDefaultRoleAssumer({
         ...options.clientConfig,
         credentialProviderLogger: options.logger,
@@ -48481,12 +68288,12 @@ var require_dist_cjs18 = __commonJS((exports2) => {
     return client.setCredentialFeature(credentials, "CREDENTIALS_PROFILE_LOGIN", "AC");
   };
   var isProcessProfile = (arg) => Boolean(arg) && typeof arg === "object" && typeof arg.credential_process === "string";
-  var resolveProcessCredentials = async (options, profile) => Promise.resolve().then(() => __toESM(require_dist_cjs16())).then(({ fromProcess }) => fromProcess({
+  var resolveProcessCredentials = async (options, profile) => Promise.resolve().then(() => __toESM(require_dist_cjs35())).then(({ fromProcess }) => fromProcess({
     ...options,
     profile
   })().then((creds) => client.setCredentialFeature(creds, "CREDENTIALS_PROFILE_PROCESS", "v")));
   var resolveSsoCredentials = async (profile, profileData, options = {}, callerClientConfig) => {
-    const { fromSSO } = await Promise.resolve().then(() => __toESM(require_dist_cjs13()));
+    const { fromSSO } = await Promise.resolve().then(() => __toESM(require_dist_cjs32()));
     return fromSSO({
       profile,
       logger: options.logger,
@@ -48516,7 +68323,7 @@ var require_dist_cjs18 = __commonJS((exports2) => {
     return client.setCredentialFeature(credentials, "CREDENTIALS_PROFILE", "n");
   };
   var isWebIdentityProfile = (arg) => Boolean(arg) && typeof arg === "object" && typeof arg.web_identity_token_file === "string" && typeof arg.role_arn === "string" && ["undefined", "string"].indexOf(typeof arg.role_session_name) > -1;
-  var resolveWebIdentityCredentials = async (profile, options, callerClientConfig) => Promise.resolve().then(() => __toESM(require_dist_cjs17())).then(({ fromTokenFile }) => fromTokenFile({
+  var resolveWebIdentityCredentials = async (profile, options, callerClientConfig) => Promise.resolve().then(() => __toESM(require_dist_cjs36())).then(({ fromTokenFile }) => fromTokenFile({
     webIdentityTokenFile: profile.web_identity_token_file,
     roleArn: profile.role_arn,
     roleSessionName: profile.role_session_name,
@@ -48562,15 +68369,15 @@ var require_dist_cjs18 = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@aws-sdk+credential-provider-node@3.972.45/node_modules/@aws-sdk/credential-provider-node/dist-cjs/index.js
-var require_dist_cjs19 = __commonJS((exports2) => {
-  var credentialProviderEnv = require_dist_cjs7();
+var require_dist_cjs38 = __commonJS((exports2) => {
+  var credentialProviderEnv = require_dist_cjs28();
   var config = require_config();
   var ENV_IMDS_DISABLED = "AWS_EC2_METADATA_DISABLED";
   var remoteProvider = async (init) => {
-    const { ENV_CMDS_FULL_URI, ENV_CMDS_RELATIVE_URI, fromContainerMetadata, fromInstanceMetadata } = await Promise.resolve().then(() => __toESM(require_dist_cjs8()));
+    const { ENV_CMDS_FULL_URI, ENV_CMDS_RELATIVE_URI, fromContainerMetadata, fromInstanceMetadata } = await Promise.resolve().then(() => __toESM(require_dist_cjs14()));
     if (process.env[ENV_CMDS_RELATIVE_URI] || process.env[ENV_CMDS_FULL_URI]) {
       init.logger?.debug("@aws-sdk/credential-provider-node - remoteProvider::fromHttp/fromContainerMetadata");
-      const { fromHttp } = await Promise.resolve().then(() => __toESM(require_dist_cjs10()));
+      const { fromHttp } = await Promise.resolve().then(() => __toESM(require_dist_cjs29()));
       return config.chain(fromHttp(init), fromContainerMetadata(init));
     }
     if (process.env[ENV_IMDS_DISABLED] && process.env[ENV_IMDS_DISABLED] !== "false") {
@@ -48669,22 +68476,22 @@ var require_dist_cjs19 = __commonJS((exports2) => {
       if (!ssoStartUrl && !ssoAccountId && !ssoRegion && !ssoRoleName && !ssoSession) {
         throw new config.CredentialsProviderError("Skipping SSO provider in default chain (inputs do not include SSO fields).", { logger: init.logger });
       }
-      const { fromSSO } = await Promise.resolve().then(() => __toESM(require_dist_cjs13()));
+      const { fromSSO } = await Promise.resolve().then(() => __toESM(require_dist_cjs32()));
       return fromSSO(init)(awsIdentityProperties);
     },
     async (awsIdentityProperties) => {
       init.logger?.debug("@aws-sdk/credential-provider-node - defaultProvider::fromIni");
-      const { fromIni } = await Promise.resolve().then(() => __toESM(require_dist_cjs18()));
+      const { fromIni } = await Promise.resolve().then(() => __toESM(require_dist_cjs37()));
       return fromIni(init)(awsIdentityProperties);
     },
     async (awsIdentityProperties) => {
       init.logger?.debug("@aws-sdk/credential-provider-node - defaultProvider::fromProcess");
-      const { fromProcess } = await Promise.resolve().then(() => __toESM(require_dist_cjs16()));
+      const { fromProcess } = await Promise.resolve().then(() => __toESM(require_dist_cjs35()));
       return fromProcess(init)(awsIdentityProperties);
     },
     async (awsIdentityProperties) => {
       init.logger?.debug("@aws-sdk/credential-provider-node - defaultProvider::fromTokenFile");
-      const { fromTokenFile } = await Promise.resolve().then(() => __toESM(require_dist_cjs17()));
+      const { fromTokenFile } = await Promise.resolve().then(() => __toESM(require_dist_cjs36()));
       return fromTokenFile(init)(awsIdentityProperties);
     },
     async () => {
@@ -48706,7 +68513,7 @@ var require_dist_cjs19 = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@aws-sdk+client-ssm@3.1054.0/node_modules/@aws-sdk/client-ssm/dist-cjs/endpoint/bdd.js
-var require_bdd = __commonJS((exports2) => {
+var require_bdd2 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.bdd = undefined;
   var endpoints_1 = require_endpoints();
@@ -48798,12 +68605,12 @@ var require_bdd = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@aws-sdk+client-ssm@3.1054.0/node_modules/@aws-sdk/client-ssm/dist-cjs/endpoint/endpointResolver.js
-var require_endpointResolver = __commonJS((exports2) => {
+var require_endpointResolver2 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.defaultEndpointResolver = undefined;
-  var client_1 = require_client2();
+  var client_1 = require_client3();
   var endpoints_1 = require_endpoints();
-  var bdd_1 = require_bdd();
+  var bdd_1 = require_bdd2();
   var cache2 = new endpoints_1.EndpointCache({
     size: 50,
     params: ["Endpoint", "Region", "UseDualStack", "UseFIPS"]
@@ -48837,7 +68644,7 @@ var require_SSMServiceException = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@aws-sdk+client-ssm@3.1054.0/node_modules/@aws-sdk/client-ssm/dist-cjs/models/errors.js
-var require_errors3 = __commonJS((exports2) => {
+var require_errors4 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.InvalidDeleteInventoryParametersException = exports2.InvalidDocumentOperation = exports2.AssociatedInstances = exports2.AssociationDoesNotExist = exports2.InvalidActivationId = exports2.InvalidActivation = exports2.ResourceDataSyncInvalidConfigurationException = exports2.ResourceDataSyncCountExceededException = exports2.ResourceDataSyncAlreadyExistsException = exports2.OpsMetadataTooManyUpdatesException = exports2.OpsMetadataLimitExceededException = exports2.OpsMetadataInvalidArgumentException = exports2.OpsMetadataAlreadyExistsException = exports2.OpsItemAlreadyExistsException = exports2.OpsItemAccessDeniedException = exports2.ResourceLimitExceededException = exports2.IdempotentParameterMismatch = exports2.NoLongerSupportedException = exports2.MaxDocumentSizeExceeded = exports2.InvalidDocumentSchemaVersion = exports2.InvalidDocumentContent = exports2.DocumentLimitExceeded = exports2.DocumentAlreadyExists = exports2.UnsupportedPlatformType = exports2.InvalidTargetMaps = exports2.InvalidTarget = exports2.InvalidTag = exports2.InvalidSchedule = exports2.InvalidOutputLocation = exports2.InvalidDocumentVersion = exports2.InvalidDocument = exports2.AssociationLimitExceeded = exports2.AssociationAlreadyExists = exports2.InvalidParameters = exports2.DoesNotExistException = exports2.InvalidInstanceId = exports2.InvalidCommandId = exports2.DuplicateInstanceId = exports2.OpsItemRelatedItemAlreadyExistsException = exports2.OpsItemNotFoundException = exports2.OpsItemLimitExceededException = exports2.OpsItemInvalidParameterException = exports2.OpsItemConflictException = exports2.AlreadyExistsException = exports2.TooManyUpdates = exports2.TooManyTagsError = exports2.InvalidResourceType = exports2.InvalidResourceId = exports2.InternalServerError = exports2.AccessDeniedException = undefined;
   exports2.ItemContentMismatchException = exports2.InvalidInventoryItemContextException = exports2.CustomSchemaCountLimitExceededException = exports2.TotalSizeLimitExceededException = exports2.ItemSizeLimitExceededException = exports2.InvalidItemContentException = exports2.ComplianceTypeCountLimitExceededException = exports2.DocumentPermissionLimit = exports2.UnsupportedOperationException = exports2.ParameterVersionLabelLimitExceeded = exports2.ServiceSettingNotFound = exports2.ParameterVersionNotFound = exports2.InvalidKeyId = exports2.InvalidResultAttributeException = exports2.InvalidInventoryGroupException = exports2.InvalidAggregatorException = exports2.UnsupportedFeatureRequiredException = exports2.InvocationDoesNotExist = exports2.InvalidPluginName = exports2.UnsupportedCalendarException = exports2.InvalidDocumentType = exports2.ValidationException = exports2.ThrottlingException = exports2.OpsItemRelatedItemAssociationNotFoundException = exports2.InvalidFilterOption = exports2.InvalidDeletionIdException = exports2.InvalidInstancePropertyFilterValue = exports2.InvalidInstanceInformationFilterValue = exports2.UnsupportedOperatingSystem = exports2.InvalidPermissionType = exports2.AutomationExecutionNotFoundException = exports2.InvalidFilterValue = exports2.InvalidFilterKey = exports2.AssociationExecutionDoesNotExist = exports2.InvalidAssociationVersion = exports2.InvalidNextToken = exports2.InvalidFilter = exports2.TargetInUseException = exports2.ResourcePolicyNotFoundException = exports2.ResourcePolicyInvalidParameterException = exports2.ResourcePolicyConflictException = exports2.ResourceNotFoundException = exports2.MalformedResourcePolicyDocumentException = exports2.ResourceDataSyncNotFoundException = exports2.ResourceInUseException = exports2.ParameterNotFound = exports2.OpsMetadataNotFoundException = exports2.InvalidTypeNameException = exports2.InvalidOptionException = exports2.InvalidInventoryRequestException = undefined;
@@ -51038,7 +70845,7 @@ var require_errors3 = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@aws-sdk+client-ssm@3.1054.0/node_modules/@aws-sdk/client-ssm/dist-cjs/schemas/schemas_0.js
-var require_schemas_0 = __commonJS((exports2) => {
+var require_schemas_02 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.InvalidFilter$ = exports2.InvalidDocumentVersion$ = exports2.InvalidDocumentType$ = exports2.InvalidDocumentSchemaVersion$ = exports2.InvalidDocumentOperation$ = exports2.InvalidDocumentContent$ = exports2.InvalidDocument$ = exports2.InvalidDeletionIdException$ = exports2.InvalidDeleteInventoryParametersException$ = exports2.InvalidCommandId$ = exports2.InvalidAutomationStatusUpdateException$ = exports2.InvalidAutomationSignalException$ = exports2.InvalidAutomationExecutionParametersException$ = exports2.InvalidAssociationVersion$ = exports2.InvalidAssociation$ = exports2.InvalidAllowedPatternException$ = exports2.InvalidAggregatorException$ = exports2.InvalidActivationId$ = exports2.InvalidActivation$ = exports2.InternalServerError$ = exports2.IncompatiblePolicyException$ = exports2.IdempotentParameterMismatch$ = exports2.HierarchyTypeMismatchException$ = exports2.HierarchyLevelLimitExceededException$ = exports2.FeatureNotAvailableException$ = exports2.DuplicateInstanceId$ = exports2.DuplicateDocumentVersionName$ = exports2.DuplicateDocumentContent$ = exports2.DoesNotExistException$ = exports2.DocumentVersionLimitExceeded$ = exports2.DocumentPermissionLimit$ = exports2.DocumentLimitExceeded$ = exports2.DocumentAlreadyExists$ = exports2.CustomSchemaCountLimitExceededException$ = exports2.ComplianceTypeCountLimitExceededException$ = exports2.AutomationStepNotFoundException$ = exports2.AutomationExecutionNotFoundException$ = exports2.AutomationExecutionLimitExceededException$ = exports2.AutomationDefinitionVersionNotFoundException$ = exports2.AutomationDefinitionNotFoundException$ = exports2.AutomationDefinitionNotApprovedException$ = exports2.AssociationVersionLimitExceeded$ = exports2.AssociationLimitExceeded$ = exports2.AssociationExecutionDoesNotExist$ = exports2.AssociationDoesNotExist$ = exports2.AssociationAlreadyExists$ = exports2.AssociatedInstances$ = exports2.AlreadyExistsException$ = exports2.AccessDeniedException$ = exports2.SSMServiceException$ = undefined;
   exports2.OpsMetadataNotFoundException$ = exports2.OpsMetadataLimitExceededException$ = exports2.OpsMetadataKeyLimitExceededException$ = exports2.OpsMetadataInvalidArgumentException$ = exports2.OpsMetadataAlreadyExistsException$ = exports2.OpsItemRelatedItemAssociationNotFoundException$ = exports2.OpsItemRelatedItemAlreadyExistsException$ = exports2.OpsItemNotFoundException$ = exports2.OpsItemLimitExceededException$ = exports2.OpsItemInvalidParameterException$ = exports2.OpsItemConflictException$ = exports2.OpsItemAlreadyExistsException$ = exports2.OpsItemAccessDeniedException$ = exports2.NoLongerSupportedException$ = exports2.MaxDocumentSizeExceeded$ = exports2.MalformedResourcePolicyDocumentException$ = exports2.ItemSizeLimitExceededException$ = exports2.ItemContentMismatchException$ = exports2.InvocationDoesNotExist$ = exports2.InvalidUpdate$ = exports2.InvalidTypeNameException$ = exports2.InvalidTargetMaps$ = exports2.InvalidTarget$ = exports2.InvalidTag$ = exports2.InvalidSchedule$ = exports2.InvalidRole$ = exports2.InvalidResultAttributeException$ = exports2.InvalidResourceType$ = exports2.InvalidResourceId$ = exports2.InvalidPolicyTypeException$ = exports2.InvalidPolicyAttributeException$ = exports2.InvalidPluginName$ = exports2.InvalidPermissionType$ = exports2.InvalidParameters$ = exports2.InvalidOutputLocation$ = exports2.InvalidOutputFolder$ = exports2.InvalidOptionException$ = exports2.InvalidNotificationConfig$ = exports2.InvalidNextToken$ = exports2.InvalidKeyId$ = exports2.InvalidItemContentException$ = exports2.InvalidInventoryRequestException$ = exports2.InvalidInventoryItemContextException$ = exports2.InvalidInventoryGroupException$ = exports2.InvalidInstancePropertyFilterValue$ = exports2.InvalidInstanceInformationFilterValue$ = exports2.InvalidInstanceId$ = exports2.InvalidFilterValue$ = exports2.InvalidFilterOption$ = exports2.InvalidFilterKey$ = undefined;
@@ -52520,7 +72327,7 @@ var require_schemas_0 = __commonJS((exports2) => {
   var _xN = "xmlName";
   var n0 = "com.amazonaws.ssm";
   var schema_1 = require_schema4();
-  var errors_1 = require_errors3();
+  var errors_1 = require_errors4();
   var SSMServiceException_1 = require_SSMServiceException();
   var _s_registry = schema_1.TypeRegistry.for(_s);
   exports2.SSMServiceException$ = [-3, _s, "SSMServiceException", 0, [], []];
@@ -60045,17 +79852,17 @@ var require_schemas_0 = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@aws-sdk+client-ssm@3.1054.0/node_modules/@aws-sdk/client-ssm/dist-cjs/runtimeConfig.shared.js
-var require_runtimeConfig_shared = __commonJS((exports2) => {
+var require_runtimeConfig_shared2 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.getRuntimeConfig = undefined;
-  var httpAuthSchemes_1 = require_httpAuthSchemes();
-  var protocols_1 = require_protocols2();
+  var httpAuthSchemes_1 = require_httpAuthSchemes2();
+  var protocols_1 = require_protocols3();
   var client_1 = require_client();
   var protocols_2 = require_protocols();
   var serde_1 = require_serde();
-  var httpAuthSchemeProvider_1 = require_httpAuthSchemeProvider();
-  var endpointResolver_1 = require_endpointResolver();
-  var schemas_0_1 = require_schemas_0();
+  var httpAuthSchemeProvider_1 = require_httpAuthSchemeProvider2();
+  var endpointResolver_1 = require_endpointResolver2();
+  var schemas_0_1 = require_schemas_02();
   var getRuntimeConfig = (config) => {
     return {
       apiVersion: "2014-11-06",
@@ -60091,20 +79898,20 @@ var require_runtimeConfig_shared = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@aws-sdk+client-ssm@3.1054.0/node_modules/@aws-sdk/client-ssm/dist-cjs/runtimeConfig.js
-var require_runtimeConfig = __commonJS((exports2) => {
+var require_runtimeConfig2 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.getRuntimeConfig = undefined;
   var tslib_1 = require_tslib();
-  var package_json_1 = tslib_1.__importDefault(require_package());
-  var client_1 = require_client2();
-  var httpAuthSchemes_1 = require_httpAuthSchemes();
-  var credential_provider_node_1 = require_dist_cjs19();
+  var package_json_1 = tslib_1.__importDefault(require_package2());
+  var client_1 = require_client3();
+  var httpAuthSchemes_1 = require_httpAuthSchemes2();
+  var credential_provider_node_1 = require_dist_cjs38();
   var client_2 = require_client();
   var config_1 = require_config();
   var retry_1 = require_retry();
   var serde_1 = require_serde();
-  var node_http_handler_1 = require_dist_cjs9();
-  var runtimeConfig_shared_1 = require_runtimeConfig_shared();
+  var node_http_handler_1 = require_dist_cjs15();
+  var runtimeConfig_shared_1 = require_runtimeConfig_shared2();
   var getRuntimeConfig = (config) => {
     (0, client_2.emitWarningIfUnsupportedVersion)(process.version);
     const defaultsMode = (0, config_1.resolveDefaultsModeConfig)(config);
@@ -60142,8 +79949,8 @@ var require_runtimeConfig = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@aws-sdk+client-ssm@3.1054.0/node_modules/@aws-sdk/client-ssm/dist-cjs/index.js
-var require_dist_cjs20 = __commonJS((exports2) => {
-  var client$1 = require_client2();
+var require_dist_cjs39 = __commonJS((exports2) => {
+  var client$1 = require_client3();
   var core = require_dist_cjs5();
   var client = require_client();
   var config = require_config();
@@ -60151,10 +79958,10 @@ var require_dist_cjs20 = __commonJS((exports2) => {
   var protocols = require_protocols();
   var retry = require_retry();
   var schema = require_schema4();
-  var httpAuthSchemeProvider = require_httpAuthSchemeProvider();
-  var runtimeConfig = require_runtimeConfig();
-  var schemas_0 = require_schemas_0();
-  var errors = require_errors3();
+  var httpAuthSchemeProvider = require_httpAuthSchemeProvider2();
+  var runtimeConfig = require_runtimeConfig2();
+  var schemas_0 = require_schemas_02();
+  var errors = require_errors4();
   var SSMServiceException = require_SSMServiceException();
   var resolveClientEndpointParameters = (options) => {
     return Object.assign(options, {
@@ -64944,7 +84751,7 @@ ${log3.fields?.reason}`;
 });
 
 // ../../node_modules/.bun/@prisma+client@7.8.0+e37f880b5901d08c/node_modules/@prisma/client/runtime/client.js
-var require_client3 = __commonJS((exports2, module2) => {
+var require_client4 = __commonJS((exports2, module2) => {
   var nu = Object.create;
   var Qt = Object.defineProperty;
   var iu = Object.getOwnPropertyDescriptor;
@@ -75683,7 +95490,7 @@ var require_lib = __commonJS((exports2, module2) => {
 });
 
 // ../../node_modules/.bun/pg@8.20.0+52bd52a0bccfa6a2/node_modules/pg/lib/client.js
-var require_client4 = __commonJS((exports2, module2) => {
+var require_client5 = __commonJS((exports2, module2) => {
   var EventEmitter = require("events").EventEmitter;
   var utils = require_utils5();
   var nodeUtils = require("util");
@@ -76812,7 +96619,7 @@ var require_query2 = __commonJS((exports2, module2) => {
 });
 
 // ../../node_modules/.bun/pg@8.20.0+52bd52a0bccfa6a2/node_modules/pg/lib/native/client.js
-var require_client5 = __commonJS((exports2, module2) => {
+var require_client6 = __commonJS((exports2, module2) => {
   var nodeUtils = require("util");
   var Native;
   try {
@@ -77059,12 +96866,12 @@ var require_client5 = __commonJS((exports2, module2) => {
 
 // ../../node_modules/.bun/pg@8.20.0+52bd52a0bccfa6a2/node_modules/pg/lib/native/index.js
 var require_native = __commonJS((exports2, module2) => {
-  module2.exports = require_client5();
+  module2.exports = require_client6();
 });
 
 // ../../node_modules/.bun/pg@8.20.0+52bd52a0bccfa6a2/node_modules/pg/lib/index.js
 var require_lib2 = __commonJS((exports2, module2) => {
-  var Client = require_client4();
+  var Client = require_client5();
   var defaults = require_defaults();
   var Connection = require_connection();
   var Result = require_result();
@@ -80189,7 +99996,7 @@ var require_connection2 = __commonJS((exports2, module2) => {
 });
 
 // ../../node_modules/.bun/pg@8.21.0+089ae586d7e96dbe/node_modules/pg/lib/client.js
-var require_client6 = __commonJS((exports2, module2) => {
+var require_client7 = __commonJS((exports2, module2) => {
   var EventEmitter = require("events").EventEmitter;
   var utils = require_utils7();
   var nodeUtils = require("util");
@@ -81334,7 +101141,7 @@ var require_query4 = __commonJS((exports2, module2) => {
 });
 
 // ../../node_modules/.bun/pg@8.21.0+089ae586d7e96dbe/node_modules/pg/lib/native/client.js
-var require_client7 = __commonJS((exports2, module2) => {
+var require_client8 = __commonJS((exports2, module2) => {
   var nodeUtils = require("util");
   var Native;
   try {
@@ -81586,12 +101393,12 @@ var require_client7 = __commonJS((exports2, module2) => {
 
 // ../../node_modules/.bun/pg@8.21.0+089ae586d7e96dbe/node_modules/pg/lib/native/index.js
 var require_native2 = __commonJS((exports2, module2) => {
-  module2.exports = require_client7();
+  module2.exports = require_client8();
 });
 
 // ../../node_modules/.bun/pg@8.21.0+089ae586d7e96dbe/node_modules/pg/lib/index.js
 var require_lib3 = __commonJS((exports2, module2) => {
-  var Client = require_client6();
+  var Client = require_client7();
   var defaults = require_defaults2();
   var Connection = require_connection2();
   var Result = require_result2();
@@ -82045,7 +101852,7 @@ var require_base64 = __commonJS((exports2, module2) => {
 });
 
 // ../../node_modules/.bun/@libsql+core@0.17.3/node_modules/@libsql/core/lib-cjs/util.js
-var require_util = __commonJS((exports2) => {
+var require_util2 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.ResultSetImpl = exports2.transactionModeToBegin = exports2.supportedUrlLink = undefined;
   var js_base64_1 = require_base64();
@@ -82107,7 +101914,7 @@ var require_config2 = __commonJS((exports2) => {
   exports2.expandConfig = exports2.isInMemoryConfig = undefined;
   var api_js_1 = require_api();
   var uri_js_1 = require_uri();
-  var util_js_1 = require_util();
+  var util_js_1 = require_util2();
   var inMemoryMode = ":memory:";
   function isInMemoryConfig(config2) {
     return config2.scheme === "file" && (config2.path === ":memory:" || config2.path.startsWith(":memory:?"));
@@ -85088,7 +104895,7 @@ var require_node2 = __commonJS((exports2, module2) => {
 });
 
 // ../../node_modules/.bun/@libsql+hrana-client@0.10.0/node_modules/@libsql/hrana-client/lib-cjs/client.js
-var require_client8 = __commonJS((exports2) => {
+var require_client9 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.Client = undefined;
 
@@ -85102,7 +104909,7 @@ var require_client8 = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@libsql+hrana-client@0.10.0/node_modules/@libsql/hrana-client/lib-cjs/errors.js
-var require_errors4 = __commonJS((exports2) => {
+var require_errors5 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.MisuseError = exports2.InternalError = exports2.ProtocolVersionError = exports2.LibsqlUrlParseError = exports2.HttpServerError = exports2.WebSocketError = exports2.WebSocketUnsupportedError = exports2.ClosedError = exports2.ResponseError = exports2.ProtoError = exports2.ClientError = undefined;
 
@@ -85211,7 +105018,7 @@ var require_errors4 = __commonJS((exports2) => {
 var require_decode4 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.readJsonObject = exports2.arrayObjectsMap = exports2.object = exports2.array = exports2.boolean = exports2.number = exports2.stringOpt = exports2.string = undefined;
-  var errors_js_1 = require_errors4();
+  var errors_js_1 = require_errors5();
   function string(value) {
     if (typeof value === "string") {
       return value;
@@ -85359,7 +105166,7 @@ var require_encode4 = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@libsql+hrana-client@0.10.0/node_modules/@libsql/hrana-client/lib-cjs/encoding/protobuf/util.js
-var require_util2 = __commonJS((exports2) => {
+var require_util3 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.FIXED_32 = exports2.GROUP_END = exports2.GROUP_START = exports2.LENGTH_DELIMITED = exports2.FIXED_64 = exports2.VARINT = undefined;
   exports2.VARINT = 0;
@@ -85374,8 +105181,8 @@ var require_util2 = __commonJS((exports2) => {
 var require_decode5 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.readProtobufMessage = exports2.FieldReader = undefined;
-  var errors_js_1 = require_errors4();
-  var util_js_1 = require_util2();
+  var errors_js_1 = require_errors5();
+  var util_js_1 = require_util3();
 
   class MessageReader {
     #array;
@@ -85529,7 +105336,7 @@ var require_decode5 = __commonJS((exports2) => {
 var require_encode5 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.writeProtobufMessage = exports2.MessageWriter = undefined;
-  var util_js_1 = require_util2();
+  var util_js_1 = require_util3();
 
   class MessageWriter {
     #buf;
@@ -85655,7 +105462,7 @@ var require_encoding = __commonJS((exports2) => {
 var require_id_alloc = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.IdAlloc = undefined;
-  var errors_js_1 = require_errors4();
+  var errors_js_1 = require_errors5();
 
   class IdAlloc {
     #usedIds;
@@ -85691,10 +105498,10 @@ var require_id_alloc = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@libsql+hrana-client@0.10.0/node_modules/@libsql/hrana-client/lib-cjs/util.js
-var require_util3 = __commonJS((exports2) => {
+var require_util4 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.impossible = undefined;
-  var errors_js_1 = require_errors4();
+  var errors_js_1 = require_errors5();
   function impossible(value, message2) {
     throw new errors_js_1.InternalError(message2);
   }
@@ -85705,8 +105512,8 @@ var require_util3 = __commonJS((exports2) => {
 var require_value6 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.valueFromProto = exports2.valueToProto = undefined;
-  var errors_js_1 = require_errors4();
-  var util_js_1 = require_util3();
+  var errors_js_1 = require_errors5();
+  var util_js_1 = require_util4();
   function valueToProto(value) {
     if (value === null) {
       return null;
@@ -85775,7 +105582,7 @@ var require_value6 = __commonJS((exports2) => {
 var require_result3 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.errorFromProto = exports2.valueResultFromProto = exports2.rowResultFromProto = exports2.rowsResultFromProto = exports2.stmtResultFromProto = undefined;
-  var errors_js_1 = require_errors4();
+  var errors_js_1 = require_errors5();
   var value_js_1 = require_value6();
   function stmtResultFromProto(result) {
     return {
@@ -85833,7 +105640,7 @@ var require_result3 = __commonJS((exports2) => {
 var require_sql = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.sqlToProto = exports2.Sql = undefined;
-  var errors_js_1 = require_errors4();
+  var errors_js_1 = require_errors5();
 
   class Sql3 {
     #owner;
@@ -85984,10 +105791,10 @@ var require_stmt = __commonJS((exports2) => {
 var require_batch = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.BatchCond = exports2.BatchStep = exports2.Batch = undefined;
-  var errors_js_1 = require_errors4();
+  var errors_js_1 = require_errors5();
   var result_js_1 = require_result3();
   var stmt_js_1 = require_stmt();
-  var util_js_1 = require_util3();
+  var util_js_1 = require_util4();
 
   class Batch {
     _stream;
@@ -86285,7 +106092,7 @@ var require_cursor = __commonJS((exports2) => {
 var require_cursor2 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.WsCursor = undefined;
-  var errors_js_1 = require_errors4();
+  var errors_js_1 = require_errors5();
   var cursor_js_1 = require_cursor();
   var queue_js_1 = require_queue();
   var fetchChunkSize = 1000;
@@ -86369,7 +106176,7 @@ var require_cursor2 = __commonJS((exports2) => {
 var require_stream5 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.WsStream = undefined;
-  var errors_js_1 = require_errors4();
+  var errors_js_1 = require_errors5();
   var queue_js_1 = require_queue();
   var stream_js_1 = require_stream4();
   var cursor_js_1 = require_cursor2();
@@ -86571,7 +106378,7 @@ var require_json_encode = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.Batch = exports2.Stmt = undefined;
   var js_base64_1 = require_base64();
-  var util_js_1 = require_util3();
+  var util_js_1 = require_util4();
   function Stmt(w2, msg) {
     if (msg.sql !== undefined) {
       w2.string("sql", msg.sql);
@@ -86636,7 +106443,7 @@ var require_json_encode2 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.ClientMsg = undefined;
   var json_encode_js_1 = require_json_encode();
-  var util_js_1 = require_util3();
+  var util_js_1 = require_util4();
   function ClientMsg(w2, msg) {
     w2.stringRaw("type", msg.type);
     if (msg.type === "hello") {
@@ -86705,7 +106512,7 @@ var require_json_encode2 = __commonJS((exports2) => {
 var require_protobuf_encode = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.Batch = exports2.Stmt = undefined;
-  var util_js_1 = require_util3();
+  var util_js_1 = require_util4();
   function Stmt(w2, msg) {
     if (msg.sql !== undefined) {
       w2.string(1, msg.sql);
@@ -86783,7 +106590,7 @@ var require_protobuf_encode2 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.ClientMsg = undefined;
   var protobuf_encode_js_1 = require_protobuf_encode();
-  var util_js_1 = require_util3();
+  var util_js_1 = require_util4();
   function ClientMsg(w2, msg) {
     if (msg.type === "hello") {
       w2.message(1, msg, HelloMsg);
@@ -86923,7 +106730,7 @@ var require_json_decode = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.Value = exports2.DescribeResult = exports2.CursorEntry = exports2.BatchResult = exports2.StmtResult = exports2.Error = undefined;
   var js_base64_1 = require_base64();
-  var errors_js_1 = require_errors4();
+  var errors_js_1 = require_errors5();
   var d = __importStar(require_decode4());
   function Error2(obj) {
     const message2 = d.string(obj["message"]);
@@ -87060,7 +106867,7 @@ var require_json_decode2 = __commonJS((exports2) => {
   };
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.ServerMsg = undefined;
-  var errors_js_1 = require_errors4();
+  var errors_js_1 = require_errors5();
   var d = __importStar(require_decode4());
   var json_decode_js_1 = require_json_decode();
   function ServerMsg(obj) {
@@ -87471,16 +107278,16 @@ var require_protobuf_decode2 = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@libsql+hrana-client@0.10.0/node_modules/@libsql/hrana-client/lib-cjs/ws/client.js
-var require_client9 = __commonJS((exports2) => {
+var require_client10 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.WsClient = exports2.subprotocolsV3 = exports2.subprotocolsV2 = undefined;
-  var client_js_1 = require_client8();
+  var client_js_1 = require_client9();
   var index_js_1 = require_encoding();
-  var errors_js_1 = require_errors4();
+  var errors_js_1 = require_errors5();
   var id_alloc_js_1 = require_id_alloc();
   var result_js_1 = require_result3();
   var sql_js_1 = require_sql();
-  var util_js_1 = require_util3();
+  var util_js_1 = require_util4();
   var stream_js_1 = require_stream5();
   var json_encode_js_1 = require_json_encode2();
   var protobuf_encode_js_1 = require_protobuf_encode2();
@@ -87846,7 +107653,7 @@ var require_json_decode3 = __commonJS((exports2) => {
   };
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.CursorRespBody = exports2.PipelineRespBody = undefined;
-  var errors_js_1 = require_errors4();
+  var errors_js_1 = require_errors5();
   var d = __importStar(require_decode4());
   var json_decode_js_1 = require_json_decode();
   function PipelineRespBody(obj) {
@@ -88046,8 +107853,8 @@ var require_cursor3 = __commonJS((exports2) => {
   var cursor_js_1 = require_cursor();
   var jsond = __importStar(require_decode4());
   var protobufd = __importStar(require_decode5());
-  var errors_js_1 = require_errors4();
-  var util_js_1 = require_util3();
+  var errors_js_1 = require_errors5();
+  var util_js_1 = require_util4();
   var json_decode_js_1 = require_json_decode3();
   var protobuf_decode_js_1 = require_protobuf_decode3();
   var json_decode_js_2 = require_json_decode();
@@ -88176,7 +107983,7 @@ var require_json_encode3 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.CursorReqBody = exports2.PipelineReqBody = undefined;
   var json_encode_js_1 = require_json_encode();
-  var util_js_1 = require_util3();
+  var util_js_1 = require_util4();
   function PipelineReqBody(w2, msg) {
     if (msg.baton !== undefined) {
       w2.string("baton", msg.baton);
@@ -88227,7 +108034,7 @@ var require_protobuf_encode3 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.CursorReqBody = exports2.PipelineReqBody = undefined;
   var protobuf_encode_js_1 = require_protobuf_encode();
-  var util_js_1 = require_util3();
+  var util_js_1 = require_util4();
   function PipelineReqBody(w2, msg) {
     if (msg.baton !== undefined) {
       w2.string(1, msg.baton);
@@ -88302,7 +108109,7 @@ var require_protobuf_encode3 = __commonJS((exports2) => {
 var require_stream6 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.HttpStream = undefined;
-  var errors_js_1 = require_errors4();
+  var errors_js_1 = require_errors5();
   var index_js_1 = require_encoding();
   var id_alloc_js_1 = require_id_alloc();
   var queue_js_1 = require_queue();
@@ -88310,7 +108117,7 @@ var require_stream6 = __commonJS((exports2) => {
   var result_js_1 = require_result3();
   var sql_js_1 = require_sql();
   var stream_js_1 = require_stream4();
-  var util_js_1 = require_util3();
+  var util_js_1 = require_util4();
   var cursor_js_1 = require_cursor3();
   var json_encode_js_1 = require_json_encode3();
   var protobuf_encode_js_1 = require_protobuf_encode3();
@@ -88651,11 +108458,11 @@ var require_stream6 = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@libsql+hrana-client@0.10.0/node_modules/@libsql/hrana-client/lib-cjs/http/client.js
-var require_client10 = __commonJS((exports2) => {
+var require_client11 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.HttpClient = exports2.checkEndpoints = undefined;
-  var client_js_1 = require_client8();
-  var errors_js_1 = require_errors4();
+  var client_js_1 = require_client9();
+  var errors_js_1 = require_errors5();
   var stream_js_1 = require_stream6();
   exports2.checkEndpoints = [
     {
@@ -88761,7 +108568,7 @@ var require_client10 = __commonJS((exports2) => {
 var require_libsql_url = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.parseLibsqlUrl = undefined;
-  var errors_js_1 = require_errors4();
+  var errors_js_1 = require_errors5();
   function parseLibsqlUrl(urlStr) {
     const url = new URL(urlStr);
     let authToken = undefined;
@@ -88848,19 +108655,19 @@ var require_lib_cjs = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.openHttp = exports2.openWs = exports2.WsStream = exports2.WsClient = exports2.HttpStream = exports2.HttpClient = exports2.Stream = exports2.Stmt = exports2.Sql = exports2.parseLibsqlUrl = exports2.BatchCond = exports2.BatchStep = exports2.Batch = exports2.Client = exports2.WebSocket = undefined;
   var isomorphic_ws_1 = require_node2();
-  var client_js_1 = require_client9();
-  var errors_js_1 = require_errors4();
-  var client_js_2 = require_client10();
-  var client_js_3 = require_client9();
+  var client_js_1 = require_client10();
+  var errors_js_1 = require_errors5();
+  var client_js_2 = require_client11();
+  var client_js_3 = require_client10();
   var isomorphic_ws_2 = require_node2();
   Object.defineProperty(exports2, "WebSocket", { enumerable: true, get: function() {
     return isomorphic_ws_2.WebSocket;
   } });
-  var client_js_4 = require_client8();
+  var client_js_4 = require_client9();
   Object.defineProperty(exports2, "Client", { enumerable: true, get: function() {
     return client_js_4.Client;
   } });
-  __exportStar(require_errors4(), exports2);
+  __exportStar(require_errors5(), exports2);
   var batch_js_1 = require_batch();
   Object.defineProperty(exports2, "Batch", { enumerable: true, get: function() {
     return batch_js_1.Batch;
@@ -88887,7 +108694,7 @@ var require_lib_cjs = __commonJS((exports2) => {
   Object.defineProperty(exports2, "Stream", { enumerable: true, get: function() {
     return stream_js_1.Stream;
   } });
-  var client_js_5 = require_client10();
+  var client_js_5 = require_client11();
   Object.defineProperty(exports2, "HttpClient", { enumerable: true, get: function() {
     return client_js_5.HttpClient;
   } });
@@ -88895,7 +108702,7 @@ var require_lib_cjs = __commonJS((exports2) => {
   Object.defineProperty(exports2, "HttpStream", { enumerable: true, get: function() {
     return stream_js_2.HttpStream;
   } });
-  var client_js_6 = require_client9();
+  var client_js_6 = require_client10();
   Object.defineProperty(exports2, "WsClient", { enumerable: true, get: function() {
     return client_js_6.WsClient;
   } });
@@ -88961,7 +108768,7 @@ var require_hrana = __commonJS((exports2) => {
   exports2.mapHranaError = exports2.resultSetFromHrana = exports2.stmtToHrana = exports2.executeHranaBatch = exports2.HranaTransaction = undefined;
   var hrana = __importStar(require_lib_cjs());
   var api_1 = require_api();
-  var util_1 = require_util();
+  var util_1 = require_util2();
 
   class HranaTransaction {
     #mode;
@@ -89452,7 +109259,7 @@ var require_ws3 = __commonJS((exports2) => {
   var hrana_js_1 = require_hrana();
   var sql_cache_js_1 = require_sql_cache();
   var uri_1 = require_uri();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var promise_limit_1 = __importDefault(require_promise_limit());
   __exportStar(require_api(), exports2);
   function createClient(config2) {
@@ -89794,7 +109601,7 @@ var require_http = __commonJS((exports2) => {
   var hrana_js_1 = require_hrana();
   var sql_cache_js_1 = require_sql_cache();
   var uri_1 = require_uri();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var promise_limit_1 = __importDefault(require_promise_limit());
   __exportStar(require_api(), exports2);
   function createClient(config2) {
@@ -90020,7 +109827,7 @@ var require_web = __commonJS((exports2) => {
   exports2._createClient = exports2.createClient = undefined;
   var api_1 = require_api();
   var config_1 = require_config2();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var ws_js_1 = require_ws3();
   var http_js_1 = require_http();
   __exportStar(require_api(), exports2);
@@ -90041,7 +109848,7 @@ var require_web = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/async-mutex@0.5.0/node_modules/async-mutex/lib/errors.js
-var require_errors5 = __commonJS((exports2) => {
+var require_errors6 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.E_CANCELED = exports2.E_ALREADY_LOCKED = exports2.E_TIMEOUT = undefined;
   exports2.E_TIMEOUT = new Error("timeout while waiting for mutex to become available");
@@ -90053,7 +109860,7 @@ var require_errors5 = __commonJS((exports2) => {
 var require_Semaphore = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   var tslib_1 = require_tslib();
-  var errors_1 = require_errors5();
+  var errors_1 = require_errors6();
   var Semaphore = function() {
     function Semaphore2(_value, _cancelError) {
       if (_cancelError === undefined) {
@@ -90292,7 +110099,7 @@ var require_withTimeout = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.withTimeout = undefined;
   var tslib_1 = require_tslib();
-  var errors_1 = require_errors5();
+  var errors_1 = require_errors6();
   function withTimeout(sync, timeout, timeoutError) {
     var _this = this;
     if (timeoutError === undefined) {
@@ -90434,7 +110241,7 @@ var require_withTimeout = __commonJS((exports2) => {
 var require_tryAcquire = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.tryAcquire = undefined;
-  var errors_1 = require_errors5();
+  var errors_1 = require_errors6();
   var withTimeout_1 = require_withTimeout();
   function tryAcquire(sync, alreadyAcquiredError) {
     if (alreadyAcquiredError === undefined) {
@@ -90466,7 +110273,7 @@ var require_lib4 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "tryAcquire", { enumerable: true, get: function() {
     return tryAcquire_1.tryAcquire;
   } });
-  tslib_1.__exportStar(require_errors5(), exports2);
+  tslib_1.__exportStar(require_errors6(), exports2);
 });
 
 // ../../node_modules/.bun/@prisma+adapter-libsql@7.8.0/node_modules/@prisma/adapter-libsql/dist/index-web.js
@@ -108721,6 +128528,31 @@ var authRoutes = (getPrisma) => new Elysia({ prefix: "/auth" }).use(jwt({
   })
 });
 
+// src/s3.ts
+var import_client_s3 = __toESM(require_dist_cjs27(), 1);
+var import_crypto2 = require("crypto");
+var s3 = new import_client_s3.S3Client({
+  region: process.env.AWS_REGION || "us-east-1",
+  credentials: process.env.AWS_ACCESS_KEY_ID ? {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+  } : undefined
+});
+var IMAGE_BUCKET = process.env.IMAGE_BUCKET || "ppwl11-images";
+var IMAGE_BASE_URL = `https://${IMAGE_BUCKET}.s3.amazonaws.com`;
+async function uploadImageToS3(buffer, mimeType, folder = "posts") {
+  const ext = mimeType.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
+  const key = `${folder}/${import_crypto2.randomUUID()}.${ext}`;
+  await s3.send(new import_client_s3.PutObjectCommand({
+    Bucket: IMAGE_BUCKET,
+    Key: key,
+    Body: buffer,
+    ContentType: mimeType,
+    ACL: "public-read"
+  }));
+  return `${IMAGE_BASE_URL}/${key}`;
+}
+
 // src/posts.routes.ts
 async function getUser(headers, jwtInstance, set) {
   const authHeader = headers.authorization;
@@ -108736,7 +128568,37 @@ async function getUser(headers, jwtInstance, set) {
   }
   return payload;
 }
-var postRoutes = (getPrisma) => new Elysia({ prefix: "/posts" }).use(jwt({ name: "jwt", secret: process.env.JWT_SECRET, exp: "1d" })).get("/", async ({ headers, jwt: jwt2, set }) => {
+var postRoutes = (getPrisma) => new Elysia({ prefix: "/posts" }).use(jwt({ name: "jwt", secret: process.env.JWT_SECRET, exp: "1d" })).post("/upload-image", async ({ body, headers, jwt: jwt2, set }) => {
+  const me = await getUser(headers, jwt2, set);
+  if (!me)
+    return { message: "Unauthorized" };
+  const { file: file3 } = body;
+  if (!file3) {
+    set.status = 400;
+    return { message: "File tidak ditemukan" };
+  }
+  try {
+    const buffer = Buffer.from(await file3.arrayBuffer());
+    const mimeType = file3.type || "image/jpeg";
+    const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!allowed.includes(mimeType)) {
+      set.status = 400;
+      return { message: "Tipe file tidak didukung. Gunakan JPG, PNG, GIF, atau WebP." };
+    }
+    if (buffer.length > 5 * 1024 * 1024) {
+      set.status = 400;
+      return { message: "Ukuran gambar maksimal 5MB" };
+    }
+    const imageUrl = await uploadImageToS3(buffer, mimeType);
+    return { imageUrl };
+  } catch (e) {
+    console.error("[UPLOAD_IMAGE]", e);
+    set.status = 500;
+    return { message: "Gagal upload gambar: " + String(e) };
+  }
+}, {
+  body: t2.Object({ file: t2.File() })
+}).get("/", async ({ headers, jwt: jwt2, set }) => {
   const db = getPrisma();
   let userId = null;
   try {
@@ -108854,13 +128716,6 @@ var postRoutes = (getPrisma) => new Elysia({ prefix: "/posts" }).use(jwt({ name:
     return { message: "Batas maksimal 2 postingan per user" };
   }
   const { content, imageUrl } = body;
-  if (imageUrl) {
-    const isVideo = /\.(mp4|mov|avi|webm|mkv)$/i.test(imageUrl);
-    if (isVideo) {
-      set.status = 400;
-      return { message: "Upload video tidak diizinkan" };
-    }
-  }
   const post = await db.post.create({
     data: {
       content,
@@ -108958,12 +128813,7 @@ var postRoutes = (getPrisma) => new Elysia({ prefix: "/posts" }).use(jwt({ name:
     await db.postLike.create({ data: { postId, userId: me.userId } });
     if (post.userId !== me.userId) {
       await db.notification.create({
-        data: {
-          userId: post.userId,
-          actorId: me.userId,
-          type: "like",
-          postId
-        }
+        data: { userId: post.userId, actorId: me.userId, type: "like", postId }
       });
     }
     return { liked: true };
@@ -109128,7 +128978,7 @@ var createApp = (getPrisma) => {
 };
 
 // src/config.ts
-var import_client_ssm = __toESM(require_dist_cjs20(), 1);
+var import_client_ssm = __toESM(require_dist_cjs39(), 1);
 var ssm = new import_client_ssm.SSMClient({ region: "us-east-1" });
 var SSM_PARAMS = [
   "/monorepo/DATABASE_URL",
@@ -109163,7 +129013,7 @@ var path = __toESM(require("node:path"));
 var import_node_url = require("node:url");
 
 // src/generated/prisma/internal/class.ts
-var runtime = __toESM(require_client3(), 1);
+var runtime = __toESM(require_client4(), 1);
 var config = {
   previewFeatures: [],
   clientVersion: "7.8.0",
@@ -109276,7 +129126,7 @@ function getPrismaClientClass() {
 }
 
 // src/generated/prisma/internal/prismaNamespace.ts
-var runtime2 = __toESM(require_client3(), 1);
+var runtime2 = __toESM(require_client4(), 1);
 var getExtensionContext = runtime2.Extensions.getExtensionContext;
 var NullTypes3 = {
   DbNull: runtime2.NullTypes.DbNull,

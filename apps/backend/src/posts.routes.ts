@@ -4,6 +4,7 @@
 import { Elysia, t } from "elysia"
 import { jwt } from "@elysiajs/jwt"
 import type { DbClient } from "./types"
+import { uploadImageToS3 } from "./s3"
 
 // ─── Auth helper ───────────────────────────────────────────────
 async function getUser(headers: any, jwtInstance: any, set: any) {
@@ -19,11 +20,44 @@ export const postRoutes = (getPrisma: () => DbClient) =>
   new Elysia({ prefix: "/posts" })
     .use(jwt({ name: "jwt", secret: process.env.JWT_SECRET!, exp: "1d" }))
 
+    // ── POST /posts/upload-image — upload gambar ke S3 ─────────
+    .post("/upload-image", async ({ body, headers, jwt, set }) => {
+      const me = await getUser(headers, jwt, set)
+      if (!me) return { message: "Unauthorized" }
+
+      const { file } = body as any
+      if (!file) { set.status = 400; return { message: "File tidak ditemukan" } }
+
+      try {
+        const buffer = Buffer.from(await file.arrayBuffer())
+        const mimeType = file.type || "image/jpeg"
+
+        const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+        if (!allowed.includes(mimeType)) {
+          set.status = 400
+          return { message: "Tipe file tidak didukung. Gunakan JPG, PNG, GIF, atau WebP." }
+        }
+
+        if (buffer.length > 5 * 1024 * 1024) {
+          set.status = 400
+          return { message: "Ukuran gambar maksimal 5MB" }
+        }
+
+        const imageUrl = await uploadImageToS3(buffer, mimeType)
+        return { imageUrl }
+      } catch (e) {
+        console.error("[UPLOAD_IMAGE]", e)
+        set.status = 500
+        return { message: "Gagal upload gambar: " + String(e) }
+      }
+    }, {
+      body: t.Object({ file: t.File() }),
+    })
+
     // ── GET /posts — feed semua postingan (public) ─────────────
     .get("/", async ({ headers, jwt, set }) => {
       const db = getPrisma() as any
 
-      // Cek apakah user login (untuk isLiked)
       let userId: number | null = null
       try {
         const authHeader = headers.authorization
@@ -148,15 +182,7 @@ export const postRoutes = (getPrisma: () => DbClient) =>
           return { message: "Batas maksimal 2 postingan per user" }
         }
 
-        // Tidak boleh upload video (cek imageUrl)
         const { content, imageUrl } = body as any
-        if (imageUrl) {
-          const isVideo = /\.(mp4|mov|avi|webm|mkv)$/i.test(imageUrl)
-          if (isVideo) {
-            set.status = 400
-            return { message: "Upload video tidak diizinkan" }
-          }
-        }
 
         const post = await db.post.create({
           data: {
@@ -235,7 +261,6 @@ export const postRoutes = (getPrisma: () => DbClient) =>
       if (!post) { set.status = 404; return { message: "Post tidak ditemukan" } }
       if (post.userId !== me.userId) { set.status = 403; return { message: "Bukan milik kamu" } }
 
-      // Hapus relasi dulu
       await db.notification.deleteMany({ where: { postId } })
       await db.comment.deleteMany({ where: { postId } })
       await db.postLike.deleteMany({ where: { postId } })
@@ -260,24 +285,15 @@ export const postRoutes = (getPrisma: () => DbClient) =>
       })
 
       if (existing) {
-        // Unlike
         await db.postLike.delete({ where: { id: existing.id } })
         return { liked: false }
       } else {
-        // Like + buat notifikasi ke pemilik post (kalau bukan diri sendiri)
         await db.postLike.create({ data: { postId, userId: me.userId } })
-
         if (post.userId !== me.userId) {
           await db.notification.create({
-            data: {
-              userId: post.userId,
-              actorId: me.userId,
-              type: "like",
-              postId,
-            },
+            data: { userId: post.userId, actorId: me.userId, type: "like", postId },
           })
         }
-
         return { liked: true }
       }
     })
@@ -292,7 +308,6 @@ export const postRoutes = (getPrisma: () => DbClient) =>
         const db = getPrisma() as any
         const postId = parseInt(params.id)
 
-        // Limit: 1 user max 5 komentar
         const commentCount = await db.comment.count({ where: { userId: me.userId } })
         if (commentCount >= 5) {
           set.status = 403
@@ -310,7 +325,6 @@ export const postRoutes = (getPrisma: () => DbClient) =>
           },
         })
 
-        // Notifikasi ke pemilik post
         if (post.userId !== me.userId) {
           await db.notification.create({
             data: {

@@ -1,45 +1,47 @@
-import { useEffect, useState } from "react";
-import { Bell } from "lucide-react";
+﻿import { Bell } from "lucide-react";
 import NotifItem, { type NotifItemProps } from "@/components/NotifItem";
-import { useAuthStore } from "@/stores/auth.store";
 
-const BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+const DUMMY_NOTIFS: NotifItemProps[] = [
+  {
+    id: "n1",
+    type: "like",
+    fromUser: "Aisyah",
+    message: "menyukai postinganmu.",
+    createdAt: new Date(Date.now() - 5 * 60000).toISOString(),
+    read: false,
+  },
+  {
+    id: "n2",
+    type: "comment",
+    fromUser: "Chalysta",
+    message: "mengomentari postinganmu: \"Keren banget!\"",
+    createdAt: new Date(Date.now() - 30 * 60000).toISOString(),
+    read: false,
+  },
+  {
+    id: "n3",
+    type: "follow",
+    fromUser: "Andy",
+    message: "mulai mengikutimu.",
+    createdAt: new Date(Date.now() - 2 * 3600000).toISOString(),
+    read: true,
+  },
+  {
+    id: "n4",
+    type: "like",
+    fromUser: "Adhelia",
+    message: "menyukai komentarmu.",
+    createdAt: new Date(Date.now() - 5 * 3600000).toISOString(),
+    read: true,
+  },
+];
 
 export default function NotifPage() {
-  const { accessToken } = useAuthStore();
-  const [notifs, setNotifs] = useState<NotifItemProps[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  async function fetchNotifs() {
-    if (!accessToken) return;
-    try {
-      const res = await fetch(`${BASE_URL}/notifications`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setNotifs(data.map((n: any) => ({
-          id: n.id,
-          type: n.type,
-          fromUser: n.actor?.name ?? "Someone",
-          message: n.type === "comment" ? "mengomentari postinganmu." : "menyukai postinganmu.",
-          createdAt: n.createdAt,
-          read: n.isRead,
-        })));
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => { fetchNotifs(); }, [accessToken]);
-
-  const unreadCount = notifs.filter((n) => !n.read).length;
+  const unreadCount = DUMMY_NOTIFS.filter((n) => !n.read).length;
 
   return (
     <div className="min-h-screen bg-[#101010] text-[#F3F5F7]">
+      {/* Header */}
       <div className="sticky top-0 z-10 bg-[#101010]/90 backdrop-blur border-b border-[#3E4042] px-4 py-3">
         <div className="flex items-center justify-between max-w-xl mx-auto">
           <h1 className="text-xl font-bold">Notifikasi</h1>
@@ -50,18 +52,17 @@ export default function NotifPage() {
           )}
         </div>
       </div>
+
       <div className="max-w-xl mx-auto">
-        {loading ? (
-          <div className="flex justify-center py-24 text-[#777]">
-            <p className="text-sm">Memuat notifikasi...</p>
-          </div>
-        ) : notifs.length === 0 ? (
+        {DUMMY_NOTIFS.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-[#777]">
             <Bell size={40} className="mb-3 opacity-50" />
             <p className="text-sm">Belum ada notifikasi</p>
           </div>
         ) : (
-          notifs.map((notif) => <NotifItem key={notif.id} {...notif} />)
+          DUMMY_NOTIFS.map((notif) => (
+            <NotifItem key={notif.id} {...notif} />
+          ))
         )}
       </div>
     </div>

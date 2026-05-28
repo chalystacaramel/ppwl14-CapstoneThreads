@@ -1,21 +1,17 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Camera } from "lucide-react";
-
-const CURRENT_USER = {
-  name: "Iqlima Nur`ain",
-  email: "iqlima@example.com",
-  bio: "",
-  avatar: "",
-};
+import { useAuthStore } from "@/stores/auth.store";
 
 const getInitial = (name: string) => name.charAt(0).toUpperCase();
 
 export default function EditProfilePage() {
   const navigate = useNavigate();
-  const [name, setName] = useState(CURRENT_USER.name);
-  const [email, setEmail] = useState(CURRENT_USER.email);
-  const [bio, setBio] = useState(CURRENT_USER.bio);
+  const user = useAuthStore((state) => state.user);
+
+  const [name, setName] = useState(user?.name ?? "");
+  const [email, setEmail] = useState(user?.email ?? "");
+  const [bio, setBio] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [saved, setSaved] = useState(false);
@@ -55,11 +51,11 @@ export default function EditProfilePage() {
             <div className="w-20 h-20 rounded-full bg-[#333638] flex items-center justify-center text-2xl font-bold text-[#F3F5F7]">
               {getInitial(name || "U")}
             </div>
-            <button className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-[#1877F2] flex items-center justify-center">
+            <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-[#333638] flex items-center justify-center opacity-50 cursor-not-allowed">
               <Camera size={14} />
-            </button>
+            </div>
           </div>
-          <span className="text-sm text-[#777]">Ubah foto profil</span>
+          <span className="text-sm text-[#777]">Foto profil tidak dapat diubah</span>
         </div>
 
         {/* Form */}
@@ -102,10 +98,9 @@ export default function EditProfilePage() {
             <p className="text-xs text-[#777] text-right mt-1">{bio.length}/150</p>
           </div>
 
-          {/* Divider */}
+          {/* Password */}
           <div className="border-t border-[#3E4042] pt-4">
             <p className="text-sm text-[#777] mb-3">Ganti Password (opsional)</p>
-
             <div className="space-y-3">
               <input
                 type="password"
@@ -124,10 +119,8 @@ export default function EditProfilePage() {
             </div>
           </div>
 
-          {/* Error */}
           {error && <p className="text-sm text-[#FF2E40]">{error}</p>}
 
-          {/* Success */}
           {saved && (
             <div className="bg-[#1E1E1E] border border-[#31A24C] rounded-xl px-4 py-3 text-sm text-[#31A24C] text-center">
               Profil berhasil disimpan!

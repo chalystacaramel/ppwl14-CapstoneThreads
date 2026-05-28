@@ -12,7 +12,7 @@ const lambda = new LambdaClient({
 const zipFile = fs.readFileSync("dist-lambda/lambda.zip");
 
 lambda.send(new UpdateFunctionCodeCommand({
-  FunctionName: "monorepo-backend-andy",
+  FunctionName: "monorepo-backend",
   ZipFile: zipFile,
 })).then(res => {
   console.log("Deployed successfully! LastModified:", res.LastModified);

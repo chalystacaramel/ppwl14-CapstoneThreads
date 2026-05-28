@@ -3,8 +3,8 @@ import { SSMClient, PutParameterCommand } from "@aws-sdk/client-ssm";
 const ssm = new SSMClient({
   region: "us-east-1",
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
 });
 
@@ -15,7 +15,7 @@ async function main() {
     { Name: "/monorepo/JWT_SECRET", Value: "supersecret123" },
     { Name: "/monorepo/API_KEY", Value: "myapikey" },
     { Name: "/monorepo/DATABASE_URL", Value: "libsql://monorepo-adheliaissabel.aws-ap-northeast-1.turso.io" },
-    { Name: "/monorepo/DB_AUTH_TOKEN", Value: "REDACTED
+    { Name: "/monorepo/DB_AUTH_TOKEN", Value: "REDACTED" }
   ];
 
   for (const p of params) {

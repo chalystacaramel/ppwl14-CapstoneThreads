@@ -13,7 +13,7 @@ async function checkBucket(name: string) {
     const res = await s3.send(new ListObjectsV2Command({ Bucket: name, MaxKeys: 5 }));
     console.log(`Bucket ${name}:`, res.Contents?.map(c => c.Key).join(", ") || "empty");
   } catch (e) {
-    console.log(`Bucket ${name} error:`, e.message);
+    console.log(`Bucket ${name} error:`, (e as Error).message);
   }
 }
 

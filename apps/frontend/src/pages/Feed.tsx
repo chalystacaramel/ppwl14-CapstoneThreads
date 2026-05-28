@@ -12,7 +12,9 @@ async function fetchPosts(token?: string | null): Promise<ThreadPost[]> {
   const res = await fetch(`${BACKEND_URL}/posts`, { headers })
   if (!res.ok) throw new Error('Gagal mengambil postingan')
   const data = await res.json()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const raw: any[] = Array.isArray(data) ? data : (data.posts ?? data.data ?? [])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return raw.map((p: any): ThreadPost => ({
     id: String(p.id),
     user: {
@@ -77,14 +79,15 @@ export default function Feed() {
     try {
       const data = await fetchPosts(accessToken)
       setPosts(data)
-    } catch (e: any) {
-      setError(e.message ?? 'Gagal memuat postingan')
+    } catch (e) {
+      setError((e as Error).message ?? 'Gagal memuat postingan')
     } finally {
       setLoading(false)
       setRefreshing(false)
     }
   }, [accessToken])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadPosts() }, [loadPosts])
 
   useEffect(() => {

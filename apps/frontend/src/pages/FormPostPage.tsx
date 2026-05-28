@@ -23,8 +23,8 @@ export default function FormPostPage() {
   const [searchParams] = useSearchParams();
   const editId = searchParams.get("edit");
 
-  const { accessToken, user } = useAuthStore();
-  const { draft, setDraft, clearDraft, updatePost, posts } = usePostStore();
+  const { accessToken } = useAuthStore();
+  const { draft, setDraft, clearDraft, posts } = usePostStore();
   const { text, images } = draft;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -40,7 +40,7 @@ export default function FormPostPage() {
     if (!editId) return;
     const post = posts.find((p) => p.id === editId);
     if (post) setDraft(post.text, post.images);
-  }, [editId]);
+  }, [editId, posts, setDraft]);
 
   // autosize textarea
   useEffect(() => {
@@ -102,7 +102,7 @@ export default function FormPostPage() {
       navigate("/");
     } catch (err) {
       console.error(err);
-      alert("Error: " + ((err as any)?.message || String(err)));
+      alert("Error: " + (err instanceof Error ? err.message : String(err)));
     } finally {
       setUploading(false);
       setUploadStatus(null);

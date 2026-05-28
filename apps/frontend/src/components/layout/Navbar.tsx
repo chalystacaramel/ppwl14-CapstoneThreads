@@ -91,7 +91,7 @@ export default function Navbar() {
   const handleProfile = () => navigate(isAuthenticated ? '/edit-profile' : '/login')
 
   // ── Desktop Left Sidebar ──────────────────────────────────
-  const DesktopNav = () => (
+  const renderDesktopNav = () => (
     <nav style={ds.sidebar}>
 
       {/* Logo + nama brand */}
@@ -167,7 +167,7 @@ export default function Navbar() {
   )
 
   // ── Mobile Bottom Nav ────────────────────────────────────
-  const MobileNav = () => (
+  const renderMobileNav = () => (
     <nav style={ms.bottomNav}>
       {NAV_ITEMS.map(({ path, label, icon: Icon }) => {
         const active = isActive(path)
@@ -196,10 +196,10 @@ export default function Navbar() {
   return (
     <>
       <div className="hidden md:block">
-        <DesktopNav />
+        {renderDesktopNav()}
       </div>
       <div className="block md:hidden">
-        <MobileNav />
+        {renderMobileNav()}
       </div>
     </>
   )

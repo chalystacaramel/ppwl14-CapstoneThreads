@@ -1,4 +1,4 @@
-﻿// apps/frontend/src/pages/NotifPage.tsx
+// apps/frontend/src/pages/NotifPage.tsx
 import { useEffect, useState } from "react"
 import { Bell } from "lucide-react"
 import NotifItem from "@/components/NotifItem"
@@ -22,6 +22,7 @@ export default function NotifPage() {
 
   useEffect(() => {
     if (!accessToken) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     fetch(`${BACKEND_URL}/notifications`, {
       headers: { Authorization: `Bearer ${accessToken}` },

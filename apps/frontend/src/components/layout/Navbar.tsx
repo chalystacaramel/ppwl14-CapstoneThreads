@@ -94,7 +94,7 @@ export default function Navbar() {
 
   const handleProfile = () => {
     if (!isAuthenticated) { navigate('/login'); return }
-    navigate('/profile')
+    navigate('/edit-profile')
   }
 
   const isActive = (path: string) => {

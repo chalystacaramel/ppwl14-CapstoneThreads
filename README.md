@@ -9,7 +9,7 @@
 - [Dokumen PPWL TEAM 1 CLONE THREADS - Google Docs](https://docs.google.com/document/d/1F0-oigb74NtKCum7WHZKPEOZBSMQ88rckOREho5bpis/edit?tab=t.cdm5lks88t9d)
 
 ## 🔗 Link Deploy
-- **Frontend (S3):** http://s3-monorepo-frontend-pro.s3-website-us-east-1.amazonaws.com
+- **Frontend (S3):** http://ppwl11.store.s3-website-us-east-1.amazonaws.com
 - **Frontend :** https://www.ppwl11.store
 - **Backend (Lambda):** https://ut2tmtdfxdfe6dmg6hkykhfkwy0vqxoa.lambda-url.us-east-1.on.aws
 

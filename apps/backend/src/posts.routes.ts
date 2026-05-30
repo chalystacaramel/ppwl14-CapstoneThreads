@@ -1,12 +1,9 @@
 // apps/backend/src/posts.routes.ts
-// Routes: Posts (CRUD), Like, Comment, Notification
-
 import { Elysia, t } from "elysia"
 import { jwt } from "@elysiajs/jwt"
 import type { DbClient } from "./types"
 import { uploadImageToS3 } from "./s3"
 
-// ─── Auth helper ───────────────────────────────────────────────
 async function getUser(headers: any, jwtInstance: any, set: any) {
   const authHeader = headers.authorization
   if (!authHeader) { set.status = 401; return null }
@@ -20,7 +17,7 @@ export const postRoutes = (getPrisma: () => DbClient) =>
   new Elysia({ prefix: "/posts" })
     .use(jwt({ name: "jwt", secret: process.env.JWT_SECRET!, exp: "1d" }))
 
-    // ── POST /posts/upload-image — upload gambar ke S3 ─────────
+    // ── POST /posts/upload-image ────────────────────────────────
     .post("/upload-image", async ({ body, headers, jwt, set }) => {
       const me = await getUser(headers, jwt, set)
       if (!me) return { message: "Unauthorized" }
@@ -31,18 +28,15 @@ export const postRoutes = (getPrisma: () => DbClient) =>
       try {
         const buffer = Buffer.from(await file.arrayBuffer())
         const mimeType = file.type || "image/jpeg"
-
         const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"]
         if (!allowed.includes(mimeType)) {
           set.status = 400
           return { message: "Tipe file tidak didukung. Gunakan JPG, PNG, GIF, atau WebP." }
         }
-
         if (buffer.length > 5 * 1024 * 1024) {
           set.status = 400
           return { message: "Ukuran gambar maksimal 5MB" }
         }
-
         const imageUrl = await uploadImageToS3(buffer, mimeType)
         return { imageUrl }
       } catch (e) {
@@ -54,7 +48,60 @@ export const postRoutes = (getPrisma: () => DbClient) =>
       body: t.Object({ file: t.File() }),
     })
 
-    // ── GET /posts — feed semua postingan (public) ─────────────
+    // ── DELETE /posts/comments/:id — hapus komentar (owner only) ── HARUS SEBELUM /:id
+    .delete("/comments/:id", async ({ params, headers, jwt, set }) => {
+      const me = await getUser(headers, jwt, set)
+      if (!me) return { message: "Unauthorized" }
+
+      const db = getPrisma() as any
+      const commentId = parseInt(params.id)
+
+      const comment = await db.comment.findUnique({ where: { id: commentId } })
+      if (!comment) { set.status = 404; return { message: "Komentar tidak ditemukan" } }
+      if (comment.userId !== me.userId) { set.status = 403; return { message: "Bukan milik kamu" } }
+
+      await db.notification.deleteMany({ where: { commentId } })
+      await db.comment.delete({ where: { id: commentId } })
+
+      return { message: "Komentar dihapus" }
+    })
+
+    // ── PUT /posts/comments/:id — edit komentar (owner only) ── HARUS SEBELUM /:id
+    .put(
+      "/comments/:id",
+      async ({ params, body, headers, jwt, set }) => {
+        const me = await getUser(headers, jwt, set)
+        if (!me) return { message: "Unauthorized" }
+
+        const db = getPrisma() as any
+        const commentId = parseInt(params.id)
+
+        const comment = await db.comment.findUnique({ where: { id: commentId } })
+        if (!comment) { set.status = 404; return { message: "Komentar tidak ditemukan" } }
+        if (comment.userId !== me.userId) { set.status = 403; return { message: "Bukan milik kamu" } }
+
+        const { content } = body as any
+        const updated = await db.comment.update({
+          where: { id: commentId },
+          data: { content },
+          include: { user: { select: { id: true, name: true, avatar_url: true } } },
+        })
+
+        return {
+          id: String(updated.id),
+          content: updated.content,
+          createdAt: updated.createdAt,
+          user: {
+            id: String((updated as any).user.id),
+            name: (updated as any).user.name,
+            avatarUrl: (updated as any).user.avatar_url ?? null,
+          },
+        }
+      },
+      { body: t.Object({ content: t.String({ minLength: 1 }) }) }
+    )
+
+    // ── GET /posts ──────────────────────────────────────────────
     .get("/", async ({ headers, jwt, set }) => {
       const db = getPrisma() as any
 
@@ -72,18 +119,9 @@ export const postRoutes = (getPrisma: () => DbClient) =>
         orderBy: { createdAt: "desc" },
         take: 50,
         include: {
-          user: {
-            select: { id: true, name: true, email: true, avatar_url: true },
-          },
-          _count: {
-            select: { likes: true, comments: true },
-          },
-          ...(userId ? {
-            likes: {
-              where: { userId },
-              select: { id: true },
-            },
-          } : {}),
+          user: { select: { id: true, name: true, email: true, avatar_url: true } },
+          _count: { select: { likes: true, comments: true } },
+          ...(userId ? { likes: { where: { userId }, select: { id: true } } } : {}),
         },
       })
 
@@ -105,7 +143,7 @@ export const postRoutes = (getPrisma: () => DbClient) =>
       }))
     })
 
-    // ── GET /posts/:id — detail post ───────────────────────────
+    // ── GET /posts/:id ──────────────────────────────────────────
     .get("/:id", async ({ params, headers, jwt, set }) => {
       const db = getPrisma() as any
       const postId = parseInt(params.id)
@@ -128,9 +166,7 @@ export const postRoutes = (getPrisma: () => DbClient) =>
           _count: { select: { likes: true, comments: true } },
           comments: {
             orderBy: { createdAt: "asc" },
-            include: {
-              user: { select: { id: true, name: true, avatar_url: true } },
-            },
+            include: { user: { select: { id: true, name: true, avatar_url: true } } },
           },
           ...(userId ? { likes: { where: { userId }, select: { id: true } } } : {}),
         },
@@ -166,7 +202,7 @@ export const postRoutes = (getPrisma: () => DbClient) =>
       }
     })
 
-    // ── POST /posts — buat postingan baru (auth required) ──────
+    // ── POST /posts ─────────────────────────────────────────────
     .post(
       "/",
       async ({ body, headers, jwt, set }) => {
@@ -174,8 +210,6 @@ export const postRoutes = (getPrisma: () => DbClient) =>
         if (!me) return { message: "Unauthorized" }
 
         const db = getPrisma() as any
-
-        // Limit: 1 user max 2 postingan
         const postCount = await db.post.count({ where: { userId: me.userId } })
         if (postCount >= 2) {
           set.status = 403
@@ -183,16 +217,9 @@ export const postRoutes = (getPrisma: () => DbClient) =>
         }
 
         const { content, imageUrl } = body as any
-
         const post = await db.post.create({
-          data: {
-            content,
-            image_url: imageUrl ?? null,
-            userId: me.userId,
-          },
-          include: {
-            user: { select: { id: true, name: true, avatar_url: true } },
-          },
+          data: { content, image_url: imageUrl ?? null, userId: me.userId },
+          include: { user: { select: { id: true, name: true, avatar_url: true } } },
         })
 
         return {
@@ -269,7 +296,7 @@ export const postRoutes = (getPrisma: () => DbClient) =>
       return { message: "Post dihapus" }
     })
 
-    // ── POST /posts/:id/like — toggle like ──────────────────────
+    // ── POST /posts/:id/like ────────────────────────────────────
     .post("/:id/like", async ({ params, headers, jwt, set }) => {
       const me = await getUser(headers, jwt, set)
       if (!me) return { message: "Unauthorized" }
@@ -298,7 +325,7 @@ export const postRoutes = (getPrisma: () => DbClient) =>
       }
     })
 
-    // ── POST /posts/:id/comment — beri komentar ─────────────────
+    // ── POST /posts/:id/comment ─────────────────────────────────
     .post(
       "/:id/comment",
       async ({ params, body, headers, jwt, set }) => {
@@ -320,9 +347,7 @@ export const postRoutes = (getPrisma: () => DbClient) =>
         const { content } = body as any
         const comment = await db.comment.create({
           data: { content, postId, userId: me.userId },
-          include: {
-            user: { select: { id: true, name: true, avatar_url: true } },
-          },
+          include: { user: { select: { id: true, name: true, avatar_url: true } } },
         })
 
         if (post.userId !== me.userId) {

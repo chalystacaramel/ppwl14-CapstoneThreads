@@ -13,19 +13,7 @@ import { randomUUID } from "crypto"
 // ===============================
 
 const AWS_REGION = "us-east-1"
-
-const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID || ""
-const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY || ""
-
 const IMAGE_BUCKET = process.env.IMAGE_BUCKET || "ppwl11-images"
-
-// ===============================
-// VALIDATION (SAFETY CHECK)
-// ===============================
-
-if (!AWS_ACCESS_KEY_ID || !AWS_SECRET_ACCESS_KEY) {
-  throw new Error("AWS credentials are missing in environment variables")
-}
 
 // ===============================
 // DEBUG (DEV ONLY)
@@ -37,15 +25,11 @@ console.log("IMAGE_BUCKET =", IMAGE_BUCKET)
 console.log("================================\n")
 
 // ===============================
-// S3 CLIENT
+// S3 CLIENT (menggunakan IAM Role, tidak perlu credentials manual)
 // ===============================
 
 const s3 = new S3Client({
   region: AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
 })
 
 // ===============================

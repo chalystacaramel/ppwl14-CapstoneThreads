@@ -26302,6 +26302,374 @@ var require_cjs4 = __commonJS((exports2) => {
   exports2.default = exports2.cookie;
 });
 
+// ../../node_modules/.bun/dotenv@17.4.2/node_modules/dotenv/lib/main.js
+var require_main = __commonJS((exports2, module2) => {
+  var fs = require("fs");
+  var path = require("path");
+  var os = require("os");
+  var crypto2 = require("crypto");
+  var TIPS = [
+    "◈ encrypted .env [www.dotenvx.com]",
+    "◈ secrets for agents [www.dotenvx.com]",
+    "⌁ auth for agents [www.vestauth.com]",
+    "⌘ custom filepath { path: '/custom/path/.env' }",
+    "⌘ enable debugging { debug: true }",
+    "⌘ override existing { override: true }",
+    "⌘ suppress logs { quiet: true }",
+    "⌘ multiple files { path: ['.env.local', '.env'] }"
+  ];
+  function _getRandomTip() {
+    return TIPS[Math.floor(Math.random() * TIPS.length)];
+  }
+  function parseBoolean(value) {
+    if (typeof value === "string") {
+      return !["false", "0", "no", "off", ""].includes(value.toLowerCase());
+    }
+    return Boolean(value);
+  }
+  function supportsAnsi() {
+    return process.stdout.isTTY;
+  }
+  function dim(text) {
+    return supportsAnsi() ? `\x1B[2m${text}\x1B[0m` : text;
+  }
+  var LINE = /(?:^|^)\s*(?:export\s+)?([\w.-]+)(?:\s*=\s*?|:\s+?)(\s*'(?:\\'|[^'])*'|\s*"(?:\\"|[^"])*"|\s*`(?:\\`|[^`])*`|[^#\r\n]+)?\s*(?:#.*)?(?:$|$)/mg;
+  function parse3(src) {
+    const obj = {};
+    let lines = src.toString();
+    lines = lines.replace(/\r\n?/mg, `
+`);
+    let match;
+    while ((match = LINE.exec(lines)) != null) {
+      const key = match[1];
+      let value = match[2] || "";
+      value = value.trim();
+      const maybeQuote = value[0];
+      value = value.replace(/^(['"`])([\s\S]*)\1$/mg, "$2");
+      if (maybeQuote === '"') {
+        value = value.replace(/\\n/g, `
+`);
+        value = value.replace(/\\r/g, "\r");
+      }
+      obj[key] = value;
+    }
+    return obj;
+  }
+  function _parseVault(options) {
+    options = options || {};
+    const vaultPath = _vaultPath(options);
+    options.path = vaultPath;
+    const result = DotenvModule.configDotenv(options);
+    if (!result.parsed) {
+      const err = new Error(`MISSING_DATA: Cannot parse ${vaultPath} for an unknown reason`);
+      err.code = "MISSING_DATA";
+      throw err;
+    }
+    const keys = _dotenvKey(options).split(",");
+    const length = keys.length;
+    let decrypted;
+    for (let i = 0;i < length; i++) {
+      try {
+        const key = keys[i].trim();
+        const attrs = _instructions(result, key);
+        decrypted = DotenvModule.decrypt(attrs.ciphertext, attrs.key);
+        break;
+      } catch (error) {
+        if (i + 1 >= length) {
+          throw error;
+        }
+      }
+    }
+    return DotenvModule.parse(decrypted);
+  }
+  function _warn(message2) {
+    console.error(`⚠ ${message2}`);
+  }
+  function _debug(message2) {
+    console.log(`┆ ${message2}`);
+  }
+  function _log(message2) {
+    console.log(`◇ ${message2}`);
+  }
+  function _dotenvKey(options) {
+    if (options && options.DOTENV_KEY && options.DOTENV_KEY.length > 0) {
+      return options.DOTENV_KEY;
+    }
+    if (process.env.DOTENV_KEY && process.env.DOTENV_KEY.length > 0) {
+      return process.env.DOTENV_KEY;
+    }
+    return "";
+  }
+  function _instructions(result, dotenvKey) {
+    let uri2;
+    try {
+      uri2 = new URL(dotenvKey);
+    } catch (error) {
+      if (error.code === "ERR_INVALID_URL") {
+        const err = new Error("INVALID_DOTENV_KEY: Wrong format. Must be in valid uri format like dotenv://:key_1234@dotenvx.com/vault/.env.vault?environment=development");
+        err.code = "INVALID_DOTENV_KEY";
+        throw err;
+      }
+      throw error;
+    }
+    const key = uri2.password;
+    if (!key) {
+      const err = new Error("INVALID_DOTENV_KEY: Missing key part");
+      err.code = "INVALID_DOTENV_KEY";
+      throw err;
+    }
+    const environment = uri2.searchParams.get("environment");
+    if (!environment) {
+      const err = new Error("INVALID_DOTENV_KEY: Missing environment part");
+      err.code = "INVALID_DOTENV_KEY";
+      throw err;
+    }
+    const environmentKey = `DOTENV_VAULT_${environment.toUpperCase()}`;
+    const ciphertext = result.parsed[environmentKey];
+    if (!ciphertext) {
+      const err = new Error(`NOT_FOUND_DOTENV_ENVIRONMENT: Cannot locate environment ${environmentKey} in your .env.vault file.`);
+      err.code = "NOT_FOUND_DOTENV_ENVIRONMENT";
+      throw err;
+    }
+    return { ciphertext, key };
+  }
+  function _vaultPath(options) {
+    let possibleVaultPath = null;
+    if (options && options.path && options.path.length > 0) {
+      if (Array.isArray(options.path)) {
+        for (const filepath of options.path) {
+          if (fs.existsSync(filepath)) {
+            possibleVaultPath = filepath.endsWith(".vault") ? filepath : `${filepath}.vault`;
+          }
+        }
+      } else {
+        possibleVaultPath = options.path.endsWith(".vault") ? options.path : `${options.path}.vault`;
+      }
+    } else {
+      possibleVaultPath = path.resolve(process.cwd(), ".env.vault");
+    }
+    if (fs.existsSync(possibleVaultPath)) {
+      return possibleVaultPath;
+    }
+    return null;
+  }
+  function _resolveHome(envPath) {
+    return envPath[0] === "~" ? path.join(os.homedir(), envPath.slice(1)) : envPath;
+  }
+  function _configVault(options) {
+    const debug2 = parseBoolean(process.env.DOTENV_CONFIG_DEBUG || options && options.debug);
+    const quiet = parseBoolean(process.env.DOTENV_CONFIG_QUIET || options && options.quiet);
+    if (debug2 || !quiet) {
+      _log("loading env from encrypted .env.vault");
+    }
+    const parsed = DotenvModule._parseVault(options);
+    let processEnv = process.env;
+    if (options && options.processEnv != null) {
+      processEnv = options.processEnv;
+    }
+    DotenvModule.populate(processEnv, parsed, options);
+    return { parsed };
+  }
+  function configDotenv(options) {
+    const dotenvPath = path.resolve(process.cwd(), ".env");
+    let encoding = "utf8";
+    let processEnv = process.env;
+    if (options && options.processEnv != null) {
+      processEnv = options.processEnv;
+    }
+    let debug2 = parseBoolean(processEnv.DOTENV_CONFIG_DEBUG || options && options.debug);
+    let quiet = parseBoolean(processEnv.DOTENV_CONFIG_QUIET || options && options.quiet);
+    if (options && options.encoding) {
+      encoding = options.encoding;
+    } else {
+      if (debug2) {
+        _debug("no encoding is specified (UTF-8 is used by default)");
+      }
+    }
+    let optionPaths = [dotenvPath];
+    if (options && options.path) {
+      if (!Array.isArray(options.path)) {
+        optionPaths = [_resolveHome(options.path)];
+      } else {
+        optionPaths = [];
+        for (const filepath of options.path) {
+          optionPaths.push(_resolveHome(filepath));
+        }
+      }
+    }
+    let lastError;
+    const parsedAll = {};
+    for (const path2 of optionPaths) {
+      try {
+        const parsed = DotenvModule.parse(fs.readFileSync(path2, { encoding }));
+        DotenvModule.populate(parsedAll, parsed, options);
+      } catch (e) {
+        if (debug2) {
+          _debug(`failed to load ${path2} ${e.message}`);
+        }
+        lastError = e;
+      }
+    }
+    const populated = DotenvModule.populate(processEnv, parsedAll, options);
+    debug2 = parseBoolean(processEnv.DOTENV_CONFIG_DEBUG || debug2);
+    quiet = parseBoolean(processEnv.DOTENV_CONFIG_QUIET || quiet);
+    if (debug2 || !quiet) {
+      const keysCount = Object.keys(populated).length;
+      const shortPaths = [];
+      for (const filePath of optionPaths) {
+        try {
+          const relative = path.relative(process.cwd(), filePath);
+          shortPaths.push(relative);
+        } catch (e) {
+          if (debug2) {
+            _debug(`failed to load ${filePath} ${e.message}`);
+          }
+          lastError = e;
+        }
+      }
+      _log(`injected env (${keysCount}) from ${shortPaths.join(",")} ${dim(`// tip: ${_getRandomTip()}`)}`);
+    }
+    if (lastError) {
+      return { parsed: parsedAll, error: lastError };
+    } else {
+      return { parsed: parsedAll };
+    }
+  }
+  function config(options) {
+    if (_dotenvKey(options).length === 0) {
+      return DotenvModule.configDotenv(options);
+    }
+    const vaultPath = _vaultPath(options);
+    if (!vaultPath) {
+      _warn(`you set DOTENV_KEY but you are missing a .env.vault file at ${vaultPath}`);
+      return DotenvModule.configDotenv(options);
+    }
+    return DotenvModule._configVault(options);
+  }
+  function decrypt(encrypted, keyStr) {
+    const key = Buffer.from(keyStr.slice(-64), "hex");
+    let ciphertext = Buffer.from(encrypted, "base64");
+    const nonce = ciphertext.subarray(0, 12);
+    const authTag = ciphertext.subarray(-16);
+    ciphertext = ciphertext.subarray(12, -16);
+    try {
+      const aesgcm = crypto2.createDecipheriv("aes-256-gcm", key, nonce);
+      aesgcm.setAuthTag(authTag);
+      return `${aesgcm.update(ciphertext)}${aesgcm.final()}`;
+    } catch (error) {
+      const isRange = error instanceof RangeError;
+      const invalidKeyLength = error.message === "Invalid key length";
+      const decryptionFailed = error.message === "Unsupported state or unable to authenticate data";
+      if (isRange || invalidKeyLength) {
+        const err = new Error("INVALID_DOTENV_KEY: It must be 64 characters long (or more)");
+        err.code = "INVALID_DOTENV_KEY";
+        throw err;
+      } else if (decryptionFailed) {
+        const err = new Error("DECRYPTION_FAILED: Please check your DOTENV_KEY");
+        err.code = "DECRYPTION_FAILED";
+        throw err;
+      } else {
+        throw error;
+      }
+    }
+  }
+  function populate(processEnv, parsed, options = {}) {
+    const debug2 = Boolean(options && options.debug);
+    const override = Boolean(options && options.override);
+    const populated = {};
+    if (typeof parsed !== "object") {
+      const err = new Error("OBJECT_REQUIRED: Please check the processEnv argument being passed to populate");
+      err.code = "OBJECT_REQUIRED";
+      throw err;
+    }
+    for (const key of Object.keys(parsed)) {
+      if (Object.prototype.hasOwnProperty.call(processEnv, key)) {
+        if (override === true) {
+          processEnv[key] = parsed[key];
+          populated[key] = parsed[key];
+        }
+        if (debug2) {
+          if (override === true) {
+            _debug(`"${key}" is already defined and WAS overwritten`);
+          } else {
+            _debug(`"${key}" is already defined and was NOT overwritten`);
+          }
+        }
+      } else {
+        processEnv[key] = parsed[key];
+        populated[key] = parsed[key];
+      }
+    }
+    return populated;
+  }
+  var DotenvModule = {
+    configDotenv,
+    _configVault,
+    _parseVault,
+    config,
+    decrypt,
+    parse: parse3,
+    populate
+  };
+  module2.exports.configDotenv = DotenvModule.configDotenv;
+  module2.exports._configVault = DotenvModule._configVault;
+  module2.exports._parseVault = DotenvModule._parseVault;
+  module2.exports.config = DotenvModule.config;
+  module2.exports.decrypt = DotenvModule.decrypt;
+  module2.exports.parse = DotenvModule.parse;
+  module2.exports.populate = DotenvModule.populate;
+  module2.exports = DotenvModule;
+});
+
+// ../../node_modules/.bun/dotenv@17.4.2/node_modules/dotenv/lib/env-options.js
+var require_env_options = __commonJS((exports2, module2) => {
+  var options = {};
+  if (process.env.DOTENV_CONFIG_ENCODING != null) {
+    options.encoding = process.env.DOTENV_CONFIG_ENCODING;
+  }
+  if (process.env.DOTENV_CONFIG_PATH != null) {
+    options.path = process.env.DOTENV_CONFIG_PATH;
+  }
+  if (process.env.DOTENV_CONFIG_QUIET != null) {
+    options.quiet = process.env.DOTENV_CONFIG_QUIET;
+  }
+  if (process.env.DOTENV_CONFIG_DEBUG != null) {
+    options.debug = process.env.DOTENV_CONFIG_DEBUG;
+  }
+  if (process.env.DOTENV_CONFIG_OVERRIDE != null) {
+    options.override = process.env.DOTENV_CONFIG_OVERRIDE;
+  }
+  if (process.env.DOTENV_CONFIG_DOTENV_KEY != null) {
+    options.DOTENV_KEY = process.env.DOTENV_CONFIG_DOTENV_KEY;
+  }
+  module2.exports = options;
+});
+
+// ../../node_modules/.bun/dotenv@17.4.2/node_modules/dotenv/lib/cli-options.js
+var require_cli_options = __commonJS((exports2, module2) => {
+  var re = /^dotenv_config_(encoding|path|quiet|debug|override|DOTENV_KEY)=(.+)$/;
+  module2.exports = function optionMatcher(args) {
+    const options = args.reduce(function(acc, cur) {
+      const matches = cur.match(re);
+      if (matches) {
+        acc[matches[1]] = matches[2];
+      }
+      return acc;
+    }, {});
+    if (!("quiet" in options)) {
+      options.quiet = "true";
+    }
+    return options;
+  };
+});
+
+// ../../node_modules/.bun/dotenv@17.4.2/node_modules/dotenv/config.js
+var require_config = __commonJS(() => {
+  (function() {
+    require_main().config(Object.assign({}, require_env_options(), require_cli_options()(process.argv)));
+  })();
+});
+
 // ../../node_modules/.bun/@smithy+types@4.14.2/node_modules/@smithy/types/dist-cjs/index.js
 var require_dist_cjs = __commonJS((exports2) => {
   exports2.HttpAuthLocation = undefined;
@@ -26387,7 +26755,7 @@ var require_dist_cjs = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@smithy+core@3.24.4/node_modules/@smithy/core/dist-cjs/submodules/config/index.js
-var require_config = __commonJS((exports2) => {
+var require_config2 = __commonJS((exports2) => {
   var node_os = require("node:os");
   var node_path = require("node:path");
   var node_crypto = require("node:crypto");
@@ -27039,7 +27407,7 @@ var require_config = __commonJS((exports2) => {
 
 // ../../node_modules/.bun/@smithy+core@3.24.4/node_modules/@smithy/core/dist-cjs/submodules/endpoints/index.js
 var require_endpoints = __commonJS((exports2) => {
-  var config = require_config();
+  var config = require_config2();
   var protocols = require_protocols();
   var client = require_client();
   var types = require_dist_cjs();
@@ -30336,7 +30704,7 @@ var require_uint32ArrayFrom = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@aws-crypto+util@5.2.0/node_modules/@aws-crypto/util/build/main/index.js
-var require_main = __commonJS((exports2) => {
+var require_main2 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.uint32ArrayFrom = exports2.numToUint8 = exports2.isEmptyData = exports2.convertToBuffer = undefined;
   var convertToBuffer_1 = require_convertToBuffer();
@@ -30362,8 +30730,8 @@ var require_aws_crc32 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.AwsCrc32 = undefined;
   var tslib_1 = require_tslib();
-  var util_1 = require_main();
-  var index_1 = require_main2();
+  var util_1 = require_main2();
+  var index_1 = require_main3();
   var AwsCrc32 = function() {
     function AwsCrc322() {
       this.crc32 = new index_1.Crc32;
@@ -30389,11 +30757,11 @@ var require_aws_crc32 = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@aws-crypto+crc32@5.2.0/node_modules/@aws-crypto/crc32/build/main/index.js
-var require_main2 = __commonJS((exports2) => {
+var require_main3 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.AwsCrc32 = exports2.Crc32 = exports2.crc32 = undefined;
   var tslib_1 = require_tslib();
-  var util_1 = require_main();
+  var util_1 = require_main2();
   function crc32(data) {
     return new Crc32().update(data).digest();
   }
@@ -30695,7 +31063,7 @@ var require_main2 = __commonJS((exports2) => {
 
 // ../../node_modules/.bun/@smithy+core@3.24.4/node_modules/@smithy/core/dist-cjs/submodules/event-streams/index.js
 var require_event_streams = __commonJS((exports2) => {
-  var crc32 = require_main2();
+  var crc32 = require_main3();
   var serde = require_serde();
   var node_stream = require("node:stream");
 
@@ -36455,7 +36823,7 @@ var require_client2 = __commonJS((exports2) => {
   var core = require_dist_cjs5();
   var node_os = require("node:os");
   var node_process = require("node:process");
-  var config = require_config();
+  var config = require_config2();
   var promises = require("node:fs/promises");
   var node_path = require("node:path");
   var endpoints = require_endpoints();
@@ -37230,8 +37598,8 @@ var require_aws_crc32c = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.AwsCrc32c = undefined;
   var tslib_1 = require_tslib();
-  var util_1 = require_main();
-  var index_1 = require_main3();
+  var util_1 = require_main2();
+  var index_1 = require_main4();
   var AwsCrc32c = function() {
     function AwsCrc32c2() {
       this.crc32c = new index_1.Crc32c;
@@ -37257,11 +37625,11 @@ var require_aws_crc32c = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@aws-crypto+crc32c@5.2.0/node_modules/@aws-crypto/crc32c/build/main/index.js
-var require_main3 = __commonJS((exports2) => {
+var require_main4 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.AwsCrc32c = exports2.Crc32c = exports2.crc32c = undefined;
   var tslib_1 = require_tslib();
-  var util_1 = require_main();
+  var util_1 = require_main2();
   function crc32c(data) {
     return new Crc32c().update(data).digest();
   }
@@ -37665,8 +38033,8 @@ var require_getCrc32ChecksumAlgorithmFunction = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.getCrc32ChecksumAlgorithmFunction = undefined;
   var tslib_1 = require_tslib();
-  var crc32_1 = require_main2();
-  var util_1 = require_main();
+  var crc32_1 = require_main3();
+  var util_1 = require_main2();
   var zlib = tslib_1.__importStar(require("node:zlib"));
 
   class NodeCrc32 {
@@ -37695,7 +38063,7 @@ var require_dist_cjs8 = __commonJS((exports2) => {
   var client = require_client2();
   var protocols = require_protocols();
   var serde = require_serde();
-  var crc32c = require_main3();
+  var crc32c = require_main4();
   var crc64Nvme = require_dist_cjs7();
   var getCrc32ChecksumAlgorithmFunction = require_getCrc32ChecksumAlgorithmFunction();
   var client$1 = require_client();
@@ -44046,7 +44414,7 @@ var require_dist_cjs12 = __commonJS((exports2) => {
   var protocols$1 = require_protocols2();
   var schema = require_schema4();
   var signatureV4MultiRegion = require_dist_cjs11();
-  var config = require_config();
+  var config = require_config2();
   var client$1 = require_client2();
   var core = require_dist_cjs5();
   var CONTENT_LENGTH_HEADER = "content-length";
@@ -44563,7 +44931,7 @@ var require_dist_cjs12 = __commonJS((exports2) => {
 var require_httpAuthSchemes = __commonJS((exports2) => {
   var protocols = require_protocols();
   var core = require_dist_cjs5();
-  var config = require_config();
+  var config = require_config2();
   var client = require_client2();
   var signatureV4 = require_dist_cjs10();
   var getDateHeader = (response) => protocols.HttpResponse.isInstance(response) ? response.headers?.date ?? response.headers?.Date : undefined;
@@ -52506,7 +52874,7 @@ var require_package = __commonJS((exports2, module2) => {
 // ../../node_modules/.bun/@aws-sdk+credential-provider-env@3.972.39/node_modules/@aws-sdk/credential-provider-env/dist-cjs/index.js
 var require_dist_cjs13 = __commonJS((exports2) => {
   var client = require_client2();
-  var config = require_config();
+  var config = require_config2();
   var ENV_KEY = "AWS_ACCESS_KEY_ID";
   var ENV_SECRET = "AWS_SECRET_ACCESS_KEY";
   var ENV_SESSION = "AWS_SESSION_TOKEN";
@@ -52547,7 +52915,7 @@ var require_dist_cjs13 = __commonJS((exports2) => {
 // ../../node_modules/.bun/@smithy+credential-provider-imds@4.3.4/node_modules/@smithy/credential-provider-imds/dist-cjs/index.js
 var require_dist_cjs14 = __commonJS((exports2) => {
   var node_url = require("node:url");
-  var config = require_config();
+  var config = require_config2();
   var node_http = require("node:http");
   var protocols = require_protocols();
   var isImdsCredentials = (arg) => Boolean(arg) && typeof arg === "object" && typeof arg.AccessKeyId === "string" && typeof arg.SecretAccessKey === "string" && typeof arg.Token === "string" && typeof arg.Expiration === "string";
@@ -53742,7 +54110,7 @@ or increase socketAcquisitionWarningTimeout=(millis) in the NodeHttpHandler conf
 var require_checkUrl = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.checkUrl = undefined;
-  var config_1 = require_config();
+  var config_1 = require_config2();
   var ECS_CONTAINER_HOST = "169.254.170.2";
   var EKS_CONTAINER_HOST_IPv4 = "169.254.170.23";
   var EKS_CONTAINER_HOST_IPv6 = "[fd00:ec2::23]";
@@ -53783,7 +54151,7 @@ var require_requestHelpers = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.createGetRequest = createGetRequest;
   exports2.getCredentials = getCredentials;
-  var config_1 = require_config();
+  var config_1 = require_config2();
   var protocols_1 = require_protocols();
   var serde_1 = require_serde();
   var serde_2 = require_serde();
@@ -53854,7 +54222,7 @@ var require_fromHttp = __commonJS((exports2) => {
   exports2.fromHttp = undefined;
   var tslib_1 = require_tslib();
   var client_1 = require_client2();
-  var config_1 = require_config();
+  var config_1 = require_config2();
   var node_http_handler_1 = require_dist_cjs15();
   var promises_1 = tslib_1.__importDefault(require("node:fs/promises"));
   var checkUrl_1 = require_checkUrl();
@@ -53924,7 +54292,7 @@ var require_sso_oidc = __commonJS((exports2) => {
   var client$1 = require_client2();
   var core = require_dist_cjs5();
   var client = require_client();
-  var config = require_config();
+  var config = require_config2();
   var endpoints = require_endpoints();
   var protocols = require_protocols();
   var retry = require_retry();
@@ -54630,7 +54998,7 @@ var require_sso_oidc = __commonJS((exports2) => {
 var require_dist_cjs17 = __commonJS((exports2) => {
   var client = require_client2();
   var httpAuthSchemes = require_httpAuthSchemes();
-  var config = require_config();
+  var config = require_config2();
   var node_fs = require("node:fs");
   var fromEnvSigningName = ({ logger, signingName } = {}) => async () => {
     logger?.debug?.("@aws-sdk/token-providers - fromEnvSigningName");
@@ -54773,7 +55141,7 @@ var require_sso = __commonJS((exports2) => {
   var client$1 = require_client2();
   var core = require_dist_cjs5();
   var client = require_client();
-  var config = require_config();
+  var config = require_config2();
   var endpoints = require_endpoints();
   var protocols = require_protocols();
   var retry = require_retry();
@@ -55272,7 +55640,7 @@ var require_loadSso_BKDNrsal = __commonJS((exports2) => {
 
 // ../../node_modules/.bun/@aws-sdk+credential-provider-sso@3.972.43/node_modules/@aws-sdk/credential-provider-sso/dist-cjs/index.js
 var require_dist_cjs18 = __commonJS((exports2) => {
-  var config = require_config();
+  var config = require_config2();
   var client = require_client2();
   var tokenProviders = require_dist_cjs17();
   var isSsoProfile = (arg) => arg && (typeof arg.sso_start_url === "string" || typeof arg.sso_account_id === "string" || typeof arg.sso_session === "string" || typeof arg.sso_region === "string" || typeof arg.sso_role_name === "string");
@@ -55451,7 +55819,7 @@ var require_signin = __commonJS((exports2) => {
   var client$1 = require_client2();
   var core = require_dist_cjs5();
   var client = require_client();
-  var config = require_config();
+  var config = require_config2();
   var endpoints = require_endpoints();
   var protocols = require_protocols();
   var retry = require_retry();
@@ -56010,7 +56378,7 @@ var require_signin = __commonJS((exports2) => {
 // ../../node_modules/.bun/@aws-sdk+credential-provider-login@3.972.43/node_modules/@aws-sdk/credential-provider-login/dist-cjs/index.js
 var require_dist_cjs19 = __commonJS((exports2) => {
   var client = require_client2();
-  var config = require_config();
+  var config = require_config2();
   var protocols = require_protocols();
   var node_crypto = require("node:crypto");
   var node_fs = require("node:fs");
@@ -56287,7 +56655,7 @@ var require_sts = __commonJS((exports2) => {
   var client$1 = require_client2();
   var core = require_dist_cjs5();
   var client = require_client();
-  var config = require_config();
+  var config = require_config2();
   var endpoints = require_endpoints();
   var protocols = require_protocols();
   var retry = require_retry();
@@ -57247,7 +57615,7 @@ var require_sts = __commonJS((exports2) => {
 
 // ../../node_modules/.bun/@aws-sdk+credential-provider-process@3.972.39/node_modules/@aws-sdk/credential-provider-process/dist-cjs/index.js
 var require_dist_cjs20 = __commonJS((exports2) => {
-  var config = require_config();
+  var config = require_config2();
   var node_child_process = require("node:child_process");
   var node_util = require("node:util");
   var client = require_client2();
@@ -57354,7 +57722,7 @@ var require_fromTokenFile = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.fromTokenFile = undefined;
   var client_1 = require_client2();
-  var config_1 = require_config();
+  var config_1 = require_config2();
   var node_fs_1 = require("node:fs");
   var fromWebToken_1 = require_fromWebToken();
   var ENV_TOKEN_FILE = "AWS_WEB_IDENTITY_TOKEN_FILE";
@@ -57408,7 +57776,7 @@ var require_dist_cjs21 = __commonJS((exports2) => {
 
 // ../../node_modules/.bun/@aws-sdk+credential-provider-ini@3.972.43/node_modules/@aws-sdk/credential-provider-ini/dist-cjs/index.js
 var require_dist_cjs22 = __commonJS((exports2) => {
-  var config = require_config();
+  var config = require_config2();
   var client = require_client2();
   var credentialProviderLogin = require_dist_cjs19();
   var resolveCredentialSource = (credentialSource, profileName, logger) => {
@@ -57596,7 +57964,7 @@ var require_dist_cjs22 = __commonJS((exports2) => {
 // ../../node_modules/.bun/@aws-sdk+credential-provider-node@3.972.44/node_modules/@aws-sdk/credential-provider-node/dist-cjs/index.js
 var require_dist_cjs23 = __commonJS((exports2) => {
   var credentialProviderEnv = require_dist_cjs13();
-  var config = require_config();
+  var config = require_config2();
   var ENV_IMDS_DISABLED = "AWS_EC2_METADATA_DISABLED";
   var remoteProvider = async (init) => {
     const { ENV_CMDS_FULL_URI, ENV_CMDS_RELATIVE_URI, fromContainerMetadata, fromInstanceMetadata } = await Promise.resolve().then(() => __toESM(require_dist_cjs14()));
@@ -57739,7 +58107,7 @@ var require_dist_cjs23 = __commonJS((exports2) => {
 
 // ../../node_modules/.bun/@aws-sdk+middleware-bucket-endpoint@3.972.15/node_modules/@aws-sdk/middleware-bucket-endpoint/dist-cjs/index.js
 var require_dist_cjs24 = __commonJS((exports2) => {
-  var config = require_config();
+  var config = require_config2();
   var util = require_util();
   var protocols = require_protocols();
   var NODE_DISABLE_MULTIREGION_ACCESS_POINT_ENV_NAME = "AWS_S3_DISABLE_MULTIREGION_ACCESS_POINTS";
@@ -58388,7 +58756,7 @@ var require_runtimeConfig = __commonJS((exports2) => {
   var middleware_sdk_s3_1 = require_dist_cjs12();
   var checksum_1 = require_checksum();
   var client_2 = require_client();
-  var config_1 = require_config();
+  var config_1 = require_config2();
   var event_streams_1 = require_event_streams();
   var retry_1 = require_retry();
   var serde_1 = require_serde();
@@ -58547,7 +58915,7 @@ var require_dist_cjs27 = __commonJS((exports2) => {
   var middlewareSdkS3 = require_dist_cjs12();
   var core = require_dist_cjs5();
   var client = require_client();
-  var config = require_config();
+  var config = require_config2();
   var endpoints = require_endpoints();
   var eventStreams = require_event_streams();
   var protocols = require_protocols();
@@ -72349,7 +72717,7 @@ var require_runtimeConfig2 = __commonJS((exports2) => {
   var httpAuthSchemes_1 = require_httpAuthSchemes();
   var credential_provider_node_1 = require_dist_cjs23();
   var client_2 = require_client();
-  var config_1 = require_config();
+  var config_1 = require_config2();
   var retry_1 = require_retry();
   var serde_1 = require_serde();
   var node_http_handler_1 = require_dist_cjs15();
@@ -72395,7 +72763,7 @@ var require_dist_cjs28 = __commonJS((exports2) => {
   var client$1 = require_client2();
   var core = require_dist_cjs5();
   var client = require_client();
-  var config = require_config();
+  var config = require_config2();
   var endpoints = require_endpoints();
   var protocols = require_protocols();
   var retry = require_retry();
@@ -94351,7 +94719,7 @@ var require_util2 = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.bun/@libsql+core@0.17.3/node_modules/@libsql/core/lib-cjs/config.js
-var require_config2 = __commonJS((exports2) => {
+var require_config3 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.expandConfig = exports2.isInMemoryConfig = undefined;
   var api_js_1 = require_api();
@@ -95206,7 +95574,7 @@ var require_sqlite3 = __commonJS((exports2) => {
   var libsql_1 = __importDefault(require_libsql());
   var node_buffer_1 = require("node:buffer");
   var api_1 = require_api();
-  var config_1 = require_config2();
+  var config_1 = require_config3();
   var util_1 = require_util2();
   __exportStar(require_api(), exports2);
   function createClient(config2) {
@@ -102865,7 +103233,7 @@ var require_ws3 = __commonJS((exports2) => {
   exports2.WsTransaction = exports2.WsClient = exports2._createClient = exports2.createClient = undefined;
   var hrana = __importStar(require_lib_cjs());
   var api_1 = require_api();
-  var config_1 = require_config2();
+  var config_1 = require_config3();
   var hrana_js_1 = require_hrana();
   var sql_cache_js_1 = require_sql_cache();
   var uri_1 = require_uri();
@@ -103207,7 +103575,7 @@ var require_http = __commonJS((exports2) => {
   exports2.HttpTransaction = exports2.HttpClient = exports2._createClient = exports2.createClient = undefined;
   var hrana = __importStar(require_lib_cjs());
   var api_1 = require_api();
-  var config_1 = require_config2();
+  var config_1 = require_config3();
   var hrana_js_1 = require_hrana();
   var sql_cache_js_1 = require_sql_cache();
   var uri_1 = require_uri();
@@ -103435,7 +103803,7 @@ var require_node3 = __commonJS((exports2) => {
   };
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.createClient = undefined;
-  var config_1 = require_config2();
+  var config_1 = require_config3();
   var sqlite3_js_1 = require_sqlite3();
   var ws_js_1 = require_ws3();
   var http_js_1 = require_http();
@@ -104313,7 +104681,7 @@ var require_web = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2._createClient = exports2.createClient = undefined;
   var api_1 = require_api();
-  var config_1 = require_config2();
+  var config_1 = require_config3();
   var util_1 = require_util2();
   var ws_js_1 = require_ws3();
   var http_js_1 = require_http();
@@ -122519,17 +122887,38 @@ var authRoutes = (getPrisma) => new Elysia({ prefix: "/auth" }).use(jwt({
   const { email, password } = body;
   try {
     const db = getPrisma();
-    const user = await db.user.findUnique({ where: { email } });
-    if (!user || !user.password) {
+    console.log(`
+========== LOGIN ATTEMPT ==========`);
+    console.log("EMAIL:", email);
+    const user = await db.user.findUnique({
+      where: { email }
+    });
+    console.log("USER FOUND:", user);
+    if (!user) {
+      console.log("❌ USER NOT FOUND");
       set.status = 401;
       return { message: "Email atau password salah" };
     }
+    if (!user.password) {
+      console.log("❌ USER HAS NO PASSWORD");
+      set.status = 401;
+      return { message: "Email atau password salah" };
+    }
+    console.log("PASSWORD INPUT:", password);
+    console.log("HASH IN DB:", user.password);
     const valid = await bcryptjs_default.compare(password, user.password);
+    console.log("BCRYPT RESULT:", valid);
     if (!valid) {
+      console.log("❌ PASSWORD MISMATCH");
       set.status = 401;
       return { message: "Email atau password salah" };
     }
-    const token = await jwt2.sign({ userId: user.id, email: user.email });
+    const token = await jwt2.sign({
+      userId: user.id,
+      email: user.email
+    });
+    console.log("✅ LOGIN SUCCESS");
+    console.log("TOKEN GENERATED:", token);
     return {
       accessToken: token,
       user: {
@@ -122542,7 +122931,10 @@ var authRoutes = (getPrisma) => new Elysia({ prefix: "/auth" }).use(jwt({
   } catch (e) {
     console.error("LOGIN ERROR:", e);
     set.status = 500;
-    return { message: "Login gagal", error: String(e) };
+    return {
+      message: "Login gagal",
+      error: String(e)
+    };
   }
 }, {
   body: t2.Object({
@@ -122587,40 +122979,93 @@ var authRoutes = (getPrisma) => new Elysia({ prefix: "/auth" }).use(jwt({
 });
 
 // src/s3.ts
+var import_config = __toESM(require_config(), 1);
 var import_client_s3 = __toESM(require_dist_cjs27(), 1);
 var import_crypto2 = require("crypto");
-var s3 = new import_client_s3.S3Client({
-  region: process.env.AWS_REGION || "us-east-1",
-  credentials: process.env.AWS_ACCESS_KEY_ID ? {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-  } : undefined
-});
+var AWS_REGION = "us-east-1";
 var IMAGE_BUCKET = process.env.IMAGE_BUCKET || "ppwl11-images";
+console.log(`
+========== S3 CONFIG ==========`);
+console.log("AWS_REGION =", AWS_REGION);
+console.log("IMAGE_BUCKET =", IMAGE_BUCKET);
+console.log(`================================
+`);
+var s3 = new import_client_s3.S3Client({
+  region: AWS_REGION
+});
 var IMAGE_BASE_URL = `https://${IMAGE_BUCKET}.s3.amazonaws.com`;
+async function checkBucketRegion() {
+  try {
+    const result = await s3.send(new import_client_s3.GetBucketLocationCommand({
+      Bucket: IMAGE_BUCKET
+    }));
+    console.log("BUCKET REGION (ENV):", AWS_REGION);
+    console.log("BUCKET REGION (AWS):", result.LocationConstraint ?? "us-east-1");
+  } catch (err) {
+    console.error("CHECK BUCKET ERROR:", err);
+  }
+}
+if (true) {
+  checkBucketRegion();
+}
 async function uploadImageToS3(buffer, mimeType, folder = "posts") {
-  const ext = mimeType.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
-  const key = `${folder}/${import_crypto2.randomUUID()}.${ext}`;
-  await s3.send(new import_client_s3.PutObjectCommand({
-    Bucket: IMAGE_BUCKET,
-    Key: key,
-    Body: buffer,
-    ContentType: mimeType,
-    ACL: "public-read"
-  }));
-  return `${IMAGE_BASE_URL}/${key}`;
+  try {
+    if (!buffer || buffer.length === 0) {
+      throw new Error("File buffer is empty");
+    }
+    if (!mimeType) {
+      throw new Error("MimeType is missing");
+    }
+    const ext = mimeType.split("/")?.[1]?.replace("jpeg", "jpg") || "jpg";
+    const key = `${folder}/${import_crypto2.randomUUID()}.${ext}`;
+    console.log(`
+========== S3 UPLOAD ==========`);
+    console.log("Bucket:", IMAGE_BUCKET);
+    console.log("Region:", AWS_REGION);
+    console.log("Key:", key);
+    console.log("Mime:", mimeType);
+    console.log("Size:", buffer.length, "bytes");
+    console.log(`===============================
+`);
+    await s3.send(new import_client_s3.PutObjectCommand({
+      Bucket: IMAGE_BUCKET,
+      Key: key,
+      Body: buffer,
+      ContentType: mimeType
+    }));
+    const imageUrl = `${IMAGE_BASE_URL}/${key}`;
+    console.log("✅ Upload successful:", imageUrl);
+    return imageUrl;
+  } catch (error) {
+    console.error(`
+========== S3 UPLOAD ERROR ==========`);
+    console.error("Message:", error?.message);
+    console.error("Name:", error?.name);
+    console.error("Code:", error?.Code);
+    console.error("Status:", error?.$metadata?.httpStatusCode);
+    console.error(`=====================================
+`);
+    throw new Error(`Gagal upload gambar ke S3: ${error?.message || "Unknown error"}`);
+  }
 }
 
 // src/posts.routes.ts
 async function getUser(headers, jwtInstance, set) {
+  console.log(`
+=== AUTH CHECK ===`);
+  console.log("AUTH HEADER:", headers.authorization);
   const authHeader = headers.authorization;
   if (!authHeader) {
+    console.log("NO AUTH HEADER");
     set.status = 401;
     return null;
   }
   const token = authHeader.replace("Bearer ", "");
+  console.log("TOKEN:", token);
   const payload = await jwtInstance.verify(token);
+  console.log("PAYLOAD:", payload);
   if (!payload) {
+    console.log("JWT VERIFY FAILED");
     set.status = 401;
     return null;
   }
@@ -122656,7 +123101,56 @@ var postRoutes = (getPrisma) => new Elysia({ prefix: "/posts" }).use(jwt({ name:
   }
 }, {
   body: t2.Object({ file: t2.File() })
-}).get("/", async ({ headers, jwt: jwt2, set }) => {
+}).delete("/comments/:id", async ({ params, headers, jwt: jwt2, set }) => {
+  const me = await getUser(headers, jwt2, set);
+  if (!me)
+    return { message: "Unauthorized" };
+  const db = getPrisma();
+  const commentId = parseInt(params.id);
+  const comment = await db.comment.findUnique({ where: { id: commentId } });
+  if (!comment) {
+    set.status = 404;
+    return { message: "Komentar tidak ditemukan" };
+  }
+  if (comment.userId !== me.userId) {
+    set.status = 403;
+    return { message: "Bukan milik kamu" };
+  }
+  await db.notification.deleteMany({ where: { commentId } });
+  await db.comment.delete({ where: { id: commentId } });
+  return { message: "Komentar dihapus" };
+}).put("/comments/:id", async ({ params, body, headers, jwt: jwt2, set }) => {
+  const me = await getUser(headers, jwt2, set);
+  if (!me)
+    return { message: "Unauthorized" };
+  const db = getPrisma();
+  const commentId = parseInt(params.id);
+  const comment = await db.comment.findUnique({ where: { id: commentId } });
+  if (!comment) {
+    set.status = 404;
+    return { message: "Komentar tidak ditemukan" };
+  }
+  if (comment.userId !== me.userId) {
+    set.status = 403;
+    return { message: "Bukan milik kamu" };
+  }
+  const { content } = body;
+  const updated = await db.comment.update({
+    where: { id: commentId },
+    data: { content },
+    include: { user: { select: { id: true, name: true, avatar_url: true } } }
+  });
+  return {
+    id: String(updated.id),
+    content: updated.content,
+    createdAt: updated.createdAt,
+    user: {
+      id: String(updated.user.id),
+      name: updated.user.name,
+      avatarUrl: updated.user.avatar_url ?? null
+    }
+  };
+}, { body: t2.Object({ content: t2.String({ minLength: 1 }) }) }).get("/", async ({ headers, jwt: jwt2, set }) => {
   const db = getPrisma();
   let userId = null;
   try {
@@ -122672,18 +123166,9 @@ var postRoutes = (getPrisma) => new Elysia({ prefix: "/posts" }).use(jwt({ name:
     orderBy: { createdAt: "desc" },
     take: 50,
     include: {
-      user: {
-        select: { id: true, name: true, email: true, avatar_url: true }
-      },
-      _count: {
-        select: { likes: true, comments: true }
-      },
-      ...userId ? {
-        likes: {
-          where: { userId },
-          select: { id: true }
-        }
-      } : {}
+      user: { select: { id: true, name: true, email: true, avatar_url: true } },
+      _count: { select: { likes: true, comments: true } },
+      ...userId ? { likes: { where: { userId }, select: { id: true } } } : {}
     }
   });
   return posts.map((p) => ({
@@ -122726,9 +123211,7 @@ var postRoutes = (getPrisma) => new Elysia({ prefix: "/posts" }).use(jwt({ name:
       _count: { select: { likes: true, comments: true } },
       comments: {
         orderBy: { createdAt: "asc" },
-        include: {
-          user: { select: { id: true, name: true, avatar_url: true } }
-        }
+        include: { user: { select: { id: true, name: true, avatar_url: true } } }
       },
       ...userId ? { likes: { where: { userId }, select: { id: true } } } : {}
     }
@@ -122775,14 +123258,8 @@ var postRoutes = (getPrisma) => new Elysia({ prefix: "/posts" }).use(jwt({ name:
   }
   const { content, imageUrl } = body;
   const post = await db.post.create({
-    data: {
-      content,
-      image_url: imageUrl ?? null,
-      userId: me.userId
-    },
-    include: {
-      user: { select: { id: true, name: true, avatar_url: true } }
-    }
+    data: { content, image_url: imageUrl ?? null, userId: me.userId },
+    include: { user: { select: { id: true, name: true, avatar_url: true } } }
   });
   return {
     id: String(post.id),
@@ -122895,9 +123372,7 @@ var postRoutes = (getPrisma) => new Elysia({ prefix: "/posts" }).use(jwt({ name:
   const { content } = body;
   const comment = await db.comment.create({
     data: { content, postId, userId: me.userId },
-    include: {
-      user: { select: { id: true, name: true, avatar_url: true } }
-    }
+    include: { user: { select: { id: true, name: true, avatar_url: true } } }
   });
   if (post.userId !== me.userId) {
     await db.notification.create({

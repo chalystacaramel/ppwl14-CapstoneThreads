@@ -74,19 +74,55 @@ export const authRoutes = (getPrisma: () => DbClient) =>
       "/login",
       async ({ body, jwt, set }) => {
         const { email, password } = body
+
         try {
           const db = getPrisma()
-          const user = await db.user.findUnique({ where: { email } })
-          if (!user || !user.password) {
+
+          console.log("\n========== LOGIN ATTEMPT ==========")
+          console.log("EMAIL:", email)
+
+          const user = await db.user.findUnique({
+            where: { email },
+          })
+
+          console.log("USER FOUND:", user)
+
+          if (!user) {
+            console.log("❌ USER NOT FOUND")
             set.status = 401
             return { message: "Email atau password salah" }
           }
-          const valid = await bcrypt.compare(password, user.password)
+
+          if (!user.password) {
+            console.log("❌ USER HAS NO PASSWORD")
+            set.status = 401
+            return { message: "Email atau password salah" }
+          }
+
+          console.log("PASSWORD INPUT:", password)
+          console.log("HASH IN DB:", user.password)
+
+          const valid = await bcrypt.compare(
+            password,
+            user.password
+          )
+
+          console.log("BCRYPT RESULT:", valid)
+
           if (!valid) {
+            console.log("❌ PASSWORD MISMATCH")
             set.status = 401
             return { message: "Email atau password salah" }
           }
-          const token = await jwt.sign({ userId: user.id, email: user.email })
+
+          const token = await jwt.sign({
+            userId: user.id,
+            email: user.email,
+          })
+
+          console.log("✅ LOGIN SUCCESS")
+          console.log("TOKEN GENERATED:", token)
+
           return {
             accessToken: token,
             user: {
@@ -98,8 +134,13 @@ export const authRoutes = (getPrisma: () => DbClient) =>
           }
         } catch (e) {
           console.error("LOGIN ERROR:", e)
+
           set.status = 500
-          return { message: "Login gagal", error: String(e) }
+
+          return {
+            message: "Login gagal",
+            error: String(e),
+          }
         }
       },
       {

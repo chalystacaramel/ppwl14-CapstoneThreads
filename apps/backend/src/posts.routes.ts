@@ -5,12 +5,32 @@ import type { DbClient } from "./types"
 import { uploadImageToS3 } from "./s3"
 
 async function getUser(headers: any, jwtInstance: any, set: any) {
+  console.log("\n=== AUTH CHECK ===")
+  console.log("AUTH HEADER:", headers.authorization)
+
   const authHeader = headers.authorization
-  if (!authHeader) { set.status = 401; return null }
+
+  if (!authHeader) {
+    console.log("NO AUTH HEADER")
+    set.status = 401
+    return null
+  }
+
   const token = authHeader.replace("Bearer ", "")
+
+  console.log("TOKEN:", token)
+
   const payload = await jwtInstance.verify(token)
-  if (!payload) { set.status = 401; return null }
-  return payload as { userId: number; email: string }
+
+  console.log("PAYLOAD:", payload)
+
+  if (!payload) {
+    console.log("JWT VERIFY FAILED")
+    set.status = 401
+    return null
+  }
+
+  return payload
 }
 
 export const postRoutes = (getPrisma: () => DbClient) =>

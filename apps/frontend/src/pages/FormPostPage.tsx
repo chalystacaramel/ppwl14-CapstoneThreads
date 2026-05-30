@@ -24,6 +24,7 @@ export default function FormPostPage() {
   const editId = searchParams.get("edit");
 
   const { accessToken } = useAuthStore();
+  console.log("ACCESS TOKEN:", accessToken);
   const { draft, setDraft, clearDraft, posts } = usePostStore();
   const { text, images } = draft;
   const textareaRef = useRef<HTMLTextAreaElement>(null);

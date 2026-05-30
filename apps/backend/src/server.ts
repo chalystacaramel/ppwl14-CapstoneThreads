@@ -15,3 +15,6 @@ console.log("🦊 Backend    → http://localhost:3000");
 console.log("🦊 FRONTEND_URL →", process.env.FRONTEND_URL);
 console.log("🦊 DATABASE_URL →", getDbUrl());
 console.log("🦊 REDIRECT_URI →", process.env.GOOGLE_REDIRECT_URI);
+
+console.log("AWS_REGION =", process.env.AWS_REGION);
+console.log("BUCKET REGION =", process.env.BUCKET_REGION);

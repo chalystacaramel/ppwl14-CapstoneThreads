@@ -76,6 +76,7 @@ export default function DetailPostPage() {
             },
           });
           setComments(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             postData.comments?.map((c: any) => ({
               id: c.id,
               content: c.content,

@@ -3,8 +3,11 @@ import { randomUUID } from "crypto";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 
+const bucket_name = "ppwl11-images";
+const region_name = "us-east-1";
+
 const s3 = new S3Client({
-    region: "us-east-1",
+    region: region_name,
     credentials: {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
@@ -18,7 +21,7 @@ export const uploadS3File = async (image: File) => {
 
     await s3.send(
         new PutObjectCommand({
-            Bucket: "ppwl11-images",
+            Bucket: bucket_name,
             Key: fileName,
             Body: buffer,
             ContentType: image.type,
@@ -26,7 +29,7 @@ export const uploadS3File = async (image: File) => {
     );
 
     const imageUrl =
-        `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
+        `https://${bucket_name}.s3.${region_name}.amazonaws.com/${fileName}`;
 
     return imageUrl;
 }
@@ -38,7 +41,7 @@ export const deleteS3File = async (imageUrl: string) => {
 
     await s3.send(
         new DeleteObjectCommand({
-            Bucket: process.env.AWS_S3_BUCKET!,
+            Bucket: bucket_name,
             Key: key,
         })
     );

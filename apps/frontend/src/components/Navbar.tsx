@@ -4,7 +4,7 @@
 
 import React from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useAuthStore } from '../../stores/auth.store'
+import { useAuthStore } from '../stores/useAuthStore'
 
 // ─── Threadster Logo ───────────────────────────────────────────
 function ThreadsterLogo({ size = 32 }: { size?: number }) {
@@ -55,10 +55,10 @@ function HeartIcon({ filled }: { filled?: boolean }) {
   )
 }
 
-function ProfileIcon({ avatarUrl, size = 26 }: { avatarUrl?: string; size?: number }) {
+function ProfileIcon({ avatarUrl, size = 26 }: { avatarUrl?: string | null; size?: number }) {
   if (avatarUrl) {
     return (
-      <img src={avatarUrl} alt="avatar"
+      <img src={avatarUrl} alt="avatar" loading="lazy"
         style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
       />
     )
@@ -73,15 +73,18 @@ function ProfileIcon({ avatarUrl, size = 26 }: { avatarUrl?: string; size?: numb
 
 // ─── Nav items ─────────────────────────────────────────────────
 const NAV_ITEMS = [
-  { path: '/',              label: 'Beranda',    icon: HomeIcon },
-  { path: '/post',          label: 'Buat Post',  icon: PlusIcon, isCreate: true },
+  { path: '/', label: 'Beranda', icon: HomeIcon },
+  { path: '/post', label: 'Buat Post', icon: PlusIcon, isCreate: true },
   { path: '/notifications', label: 'Notifikasi', icon: HeartIcon },
 ]
 
 export default function Navbar() {
-  const navigate  = useNavigate()
-  const location  = useLocation()
-  const { user, isAuthenticated, logout } = useAuthStore()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const logout = useAuthStore((s) => s.logout);
+  // console.log("user",user);
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/'
@@ -136,7 +139,7 @@ export default function Navbar() {
           onClick={handleProfile}
         >
           <span style={ds.iconWrap}>
-            <ProfileIcon avatarUrl={user?.avatarUrl} size={26} />
+            <ProfileIcon avatarUrl={user?.avatar_url} size={26} />
           </span>
           <span style={{
             ...ds.label,
@@ -188,7 +191,7 @@ export default function Navbar() {
         onClick={handleProfile}
         aria-label="Profil"
       >
-        <ProfileIcon avatarUrl={user?.avatarUrl} size={26} />
+        <ProfileIcon avatarUrl={user?.avatar_url} size={26} />
       </button>
     </nav>
   )

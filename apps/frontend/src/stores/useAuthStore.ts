@@ -6,9 +6,9 @@ interface AuthState {
     user: User | null;
     token: string | null;
     isAuthenticated: boolean;
-    setUser: (user: User) => void;
 
     // Actions
+    setUser: (user: User) => void;
     setAuth: (user: User, token?: string) => void;
     logout: () => void;
     updateProfile: (updatedFields: Partial<Pick<User, 'name' | 'avatar_url' | 'bio'>>) => void;
@@ -20,6 +20,7 @@ export const useAuthStore = create<AuthState>()(
             user: null,
             token: null,
             isAuthenticated: false,
+            hasHydrated: false,
 
             setUser: (user) => set({ user }),
             setAuth: (user, token) =>
@@ -31,7 +32,7 @@ export const useAuthStore = create<AuthState>()(
             updateProfile: (updatedFields) =>
                 set((state) => ({
                     user: state.user ? { ...state.user, ...updatedFields } : null,
-                })),
+                }))
         }),
         {
             name: 'auth-storage', // Nama key di localStorage

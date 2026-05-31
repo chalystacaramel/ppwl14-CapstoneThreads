@@ -4,7 +4,9 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ImageUpload from "@/components/ImageUpload";
 import { usePostStore } from "@/stores/usePostStore";
-import { useAuthStore } from "@/stores/auth.store";
+import { useAuthStore } from "@/stores/useAuthStore";
+import axios from "axios";
+import { elysiaErr } from "@/lib/elysiaErr";
 
 const MAX_CHARS = 500;
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
@@ -20,99 +22,88 @@ const tokens = {
 
 export default function FormPostPage() {
   const navigate = useNavigate();
+  const token = useAuthStore((s) => s.token);
   const [searchParams] = useSearchParams();
-  const editId = searchParams.get("edit");
+  const editId = Number(searchParams.get("edit"));
 
-  const { accessToken } = useAuthStore();
-  console.log("ACCESS TOKEN:", accessToken);
-  const { draft, setDraft, clearDraft, posts } = usePostStore();
-  const { text, images } = draft;
+  // console.log("ACCESS TOKEN:", token);
+  const form = usePostStore((s) => s.form);
+  const setForm = usePostStore((s) => s.setForm);
+  const resetForm = usePostStore((s) => s.resetForm);
+  const posts = usePostStore((s) => s.posts);
+  const [content, setContent] = useState(form ? form.content : "");
+  const [image, setImage] = useState<File | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [loading, setLoading] = useState(false);
 
-  const remaining = MAX_CHARS - text.length;
-  const isOver = remaining < 0;
-  const isEmpty = text.trim().length === 0 && images.length === 0;
-  const isEditMode = !!editId;
+  const remaining = MAX_CHARS - content.length;
+  const isOver = remaining < 0; // jika text kelewat batas, jangan kasih akses submit
+  const isEmpty = content.trim().length === 0;
 
-  // load edit
+  // load Jika Mode Edit
   useEffect(() => {
     if (!editId) return;
     const post = posts.find((p) => p.id === editId);
-    if (post) setDraft(post.text, post.images);
-  }, [editId, posts, setDraft]);
+    if (post) setForm({ content: post.content, image_url: post.image_url });
+  }, [editId, posts, setForm]);
 
   // autosize textarea
   useEffect(() => {
     if (!textareaRef.current) return;
     textareaRef.current.style.height = "auto";
     textareaRef.current.style.height = textareaRef.current.scrollHeight + "px";
-  }, [text]);
+  }, [content]);
 
   const handlePost = async () => {
-    if (isEmpty || isOver || uploading) return;
-    if (!accessToken) return alert("Login dulu");
-
-    setUploading(true);
-    setUploadStatus(null);
+    if (isEmpty || isOver || loading) return;
+    if (!token) return alert("Login dulu");
+    setLoading(true);
 
     try {
-      // 1. Upload gambar ke S3 dulu (kalau ada file baru)
-      let imageUrl: string | null = null;
-      if (images[0]?.file) {
-        setUploadStatus("Mengupload gambar...");
-        const formData = new FormData();
-        formData.append("file", images[0].file);
-
-        const uploadRes = await fetch(`${BACKEND_URL}/posts/upload-image`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${accessToken}` },
-          body: formData,
-        });
-
-        if (!uploadRes.ok) {
-          const errData = await uploadRes.json();
-          throw new Error("Gagal upload gambar: " + (errData.message || uploadRes.status));
-        }
-
-        const uploadData = await uploadRes.json();
-        imageUrl = uploadData.imageUrl;
+      const formData = new FormData();
+      formData.append('content', content);
+      if (image) {
+        formData.append('image', image); // Field nama 'image' dicocokkan dengan backend Elysia
       }
+      console.log(image);
 
-      // 2. POST konten + URL gambar permanen dari S3
-      setUploadStatus("Menyimpan postingan...");
-      const res = await fetch(`${BACKEND_URL}/posts`, {
-        method: "POST",
+      const resCreatePost = await axios.post(`${BACKEND_URL}/posts`,
+        formData, {
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          content: text.trim(),
-          ...(imageUrl ? { imageUrl } : {}),
-        }),
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`,
+        }
       });
+      console.log("resCreatePost.data", resCreatePost.data);
 
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(`${res.status}: ${errData.message || "Unknown error"}`);
-      }
+      resetForm();
+      navigate("/", { replace: true });
 
-      clearDraft();
-      navigate("/");
     } catch (err) {
+      elysiaErr(err);
       console.error(err);
-      alert("Error: " + (err instanceof Error ? err.message : String(err)));
     } finally {
-      setUploading(false);
-      setUploadStatus(null);
+      setLoading(false);
     }
   };
+  
+  const handleRemoveImage = () => {
+      setImage(null);
+      if (form) {
+          setForm((prev) => {
+              const { image_url, ...rest } = prev;
+              return rest;
+          });
+      }
+      if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+      }
+  }
 
   return (
     <div className="min-h-screen flex justify-center" style={{ background: tokens.bgPrimary }}>
-      <div className="w-full max-w-[560px] p-4">
+      <div className="w-full max-w-140 p-4">
         <div className="rounded-2xl border overflow-hidden"
           style={{ background: tokens.bgTertiary, borderColor: tokens.divider }}>
 
@@ -125,7 +116,7 @@ export default function FormPostPage() {
               Batal
             </button>
             <h1 style={{ color: tokens.textPrimary, fontSize: 16, fontWeight: 600 }}>
-              {isEditMode ? "Edit thread" : "Thread baru"}
+              {editId ? "Edit thread" : "Thread baru"}
             </h1>
             {/* Kosong untuk spacing — hapus FileText & MoreHorizontal yang tidak dipakai */}
             <div style={{ width: 40 }} />
@@ -135,35 +126,37 @@ export default function FormPostPage() {
           <div className="px-5">
             <textarea
               ref={textareaRef}
-              value={text}
+              value={content}
               placeholder="Ada apa?"
-              onChange={(e) => setDraft(e.target.value, images)}
+              onChange={(e) => setContent(e.target.value)}
               className="w-full bg-transparent outline-none resize-none"
               style={{ color: tokens.textPrimary, fontSize: 15, lineHeight: 1.55, minHeight: 80 }}
             />
 
             {/* preview gambar */}
-            {images.length > 0 && (
+            {(image || form?.image_url) && (
               <div className="flex gap-2 mt-2 flex-wrap">
-                {images.map((img) => (
-                  <div key={img.id} className="relative w-24 h-24">
-                    <img
-                      src={img.previewUrl}
-                      className="w-full h-full object-cover rounded-xl"
-                    />
-                    <button
-                      onClick={() => setDraft(text, images.filter((i) => i.id !== img.id))}
-                      className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1"
-                    >
-                      <X size={10} />
-                    </button>
-                  </div>
-                ))}
+                <div className="relative w-24 h-24">
+                  <img
+                    src={
+                      image
+                        ? URL.createObjectURL(image)
+                        : form?.image_url
+                    }
+                    className="w-full h-full object-cover rounded-xl"
+                  />
+                  <button
+                    onClick={handleRemoveImage}
+                    className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1"
+                  >
+                    <X size={10} />
+                  </button>
+                </div>
               </div>
             )}
 
-            {!isEditMode && (
-              <ImageUpload images={images} onChange={(imgs) => setDraft(text, imgs)} />
+            {!editId && (
+              <ImageUpload image={image} setImage={setImage} />
             )}
           </div>
 
@@ -173,16 +166,13 @@ export default function FormPostPage() {
               <span style={{ color: isOver ? '#ff3040' : tokens.textSecondary, fontSize: 13 }}>
                 {remaining}
               </span>
-              {uploadStatus && (
-                <span style={{ color: '#888', fontSize: 12 }}>{uploadStatus}</span>
-              )}
             </div>
 
             <Button
               onClick={handlePost}
-              disabled={isEmpty || isOver || uploading}
+              disabled={isEmpty || isOver || loading}
             >
-              {uploading ? "Memposting..." : isEditMode ? "Simpan" : "Post"}
+              {loading ? "Memposting..." : editId ? "Simpan" : "Post"}
             </Button>
           </div>
 

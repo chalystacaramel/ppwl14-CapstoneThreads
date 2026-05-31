@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react"
 import { Bell } from "lucide-react"
 import NotifItem from "@/components/NotifItem"
-import { useAuthStore } from "@/stores/auth.store"
+import { useAuthStore } from "@/stores/useAuthStore"
 import { BACKEND_URL } from "@/constants"
 
 interface Notif {
@@ -15,29 +15,29 @@ interface Notif {
 }
 
 export default function NotifPage() {
-  const { accessToken } = useAuthStore()
+  const { token } = useAuthStore()
   const [notifs, setNotifs] = useState<Notif[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!accessToken) return
+    if (!token) return
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     fetch(`${BACKEND_URL}/notifications`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
       .then((data) => setNotifs(Array.isArray(data) ? data : []))
       .catch(() => setError("Gagal memuat notifikasi"))
       .finally(() => setLoading(false))
-  }, [accessToken])
+  }, [token])
 
   const markAllRead = async () => {
-    if (!accessToken) return
+    if (!token) return
     await fetch(`${BACKEND_URL}/notifications/read-all`, {
       method: "PATCH",
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: { Authorization: `Bearer ${token}` },
     })
     setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })))
   }

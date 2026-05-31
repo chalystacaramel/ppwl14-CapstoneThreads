@@ -2,24 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuthStore } from '../stores/auth.store'
+import { useAuthStore } from '../stores/useAuthStore'
 import { BACKEND_URL } from '../constants'
 import { useGoogleAuth } from '@/hooks/useGoogleAuth'
-
-async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${BACKEND_URL}${path}`, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', ...(options.headers ?? {}) },
-  })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.message || 'Request gagal')
-  return data
-}
-
-interface AuthResponse {
-  accessToken: string
-  user: { id: string; name: string; email: string; avatarUrl?: string; isGoogle?: boolean }
-}
+import axios from 'axios'
+import { ApiResponse } from '@/types'
 
 // ─── Threadster Logo (dari file ke-2) ────────────────────────
 function ThreadsterLogo({ size = 56 }: { size?: number }) {
@@ -53,7 +40,7 @@ export default function LoginPage() {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  const { setAuth } = useAuthStore()
+  const setAuth = useAuthStore((s)=>s.setAuth)
   const navigate = useNavigate()
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -75,11 +62,10 @@ export default function LoginPage() {
           email: form.email,
           password: form.password
         }
-      const data = await apiFetch<AuthResponse>(endpoint, {
-        method: 'POST', body: JSON.stringify(body),
-      })
-      setAuth(data.user, data.accessToken)
-      navigate('/')
+      const resLogin = await axios.post(endpoint, body);
+      setAuth(resLogin.data.user, resLogin.data.token);
+      navigate('/', {replace: true});
+
     } catch (err) {
       setError((err as Error).message)
     } finally {
@@ -105,14 +91,14 @@ export default function LoginPage() {
         <img
           src="/threads-pattern.png"
           alt="background pattern"
-          className="w-full max-w-[177vw] min-w-[1200px] object-cover md:object-contain object-top opacity-100"
+          className="w-full max-w-[177vw] min-w-300 object-cover md:object-contain object-top opacity-100"
         />
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center z-10 w-full px-4 pt-10 pb-16 sm:pb-24">
 
         {/* Container Utama Form */}
-        <div className="w-full max-w-[420px] flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
+        <div className="w-full max-w-105 flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
 
           {/* Logo Threadster */}
           <div className="mb-6 md:mb-10 text-white">
@@ -137,25 +123,25 @@ export default function LoginPage() {
           <div className="w-full flex flex-col gap-3">
             {mode === 'register' && (
               <input
-                className="w-full bg-[#1e1e1e] border border-[#333] focus:border-[#555] rounded-xl px-5 py-[18px] text-[#f3f3f3] text-[15px] outline-none transition-colors placeholder:text-[#555]"
+                className="w-full bg-[#1e1e1e] border border-[#333] focus:border-[#555] rounded-xl px-5 py-4.5 text-[#f3f3f3] text-[15px] outline-none transition-colors placeholder:text-[#555]"
                 type="text" name="name" placeholder="Nama lengkap"
                 value={form.name} onChange={handleChange} onKeyDown={handleKeyDown}
               />
             )}
             <input
-              className="w-full bg-[#1e1e1e] border border-[#333] focus:border-[#555] rounded-xl px-5 py-[18px] text-[#f3f3f3] text-[15px] outline-none transition-colors placeholder:text-[#555]"
+              className="w-full bg-[#1e1e1e] border border-[#333] focus:border-[#555] rounded-xl px-5 py-4.5 text-[#f3f3f3] text-[15px] outline-none transition-colors placeholder:text-[#555]"
               type="email" name="email"
               placeholder="Nama pengguna, telepon, atau email"
               value={form.email} onChange={handleChange} onKeyDown={handleKeyDown}
             />
             <input
-              className="w-full bg-[#1e1e1e] border border-[#333] focus:border-[#555] rounded-xl px-5 py-[18px] text-[#f3f3f3] text-[15px] outline-none transition-colors placeholder:text-[#555]"
+              className="w-full bg-[#1e1e1e] border border-[#333] focus:border-[#555] rounded-xl px-5 py-4.5 text-[#f3f3f3] text-[15px] outline-none transition-colors placeholder:text-[#555]"
               type="password" name="password" placeholder="Kata Sandi"
               value={form.password} onChange={handleChange} onKeyDown={handleKeyDown}
             />
 
             <button
-              className="w-full bg-[#f3f3f3] hover:bg-[#e0e0e0] active:scale-[0.98] text-black border-none rounded-xl py-[16px] text-[15px] font-bold cursor-pointer mt-2 transition-all disabled:opacity-70 disabled:active:scale-100"
+              className="w-full bg-[#f3f3f3] hover:bg-[#e0e0e0] active:scale-[0.98] text-black border-none rounded-xl py-4 text-[15px] font-bold cursor-pointer mt-2 transition-all disabled:opacity-70 disabled:active:scale-100"
               onClick={handleSubmit} disabled={loading}
             >
               {loading ? 'Memproses...' : mode === 'login' ? 'Login' : 'Daftar'}
@@ -171,9 +157,9 @@ export default function LoginPage() {
           )}
 
           <div className="flex items-center gap-4 w-full my-7">
-            <div className="flex-1 h-[1px] bg-[#333]" />
+            <div className="flex-1 h-px bg-[#333]" />
             <span className="text-[14px] text-[#555] font-semibold">atau</span>
-            <div className="flex-1 h-[1px] bg-[#333]" />
+            <div className="flex-1 h-px bg-[#333]" />
           </div>
 
           {/* Google Login */}
@@ -192,7 +178,7 @@ export default function LoginPage() {
           {/* Toggle login/register */}
           <button
             onClick={switchMode}
-            className="w-full bg-transparent border border-[#333] hover:bg-[#1a1a1a] active:scale-[0.98] rounded-xl px-5 py-[16px] text-[#f3f3f3] text-[15px] font-semibold cursor-pointer flex items-center gap-4 transition-all"
+            className="w-full bg-transparent border border-[#333] hover:bg-[#1a1a1a] active:scale-[0.98] rounded-xl px-5 py-4 text-[#f3f3f3] text-[15px] font-semibold cursor-pointer flex items-center gap-4 transition-all"
           >
             <span className="flex items-center justify-center">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">

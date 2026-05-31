@@ -1,3 +1,4 @@
+
 export interface UserData {
     name: string;
     username?: string;
@@ -5,8 +6,8 @@ export interface UserData {
     avatar_url: string;
     bio: string;
     provider: string;
-    created_at?: string;
-    updated_at?: string;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 
@@ -30,7 +31,6 @@ export interface User {
     id: number;
 
     name: string;
-    username: string;
     email: string;
 
     password?: string | null;
@@ -44,8 +44,8 @@ export interface User {
 
     email_verified_at?: string | Date | null;
 
-    created_at?: string | Date;
-    updated_at?: string | Date;
+    createdAt?: string | Date;
+    updatedAt?: string | Date;
 
     // Relations
     posts?: Post[];
@@ -63,14 +63,14 @@ export interface User {
 
 export interface Post {
     id: number;
-
-    user_id: number;
+    userId: number;
 
     content: string;
     image_url?: string;
 
-    created_at: string | Date;
-    updated_at: string | Date;
+
+    createdAt: string | Date;
+    updatedAt: string | Date;
 
     // Relations
     user?: User;
@@ -93,10 +93,10 @@ export interface Post {
 export interface PostLike {
     id: number;
 
-    post_id: number;
-    user_id: number;
+    postId: number;
+    userId: number;
 
-    created_at: string | Date;
+    createdAt: string | Date;
 
     // Relations
     post?: Post;
@@ -111,15 +111,16 @@ export interface PostLike {
 export interface Comment {
     id: number;
 
-    post_id: number;
-    user_id: number;
+    postId: number;
+    userId: number;
 
     parent_comment_id?: number | null;
 
     content: string;
+    image_url?: string | null;
 
-    created_at: string | Date;
-    updated_at: string | Date;
+    createdAt: string | Date;
+    updatedAt: string | Date;
 
     // Relations
     post?: Post;
@@ -139,17 +140,17 @@ export interface Comment {
 export interface Notification {
     id: number;
 
-    user_id: number;
-    actor_id: number;
+    userId: number;
+    actorId: number;
 
     type: NotificationType;
 
-    post_id?: number | null;
-    comment_id?: number | null;
+    postId?: number | null;
+    commentId?: number | null;
 
     is_read: boolean;
 
-    created_at: string | Date;
+    createdAt: string | Date;
 
     // Relations
     user?: User;

@@ -1,14 +1,15 @@
-// apps/backend/src/posts.routes.ts
 import { Elysia, t } from "elysia"
 import { jwt } from "@elysiajs/jwt"
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3"
 import type { DbClient } from "../types"
+
+const s3 = new S3Client({ region: process.env.AWS_REGION })
 
 async function getUser(headers: any, jwtInstance: any, set: any) {
   console.log("\n=== AUTH CHECK ===")
   console.log("AUTH HEADER:", headers.authorization)
 
   const authHeader = headers.authorization
-
   if (!authHeader) {
     console.log("NO AUTH HEADER")
     set.status = 401
@@ -16,11 +17,9 @@ async function getUser(headers: any, jwtInstance: any, set: any) {
   }
 
   const token = authHeader.replace("Bearer ", "")
-
   console.log("TOKEN:", token)
 
   const payload = await jwtInstance.verify(token)
-
   console.log("PAYLOAD:", payload)
 
   if (!payload) {
@@ -34,7 +33,7 @@ async function getUser(headers: any, jwtInstance: any, set: any) {
 
 export const postRoutes = (getPrisma: () => DbClient) =>
   new Elysia({ prefix: "/posts" })
-    .use(jwt({ name: "jwt", secret: process.env.JWT_SECRET|| "dev", exp: "1d" }))
+    .use(jwt({ name: "jwt", secret: process.env.JWT_SECRET || "dev", exp: "1d" }))
 
     // ── POST /posts/upload-image ────────────────────────────────
     .post("/upload-image", async ({ body, headers, jwt, set }) => {
@@ -56,7 +55,6 @@ export const postRoutes = (getPrisma: () => DbClient) =>
           set.status = 400
           return { message: "Ukuran gambar maksimal 5MB" }
         }
-        // const imageUrl = await uploadS3File()
         return {}
       } catch (e) {
         console.error("[UPLOAD_IMAGE]", e)
@@ -67,7 +65,7 @@ export const postRoutes = (getPrisma: () => DbClient) =>
       body: t.Object({ file: t.File() }),
     })
 
-    // ── DELETE /posts/comments/:id — hapus komentar (owner only) ── HARUS SEBELUM /:id
+    // ── DELETE /posts/comments/:id ── HARUS SEBELUM /:id ────────
     .delete("/comments/:id", async ({ params, headers, jwt, set }) => {
       const me = await getUser(headers, jwt, set)
       if (!me) return { message: "Unauthorized" }
@@ -85,7 +83,7 @@ export const postRoutes = (getPrisma: () => DbClient) =>
       return { message: "Komentar dihapus" }
     })
 
-    // ── PUT /posts/comments/:id — edit komentar (owner only) ── HARUS SEBELUM /:id
+    // ── PUT /posts/comments/:id ── HARUS SEBELUM /:id ───────────
     .put(
       "/comments/:id",
       async ({ params, body, headers, jwt, set }) => {
@@ -99,25 +97,93 @@ export const postRoutes = (getPrisma: () => DbClient) =>
         if (!comment) { set.status = 404; return { message: "Komentar tidak ditemukan" } }
         if (comment.userId !== me.userId) { set.status = 403; return { message: "Bukan milik kamu" } }
 
-        const { content } = body as any
+        // ✅ Destructure sekali saja di sini
+        const { content, image, remove_image } = body as any
+
+        let image_url: string | null = comment.image_url ?? null
+
+        if (image && image instanceof File && image.size > 0) {
+          // Validasi tipe file
+          const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+          if (!allowed.includes(image.type)) {
+            set.status = 400
+            return { message: "Tipe file tidak didukung. Gunakan JPG, PNG, GIF, atau WebP." }
+          }
+          // Validasi ukuran (maks 5MB)
+          if (image.size > 5 * 1024 * 1024) {
+            set.status = 400
+            return { message: "Ukuran gambar maksimal 5MB" }
+          }
+
+          const buffer = Buffer.from(await image.arrayBuffer())
+          const ext = image.type.split("/")[1]
+          const key = `comments/${me.userId}-${Date.now()}.${ext}`
+
+          // Hapus gambar lama dari S3 jika ada
+          if (comment.image_url) {
+            try {
+              const oldKey = comment.image_url.split(".amazonaws.com/")[1]
+              await s3.send(new DeleteObjectCommand({
+                Bucket: process.env.AWS_BUCKET_NAME!,
+                Key: oldKey,
+              }))
+            } catch (e) {
+              console.warn("[COMMENT_EDIT] Gagal hapus gambar lama:", e)
+            }
+          }
+
+          // Upload gambar baru
+          await s3.send(new PutObjectCommand({
+            Bucket: process.env.AWS_BUCKET_NAME!,
+            Key: key,
+            Body: buffer,
+            ContentType: image.type,
+          }))
+          image_url = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`
+
+        } else if (remove_image === "yes") {
+          // Hapus gambar dari S3 jika ada
+          if (comment.image_url) {
+            try {
+              const oldKey = comment.image_url.split(".amazonaws.com/")[1]
+              await s3.send(new DeleteObjectCommand({
+                Bucket: process.env.AWS_BUCKET_NAME!,
+                Key: oldKey,
+              }))
+            } catch (e) {
+              console.warn("[COMMENT_EDIT] Gagal hapus gambar:", e)
+            }
+          }
+          image_url = null
+        }
+
+        // ✅ include image_url di data update
         const updated = await db.comment.update({
           where: { id: commentId },
-          data: { content },
+          data: { content, image_url },
           include: { user: { select: { id: true, name: true, avatar_url: true } } },
         })
 
         return {
           id: String(updated.id),
           content: updated.content,
+          image_url: updated.image_url ?? null, // ✅ ikut dikembalikan
           createdAt: updated.createdAt,
           user: {
-            id: String((updated as any).user.id),
-            name: (updated as any).user.name,
-            avatarUrl: (updated as any).user.avatar_url ?? null,
+            id: String(updated.user.id),
+            name: updated.user.name,
+            avatarUrl: updated.user.avatar_url ?? null,
           },
         }
       },
-      { body: t.Object({ content: t.String({ minLength: 1 }) }) }
+      {
+        // ✅ schema body yang benar
+        body: t.Object({
+          content: t.String({ minLength: 1 }),
+          image: t.Optional(t.File()),
+          remove_image: t.Optional(t.String()),
+        }),
+      }
     )
 
     // ── GET /posts ──────────────────────────────────────────────
@@ -210,6 +276,7 @@ export const postRoutes = (getPrisma: () => DbClient) =>
         comments: (post as any).comments.map((c: any) => ({
           id: String(c.id),
           content: c.content,
+          image_url: c.image_url ?? null, // ✅ ikut dikembalikan
           createdAt: c.createdAt,
           user: {
             id: String(c.user.id),
@@ -265,37 +332,85 @@ export const postRoutes = (getPrisma: () => DbClient) =>
       }
     )
 
-    // ── PUT /posts/:id — edit post (owner only) ─────────────────
+    // ── PUT /posts/:id ──────────────────────────────────────────
     .put(
-      "/:id",
-      async ({ params, body, headers, jwt, set }) => {
-        const me = await getUser(headers, jwt, set)
-        if (!me) return { message: "Unauthorized" }
+  "/:id", // atau "/posts/:id" tergantung apakah kamu pakai prefix di file tersebut
+  async ({ params, body, headers, jwt, set }) => {
+    const me = await getUser(headers, jwt, set)
+    if (!me) return { message: "Unauthorized" }
 
-        const db = getPrisma() as any
-        const postId = parseInt(params.id)
+    const db = getPrisma() as any
+    const postId = parseInt(params.id)
 
-        const post = await db.post.findUnique({ where: { id: postId } })
-        if (!post) { set.status = 404; return { message: "Post tidak ditemukan" } }
-        if (post.userId !== me.userId) { set.status = 403; return { message: "Bukan milik kamu" } }
+    const post = await db.post.findUnique({ where: { id: postId } })
+    if (!post) { set.status = 404; return { message: "Post tidak ditemukan" } }
+    if (post.userId !== me.userId) { set.status = 403; return { message: "Bukan milik kamu" } }
 
-        const { content, imageUrl } = body as any
-        const updated = await db.post.update({
-          where: { id: postId },
-          data: { content, image_url: imageUrl ?? post.image_url },
-        })
+    const { content, image, remove_image } = body as any
+    let image_url: string | null = post.image_url ?? null
 
-        return { id: String(updated.id), content: updated.content, imageUrl: (updated as any).image_url }
-      },
-      {
-        body: t.Object({
-          content: t.String({ minLength: 1 }),
-          imageUrl: t.Optional(t.String()),
-        }),
+    // Logika upload ke S3 jika ada file baru
+    if (image && image instanceof File && image.size > 0) {
+      const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+      if (!allowed.includes(image.type)) {
+        set.status = 400
+        return { message: "Tipe file tidak didukung." }
       }
-    )
+      if (image.size > 5 * 1024 * 1024) {
+        set.status = 400
+        return { message: "Ukuran gambar maksimal 5MB" }
+      }
 
-    // ── DELETE /posts/:id — hapus post (owner only) ─────────────
+      const buffer = Buffer.from(await image.arrayBuffer())
+      const ext = image.type.split("/")[1]
+      const key = `posts/${me.userId}-${Date.now()}.${ext}`
+
+      if (post.image_url) {
+        try {
+          const oldKey = post.image_url.split(".amazonaws.com/")[1]
+          await s3.send(new DeleteObjectCommand({ Bucket: process.env.AWS_BUCKET_NAME!, Key: oldKey }))
+        } catch (e) {
+          console.warn("Gagal hapus gambar lama:", e)
+        }
+      }
+
+      await s3.send(new PutObjectCommand({
+        Bucket: process.env.AWS_BUCKET_NAME!,
+        Key: key,
+        Body: buffer,
+        ContentType: image.type,
+      }))
+      image_url = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`
+
+    } else if (remove_image === "yes") {
+      if (post.image_url) {
+        try {
+          const oldKey = post.image_url.split(".amazonaws.com/")[1]
+          await s3.send(new DeleteObjectCommand({ Bucket: process.env.AWS_BUCKET_NAME!, Key: oldKey }))
+        } catch (e) {
+          console.warn("Gagal hapus gambar:", e)
+        }
+      }
+      image_url = null
+    }
+
+    const updated = await db.post.update({
+      where: { id: postId },
+      data: { content, image_url },
+    })
+
+    return { id: String(updated.id), content: updated.content, imageUrl: updated.image_url ?? null }
+  },
+  {
+    body: t.Object({
+      content: t.String({ minLength: 1 }),
+      image: t.Optional(t.File()),
+      remove_image: t.Optional(t.String()),
+    }),
+  }
+)
+
+    // ── DELETE /posts/:id ───────────────────────────────────────
     .delete("/:id", async ({ params, headers, jwt, set }) => {
       const me = await getUser(headers, jwt, set)
       if (!me) return { message: "Unauthorized" }

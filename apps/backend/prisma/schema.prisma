@@ -38,7 +38,7 @@ model Post {
   image_url     String?
   comments      Comment[]
   notifications Notification[]
-  user          User           @relation(fields: [userId], references: [id])
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   likes         PostLike[]
 }
 
@@ -48,8 +48,8 @@ model Comment {
   postId        Int
   createdAt     DateTime       @default(now())
   userId        Int
-  user          User           @relation(fields: [userId], references: [id])
-  post          Post           @relation(fields: [postId], references: [id])
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post          Post           @relation(fields: [postId], references: [id], onDelete: Cascade)
   notifications Notification[]
 }
 
@@ -63,18 +63,18 @@ model Notification {
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
   message   String   @default("")
-  comment   Comment? @relation(fields: [commentId], references: [id])
-  post      Post?    @relation(fields: [postId], references: [id])
-  user      User     @relation("UserNotifications", fields: [userId], references: [id])
-  actor     User     @relation("ActorNotifications", fields: [actorId], references: [id])
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  actor     User     @relation("ActorNotifications", fields: [actorId], references: [id], onDelete: Cascade)
 }
 
 model PostLike {
   id     Int  @id @default(autoincrement())
   postId Int
   userId Int
-  post   Post @relation(fields: [postId], references: [id])
-  user   User @relation(fields: [userId], references: [id])
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
 }

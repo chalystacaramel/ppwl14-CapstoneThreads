@@ -1,46 +1,59 @@
 // apps/frontend/src/App.tsx
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
 import Feed from './pages/Feed'
 import FormPostPage from './pages/FormPostPage'
 import NotifPage from './pages/NotifPage'
 import EditProfilePage from './pages/EditProfilePage'
 import DetailPostPage from './pages/DetailPostPage'
-import Navbar from './components/layout/Navbar'
-import { useAuthStore } from './stores/auth.store'
+import Navbar from './components/Navbar'
+import { useAuthStore } from './stores/useAuthStore'
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+// Guard 1: Untuk halaman yang WAJIB LOGIN
+function ProtectedRoute() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  const hasHydrated = useAuthStore((s) => s.hasHydrated)
-  if (!hasHydrated) return null
-  if (!isAuthenticated) return <Navigate to="/login" replace />
-  return <>{children}</>
+  
+  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />
 }
 
-function App() {
+// Guard 2: Untuk halaman yang TIDAK BOLEH DIAKSES kalau sudah login (e.g., /login)
+function GuestRoute() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  const hasHydrated = useAuthStore((s) => s.hasHydrated)
+
+  return !isAuthenticated ? <Outlet /> : <Navigate to="/" replace />
+}
+
+export default function App() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
 
   return (
     <BrowserRouter>
+      {/* Navbar hanya muncul jika sudah login */}
       {isAuthenticated && <Navbar />}
-      {/* Desktop: sidebar width 200px | Mobile: bottom nav 56px */}
-      <div className={isAuthenticated ? 'md:pl-[240px]' : ''}>
+      
+      {/* Layout wrapper untuk konten utama */}
+      <div className={isAuthenticated ? 'md:pl-60' : ''}>
         <Routes>
-          <Route path="/" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
-          <Route path="/login" element={
-            !hasHydrated ? null :
-            isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />
-          } />
-          <Route path="/post" element={<ProtectedRoute><FormPostPage /></ProtectedRoute>} />
-          <Route path="/post/:id" element={<ProtectedRoute><DetailPostPage /></ProtectedRoute>} />
-          <Route path="/notifications" element={<ProtectedRoute><NotifPage /></ProtectedRoute>} />
-          <Route path="/edit-profile" element={<ProtectedRoute><EditProfilePage /></ProtectedRoute>} />
+          
+          {/* 🔐 KELOMPOK RUTE PROTECTED (Wajib Login) */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/" element={<Feed />} />
+            <Route path="/post" element={<FormPostPage />} />
+            <Route path="/post/:id" element={<DetailPostPage />} />
+            <Route path="/notifications" element={<NotifPage />} />
+            <Route path="/edit-profile" element={<EditProfilePage />} />
+          </Route>
+
+          {/* 🔓 KELOMPOK RUTE GUEST (Tidak Boleh Login) */}
+          <Route element={<GuestRoute />}>
+            <Route path="/login" element={<LoginPage />} />
+          </Route>
+
+          {/* 🔄 Fallback untuk route yang tidak terdaftar */}
           <Route path="*" element={<Navigate to="/" replace />} />
+          
         </Routes>
       </div>
     </BrowserRouter>
   )
 }
-
-export default App

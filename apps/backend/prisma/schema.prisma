@@ -1,10 +1,17 @@
 generator client {
-  provider   = "prisma-client-js"
+  provider   = "prisma-client"
   output     = "../src/generated/prisma"
+  engineType = "client"
+  runtime = "bun"
 }
 
 datasource db {
   provider = "sqlite"
+}
+
+enum Provider {
+  email
+  google
 }
 
 model User {
@@ -13,7 +20,9 @@ model User {
   email         String         @unique
   password      String?
   createdAt     DateTime       @default(now())
+  updatedAt        DateTime  @updatedAt
   avatar_url    String?
+  provider      Provider
   comments      Comment[]
   notifications Notification[] @relation("UserNotifications")
   actorNotifications Notification[] @relation("ActorNotifications")

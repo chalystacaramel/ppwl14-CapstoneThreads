@@ -7,7 +7,7 @@ import { Toaster } from 'sonner'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
+    <GoogleOAuthProvider clientId="136995182110-55u2eagcn3dabur37ckqm9ti77neu7oe.apps.googleusercontent.com">
       <App />
       <Toaster position="top-center" richColors />
     </GoogleOAuthProvider>

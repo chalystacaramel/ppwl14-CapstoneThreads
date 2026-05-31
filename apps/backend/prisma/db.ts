@@ -1,40 +1,16 @@
-// apps/backend/prisma/db.ts
-import { PrismaClient } from "../src/generated/prisma/client.ts"
+import { PrismaClient } from "../src/generated/prisma/client";
+import { PrismaLibSql } from "@prisma/adapter-libsql";
+import path from "path";
 
-export const getDbUrl = () => process.env.DATABASE_URL || "file:./dev.db"
+export const dbUrl = process.env.DATABASE_URL || `file:${path.resolve(__dirname, "../dev.db")}`;
 
-let prisma: PrismaClient
+const adapter = new PrismaLibSql({ url: dbUrl, authToken: process.env.DB_TOKEN });
+
+let prisma: PrismaClient;
 
 export const getPrisma = () => {
   if (!prisma) {
-    const url = getDbUrl()
-    console.log("[DB] Connecting to:", url.startsWith("postgresql") ? "PostgreSQL (RDS)" : url)
-
-    if (url.startsWith("postgresql") || url.startsWith("postgres")) {
-      // Production: PostgreSQL via adapter-pg
-      const { PrismaPg } = require("@prisma/adapter-pg")
-      const { Pool } = require("pg")
-      const pool = new Pool({
-        connectionString: url,
-        ssl: { rejectUnauthorized: false },
-      })
-      const adapter = new PrismaPg(pool)
-      prisma = new PrismaClient({ adapter } as any)
-    } else {
-      // Local dev (file:) vs Turso (libsql:/https:)
-      if (url.startsWith("file:")) {
-        const { PrismaLibSql } = require("@prisma/adapter-libsql")
-        const adapter = new PrismaLibSql({ url })
-        prisma = new PrismaClient({ adapter } as any)
-      } else {
-        const { PrismaLibSql } = require("@prisma/adapter-libsql/web")
-        const adapter = new PrismaLibSql({
-          url,
-          authToken: process.env.DB_AUTH_TOKEN,
-        })
-        prisma = new PrismaClient({ adapter } as any)
-      }
-    }
+    prisma = new PrismaClient({ adapter });
   }
-  return prisma
-}
+  return prisma;
+};

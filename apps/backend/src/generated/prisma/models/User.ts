@@ -40,7 +40,9 @@ export type UserMinAggregateOutputType = {
   email: string | null
   password: string | null
   createdAt: Date | null
+  updatedAt: Date | null
   avatar_url: string | null
+  provider: $Enums.Provider | null
 }
 
 export type UserMaxAggregateOutputType = {
@@ -49,7 +51,9 @@ export type UserMaxAggregateOutputType = {
   email: string | null
   password: string | null
   createdAt: Date | null
+  updatedAt: Date | null
   avatar_url: string | null
+  provider: $Enums.Provider | null
 }
 
 export type UserCountAggregateOutputType = {
@@ -58,7 +62,9 @@ export type UserCountAggregateOutputType = {
   email: number
   password: number
   createdAt: number
+  updatedAt: number
   avatar_url: number
+  provider: number
   _all: number
 }
 
@@ -77,7 +83,9 @@ export type UserMinAggregateInputType = {
   email?: true
   password?: true
   createdAt?: true
+  updatedAt?: true
   avatar_url?: true
+  provider?: true
 }
 
 export type UserMaxAggregateInputType = {
@@ -86,7 +94,9 @@ export type UserMaxAggregateInputType = {
   email?: true
   password?: true
   createdAt?: true
+  updatedAt?: true
   avatar_url?: true
+  provider?: true
 }
 
 export type UserCountAggregateInputType = {
@@ -95,7 +105,9 @@ export type UserCountAggregateInputType = {
   email?: true
   password?: true
   createdAt?: true
+  updatedAt?: true
   avatar_url?: true
+  provider?: true
   _all?: true
 }
 
@@ -191,7 +203,9 @@ export type UserGroupByOutputType = {
   email: string
   password: string | null
   createdAt: Date
+  updatedAt: Date
   avatar_url: string | null
+  provider: $Enums.Provider
   _count: UserCountAggregateOutputType | null
   _avg: UserAvgAggregateOutputType | null
   _sum: UserSumAggregateOutputType | null
@@ -223,7 +237,9 @@ export type UserWhereInput = {
   email?: Prisma.StringFilter<"User"> | string
   password?: Prisma.StringNullableFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   avatar_url?: Prisma.StringNullableFilter<"User"> | string | null
+  provider?: Prisma.EnumProviderFilter<"User"> | $Enums.Provider
   comments?: Prisma.CommentListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
   actorNotifications?: Prisma.NotificationListRelationFilter
@@ -237,7 +253,9 @@ export type UserOrderByWithRelationInput = {
   email?: Prisma.SortOrder
   password?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
   avatar_url?: Prisma.SortOrderInput | Prisma.SortOrder
+  provider?: Prisma.SortOrder
   comments?: Prisma.CommentOrderByRelationAggregateInput
   notifications?: Prisma.NotificationOrderByRelationAggregateInput
   actorNotifications?: Prisma.NotificationOrderByRelationAggregateInput
@@ -254,7 +272,9 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   name?: Prisma.StringFilter<"User"> | string
   password?: Prisma.StringNullableFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   avatar_url?: Prisma.StringNullableFilter<"User"> | string | null
+  provider?: Prisma.EnumProviderFilter<"User"> | $Enums.Provider
   comments?: Prisma.CommentListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
   actorNotifications?: Prisma.NotificationListRelationFilter
@@ -268,7 +288,9 @@ export type UserOrderByWithAggregationInput = {
   email?: Prisma.SortOrder
   password?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
   avatar_url?: Prisma.SortOrderInput | Prisma.SortOrder
+  provider?: Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
   _avg?: Prisma.UserAvgOrderByAggregateInput
   _max?: Prisma.UserMaxOrderByAggregateInput
@@ -285,7 +307,9 @@ export type UserScalarWhereWithAggregatesInput = {
   email?: Prisma.StringWithAggregatesFilter<"User"> | string
   password?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
+  updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   avatar_url?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  provider?: Prisma.EnumProviderWithAggregatesFilter<"User"> | $Enums.Provider
 }
 
 export type UserCreateInput = {
@@ -293,7 +317,9 @@ export type UserCreateInput = {
   email: string
   password?: string | null
   createdAt?: Date | string
+  updatedAt?: Date | string
   avatar_url?: string | null
+  provider: $Enums.Provider
   comments?: Prisma.CommentCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   actorNotifications?: Prisma.NotificationCreateNestedManyWithoutActorInput
@@ -307,7 +333,9 @@ export type UserUncheckedCreateInput = {
   email: string
   password?: string | null
   createdAt?: Date | string
+  updatedAt?: Date | string
   avatar_url?: string | null
+  provider: $Enums.Provider
   comments?: Prisma.CommentUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   actorNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutActorInput
@@ -320,7 +348,9 @@ export type UserUpdateInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   avatar_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  provider?: Prisma.EnumProviderFieldUpdateOperationsInput | $Enums.Provider
   comments?: Prisma.CommentUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   actorNotifications?: Prisma.NotificationUpdateManyWithoutActorNestedInput
@@ -334,7 +364,9 @@ export type UserUncheckedUpdateInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   avatar_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  provider?: Prisma.EnumProviderFieldUpdateOperationsInput | $Enums.Provider
   comments?: Prisma.CommentUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   actorNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutActorNestedInput
@@ -348,7 +380,9 @@ export type UserCreateManyInput = {
   email: string
   password?: string | null
   createdAt?: Date | string
+  updatedAt?: Date | string
   avatar_url?: string | null
+  provider: $Enums.Provider
 }
 
 export type UserUpdateManyMutationInput = {
@@ -356,7 +390,9 @@ export type UserUpdateManyMutationInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   avatar_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  provider?: Prisma.EnumProviderFieldUpdateOperationsInput | $Enums.Provider
 }
 
 export type UserUncheckedUpdateManyInput = {
@@ -365,7 +401,9 @@ export type UserUncheckedUpdateManyInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   avatar_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  provider?: Prisma.EnumProviderFieldUpdateOperationsInput | $Enums.Provider
 }
 
 export type UserCountOrderByAggregateInput = {
@@ -374,7 +412,9 @@ export type UserCountOrderByAggregateInput = {
   email?: Prisma.SortOrder
   password?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
   avatar_url?: Prisma.SortOrder
+  provider?: Prisma.SortOrder
 }
 
 export type UserAvgOrderByAggregateInput = {
@@ -387,7 +427,9 @@ export type UserMaxOrderByAggregateInput = {
   email?: Prisma.SortOrder
   password?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
   avatar_url?: Prisma.SortOrder
+  provider?: Prisma.SortOrder
 }
 
 export type UserMinOrderByAggregateInput = {
@@ -396,7 +438,9 @@ export type UserMinOrderByAggregateInput = {
   email?: Prisma.SortOrder
   password?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
   avatar_url?: Prisma.SortOrder
+  provider?: Prisma.SortOrder
 }
 
 export type UserSumOrderByAggregateInput = {
@@ -418,6 +462,10 @@ export type NullableStringFieldUpdateOperationsInput = {
 
 export type DateTimeFieldUpdateOperationsInput = {
   set?: Date | string
+}
+
+export type EnumProviderFieldUpdateOperationsInput = {
+  set?: $Enums.Provider
 }
 
 export type IntFieldUpdateOperationsInput = {
@@ -503,7 +551,9 @@ export type UserCreateWithoutPostsInput = {
   email: string
   password?: string | null
   createdAt?: Date | string
+  updatedAt?: Date | string
   avatar_url?: string | null
+  provider: $Enums.Provider
   comments?: Prisma.CommentCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   actorNotifications?: Prisma.NotificationCreateNestedManyWithoutActorInput
@@ -516,7 +566,9 @@ export type UserUncheckedCreateWithoutPostsInput = {
   email: string
   password?: string | null
   createdAt?: Date | string
+  updatedAt?: Date | string
   avatar_url?: string | null
+  provider: $Enums.Provider
   comments?: Prisma.CommentUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   actorNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutActorInput
@@ -544,7 +596,9 @@ export type UserUpdateWithoutPostsInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   avatar_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  provider?: Prisma.EnumProviderFieldUpdateOperationsInput | $Enums.Provider
   comments?: Prisma.CommentUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   actorNotifications?: Prisma.NotificationUpdateManyWithoutActorNestedInput
@@ -557,7 +611,9 @@ export type UserUncheckedUpdateWithoutPostsInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   avatar_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  provider?: Prisma.EnumProviderFieldUpdateOperationsInput | $Enums.Provider
   comments?: Prisma.CommentUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   actorNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutActorNestedInput
@@ -569,7 +625,9 @@ export type UserCreateWithoutCommentsInput = {
   email: string
   password?: string | null
   createdAt?: Date | string
+  updatedAt?: Date | string
   avatar_url?: string | null
+  provider: $Enums.Provider
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   actorNotifications?: Prisma.NotificationCreateNestedManyWithoutActorInput
   posts?: Prisma.PostCreateNestedManyWithoutUserInput
@@ -582,7 +640,9 @@ export type UserUncheckedCreateWithoutCommentsInput = {
   email: string
   password?: string | null
   createdAt?: Date | string
+  updatedAt?: Date | string
   avatar_url?: string | null
+  provider: $Enums.Provider
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   actorNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutActorInput
   posts?: Prisma.PostUncheckedCreateNestedManyWithoutUserInput
@@ -610,7 +670,9 @@ export type UserUpdateWithoutCommentsInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   avatar_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  provider?: Prisma.EnumProviderFieldUpdateOperationsInput | $Enums.Provider
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   actorNotifications?: Prisma.NotificationUpdateManyWithoutActorNestedInput
   posts?: Prisma.PostUpdateManyWithoutUserNestedInput
@@ -623,7 +685,9 @@ export type UserUncheckedUpdateWithoutCommentsInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   avatar_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  provider?: Prisma.EnumProviderFieldUpdateOperationsInput | $Enums.Provider
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   actorNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutActorNestedInput
   posts?: Prisma.PostUncheckedUpdateManyWithoutUserNestedInput
@@ -635,7 +699,9 @@ export type UserCreateWithoutNotificationsInput = {
   email: string
   password?: string | null
   createdAt?: Date | string
+  updatedAt?: Date | string
   avatar_url?: string | null
+  provider: $Enums.Provider
   comments?: Prisma.CommentCreateNestedManyWithoutUserInput
   actorNotifications?: Prisma.NotificationCreateNestedManyWithoutActorInput
   posts?: Prisma.PostCreateNestedManyWithoutUserInput
@@ -648,7 +714,9 @@ export type UserUncheckedCreateWithoutNotificationsInput = {
   email: string
   password?: string | null
   createdAt?: Date | string
+  updatedAt?: Date | string
   avatar_url?: string | null
+  provider: $Enums.Provider
   comments?: Prisma.CommentUncheckedCreateNestedManyWithoutUserInput
   actorNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutActorInput
   posts?: Prisma.PostUncheckedCreateNestedManyWithoutUserInput
@@ -665,7 +733,9 @@ export type UserCreateWithoutActorNotificationsInput = {
   email: string
   password?: string | null
   createdAt?: Date | string
+  updatedAt?: Date | string
   avatar_url?: string | null
+  provider: $Enums.Provider
   comments?: Prisma.CommentCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   posts?: Prisma.PostCreateNestedManyWithoutUserInput
@@ -678,7 +748,9 @@ export type UserUncheckedCreateWithoutActorNotificationsInput = {
   email: string
   password?: string | null
   createdAt?: Date | string
+  updatedAt?: Date | string
   avatar_url?: string | null
+  provider: $Enums.Provider
   comments?: Prisma.CommentUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   posts?: Prisma.PostUncheckedCreateNestedManyWithoutUserInput
@@ -706,7 +778,9 @@ export type UserUpdateWithoutNotificationsInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   avatar_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  provider?: Prisma.EnumProviderFieldUpdateOperationsInput | $Enums.Provider
   comments?: Prisma.CommentUpdateManyWithoutUserNestedInput
   actorNotifications?: Prisma.NotificationUpdateManyWithoutActorNestedInput
   posts?: Prisma.PostUpdateManyWithoutUserNestedInput
@@ -719,7 +793,9 @@ export type UserUncheckedUpdateWithoutNotificationsInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   avatar_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  provider?: Prisma.EnumProviderFieldUpdateOperationsInput | $Enums.Provider
   comments?: Prisma.CommentUncheckedUpdateManyWithoutUserNestedInput
   actorNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutActorNestedInput
   posts?: Prisma.PostUncheckedUpdateManyWithoutUserNestedInput
@@ -742,7 +818,9 @@ export type UserUpdateWithoutActorNotificationsInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   avatar_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  provider?: Prisma.EnumProviderFieldUpdateOperationsInput | $Enums.Provider
   comments?: Prisma.CommentUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   posts?: Prisma.PostUpdateManyWithoutUserNestedInput
@@ -755,7 +833,9 @@ export type UserUncheckedUpdateWithoutActorNotificationsInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   avatar_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  provider?: Prisma.EnumProviderFieldUpdateOperationsInput | $Enums.Provider
   comments?: Prisma.CommentUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   posts?: Prisma.PostUncheckedUpdateManyWithoutUserNestedInput
@@ -767,7 +847,9 @@ export type UserCreateWithoutPostLikesInput = {
   email: string
   password?: string | null
   createdAt?: Date | string
+  updatedAt?: Date | string
   avatar_url?: string | null
+  provider: $Enums.Provider
   comments?: Prisma.CommentCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   actorNotifications?: Prisma.NotificationCreateNestedManyWithoutActorInput
@@ -780,7 +862,9 @@ export type UserUncheckedCreateWithoutPostLikesInput = {
   email: string
   password?: string | null
   createdAt?: Date | string
+  updatedAt?: Date | string
   avatar_url?: string | null
+  provider: $Enums.Provider
   comments?: Prisma.CommentUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   actorNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutActorInput
@@ -808,7 +892,9 @@ export type UserUpdateWithoutPostLikesInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   avatar_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  provider?: Prisma.EnumProviderFieldUpdateOperationsInput | $Enums.Provider
   comments?: Prisma.CommentUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   actorNotifications?: Prisma.NotificationUpdateManyWithoutActorNestedInput
@@ -821,7 +907,9 @@ export type UserUncheckedUpdateWithoutPostLikesInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   avatar_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  provider?: Prisma.EnumProviderFieldUpdateOperationsInput | $Enums.Provider
   comments?: Prisma.CommentUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   actorNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutActorNestedInput
@@ -901,7 +989,9 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   email?: boolean
   password?: boolean
   createdAt?: boolean
+  updatedAt?: boolean
   avatar_url?: boolean
+  provider?: boolean
   comments?: boolean | Prisma.User$commentsArgs<ExtArgs>
   notifications?: boolean | Prisma.User$notificationsArgs<ExtArgs>
   actorNotifications?: boolean | Prisma.User$actorNotificationsArgs<ExtArgs>
@@ -916,7 +1006,9 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   email?: boolean
   password?: boolean
   createdAt?: boolean
+  updatedAt?: boolean
   avatar_url?: boolean
+  provider?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -925,7 +1017,9 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   email?: boolean
   password?: boolean
   createdAt?: boolean
+  updatedAt?: boolean
   avatar_url?: boolean
+  provider?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectScalar = {
@@ -934,10 +1028,12 @@ export type UserSelectScalar = {
   email?: boolean
   password?: boolean
   createdAt?: boolean
+  updatedAt?: boolean
   avatar_url?: boolean
+  provider?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "password" | "createdAt" | "avatar_url", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "password" | "createdAt" | "updatedAt" | "avatar_url" | "provider", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   comments?: boolean | Prisma.User$commentsArgs<ExtArgs>
   notifications?: boolean | Prisma.User$notificationsArgs<ExtArgs>
@@ -964,7 +1060,9 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     email: string
     password: string | null
     createdAt: Date
+    updatedAt: Date
     avatar_url: string | null
+    provider: $Enums.Provider
   }, ExtArgs["result"]["user"]>
   composites: {}
 }
@@ -1398,7 +1496,9 @@ export interface UserFieldRefs {
   readonly email: Prisma.FieldRef<"User", 'String'>
   readonly password: Prisma.FieldRef<"User", 'String'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly avatar_url: Prisma.FieldRef<"User", 'String'>
+  readonly provider: Prisma.FieldRef<"User", 'Provider'>
 }
     
 

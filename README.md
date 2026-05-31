@@ -22,3 +22,21 @@
 | Adhelia Issabel | H1101241001 | https://www.threads.net/login | LoginPage.tsx, RegisterPage.tsx, AuthForm.tsx |
 | Andy Emerik | H1101241045 | https://www.threads.net/login | FormPost.tsx, ImageUpload.tsx |
 | Iqlima Nur'Ain | H1101241007 | https://www.threads.net/activity | NotifPage.tsx, NotifItem.tsx, EditProfile.tsx |
+
+## kode migrasi 
+'''sh
+# masukkan skema yg baru ke *.schema
+# hapus dev.db & migrations/*.sql
+cd apps/backend
+bun prisma migrate dev --name init
+bun prisma generate
+bun prisma db seed
+# migrasi skema sql backend ke turso web (run sql file)
+# Isi backend/package.json script "bun --env-file=.env.production prisma/seed.ts", pastikan DATABASE_URL postgres di `.env.production` ada
+bun seed:prod
+# lihat isinya di turso web 
+'''
+
+copy migrations.sql di backend
+run migration di turso
+jalankan kode seeder jika sudah yg bun seed:pg 

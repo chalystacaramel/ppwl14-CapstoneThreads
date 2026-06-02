@@ -60,13 +60,16 @@ export default function FormPostPage() {
     if (!token) return alert("Login dulu");
     setLoading(true);
 
+    console.log("TOKEN dari store:", token); // cukup log ini
+
     try {
       const formData = new FormData();
       formData.append('content', content);
       if (image) {
         formData.append('image', image); // Field nama 'image' dicocokkan dengan backend Elysia
       }
-      console.log(image);
+      console.log("PAYLOAD TEXT:", formData.get('content'));
+      console.log("PAYLOAD IMAGE:", formData.get('image'));
 
       const resCreatePost = await axios.post(`${BACKEND_URL}/posts`,
         formData, {
@@ -75,7 +78,7 @@ export default function FormPostPage() {
           Authorization: `Bearer ${token}`,
         }
       });
-      console.log("resCreatePost.data", resCreatePost.data);
+      console.log("resCreatePost", resCreatePost);
 
       resetForm();
       navigate("/", { replace: true });
@@ -87,18 +90,18 @@ export default function FormPostPage() {
       setLoading(false);
     }
   };
-  
+
   const handleRemoveImage = () => {
-      setImage(null);
-      if (form) {
-          setForm((prev) => {
-              const { image_url, ...rest } = prev;
-              return rest;
-          });
-      }
-      if (fileInputRef.current) {
-          fileInputRef.current.value = "";
-      }
+    setImage(null);
+    if (form) {
+      setForm((prev) => {
+        const { image_url, ...rest } = prev;
+        return rest;
+      });
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   }
 
   return (

@@ -33,7 +33,7 @@ async function fetchPosts(token?: string | null): Promise<ThreadPost[]> {
 }
 
 async function toggleLike(postId: string, token: string): Promise<any> {
-  const res = await fetch(`${BACKEND_URL}/data/posts/${postId}/like`, {
+  const res = await fetch(`${BACKEND_URL}/posts/${postId}/like`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
   })

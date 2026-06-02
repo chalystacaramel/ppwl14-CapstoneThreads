@@ -7,6 +7,9 @@ const SSM_PARAMS = [
   "/monorepo/JWT_SECRET",
   "/monorepo/API_KEY",
   "/monorepo/FRONTEND_URL",
+  "/monorepo/DB_TOKEN",
+  "/monorepo/AWS_ACCESS_KEY_ID",
+  "/monorepo/AWS_SECRET_ACCESS_KEY"
 ];
 
 let isLoaded = false;

@@ -1,6 +1,6 @@
 import { createApp } from "./index";
 import { loadConfig } from "./lib/ssm";       // SSM loader
-import { getPrisma } from "../prisma/db"; // PostgreSQL
+import { getPrisma } from "../prisma/dbPostgres"; // PostgreSQL
 
 let app: ReturnType<typeof createApp>;
 
@@ -21,6 +21,9 @@ export const handler = async (event: any) => {
   console.log("[FRONTEND_URL] env:", process.env.FRONTEND_URL);
   console.log("[API_KEY] env:", process.env.API_KEY);
   console.log("[JWT_SECRET] env:", process.env.JWT_SECRET);
+  console.log("[AWS_ACCESS_KEY_ID] env:", process.env.AWS_ACCESS_KEY_ID);
+  console.log("[AWS_SECRET_ACCESS_KEY] env:", process.env.AWS_SECRET_ACCESS_KEY);
+  console.log("[DB_TOKEN] env:", process.env.DB_TOKEN);
 
   const frontendUrl = process.env.FRONTEND_URL ?? "http://localhost:5173";
 

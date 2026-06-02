@@ -33,7 +33,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # Finder (MacOS) folder config
 .DS_Store
 
-/src/generated
+\src/generated
 .env.development
 .env.production
 dev.db
@@ -41,3 +41,10 @@ dev.db
 lambda-backend.zip
 dist-lambda
 /prisma/migrations
+
+response.json
+migration-postgre.sql
+build.cmd
+
+.bun/
+bun.lockb

@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma-pg"
+  engineType = "client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Provider {
+  email
+  google
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  name          String
+  email         String         @unique
+  password      String?
+  createdAt     DateTime       @default(now())
+  updatedAt        DateTime  @updatedAt
+  avatar_url    String?
+  provider      Provider
+  comments      Comment[]
+  notifications Notification[] @relation("UserNotifications")
+  actorNotifications Notification[] @relation("ActorNotifications")
+  posts         Post[]
+  postLikes     PostLike[]
+}
+
+model Post {
+  id            Int            @id @default(autoincrement())
+  content       String
+  createdAt     DateTime       @default(now())
+  userId        Int
+  image_url     String?
+  comments      Comment[]
+  notifications Notification[]
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes         PostLike[]
+}
+
+model Comment {
+  id            Int            @id @default(autoincrement())
+  content       String
+  postId        Int
+  createdAt     DateTime       @default(now())
+  userId        Int
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post          Post           @relation(fields: [postId], references: [id], onDelete: Cascade)
+  notifications Notification[]
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  actorId   Int
+  type      String
+  postId    Int?
+  commentId Int?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  message   String   @default("")
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  actor     User     @relation("ActorNotifications", fields: [actorId], references: [id], onDelete: Cascade)
+}
+
+model PostLike {
+  id     Int  @id @default(autoincrement())
+  postId Int
+  userId Int
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+}

@@ -25,27 +25,31 @@ async function getUserId(jwt: any, headers: Record<string, string | undefined>) 
 export const dataRoutes = (getPrisma: () => DbClient) =>
     new Elysia({ prefix: "/data" }) 
         .use(jwtConfig)
-        .onRequest(({ request, set }) => {
-            const url = new URL(request.url);
-            console.log(`[DEBUG] [${request.method}] ${url.pathname}`);
-            console.log("[DEBUG] AWS_LAMBDA_FUNCTION_NAME ", process.env.AWS_LAMBDA_FUNCTION_NAME);
-            if (!process.env.AWS_LAMBDA_FUNCTION_NAME) return; 
+        .guard({
+            beforeHandle: ({ request, set }) => {
+                const url = new URL(request.url);
+                console.log(`[DEBUG] [${request.method}] ${url.pathname}`);
 
-            if (request.method === "OPTIONS") return;
+                if (request.method === "OPTIONS") return;
 
-            const origin = request.headers.get("origin");
-            const frontendUrl = process.env.FRONTEND_URL!;
-            const key = url.searchParams.get("key");
+                const origin = request.headers.get("origin");
+                const frontendUrl = process.env.FRONTEND_URL!;
+                const key = url.searchParams.get("key");
 
-            if (origin === frontendUrl) return;
+                // Jika request datang dari Frontend resmi, izinkan lewat
+                if (origin === frontendUrl) return;
 
-            const apiKey = process.env.API_KEY!;
-            if (key !== apiKey) {
-                set.status = 401;
-                return { message: "Unauthorized: Access denied without valid API Key" };
+                // Validasi API Key untuk request non-frontend (misal: Insomnia, Postman, service lain)
+                const apiKey = process.env.API_KEY!;
+                if (key !== apiKey) {
+                    set.status = 401;
+                    return { message: "Unauthorized: Access denied without valid API Key" };
+                }
             }
-        })
-        
+        }, (app) =>
+            // 👇 Semua rute di dalam callback ini otomatis terlindungi oleh beforeHandle di atas
+            app
+
         // ── 1. GET ALL POSTS ──────────────────────────────────────────
         .get("/posts", async ({ jwt, headers, set }) => {
             try {
@@ -246,4 +250,5 @@ export const dataRoutes = (getPrisma: () => DbClient) =>
         .get("/notifications", async () => {
             const data = await getPrisma().notification.findMany();
             return { data, message: "Notifications retrieved successfully" };
-        });
+        })
+    );

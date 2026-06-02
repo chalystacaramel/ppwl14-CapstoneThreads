@@ -145,6 +145,7 @@ export const authRoutes = (getPrisma: () => DbClient) =>
             }
 
             await initializeDatabase(); // ambil data provider
+            console.log("[GOOGLE] Provider:", Provider); // ← tambah log
 
             const user = await getPrisma().user.upsert({
                 where: { email: googleUser.email },
@@ -174,7 +175,7 @@ export const authRoutes = (getPrisma: () => DbClient) =>
             };
 
             // Jika datanya baru dibuat, nilainya akan sama persis atau selisihnya di bawah 10ms (toleransi eksekusi DB)
-            const isNewUser = Math.abs(user.createdAt.getTime() - user.updatedAt.getTime()) < 10;
+            const isNewUser = Math.abs(new Date(user.created_at ?? user.createdAt).getTime() - new Date(user.updated_at ?? user.updatedAt).getTime()) < 10;
 
             if (isNewUser) {
                 responseData.created = true;

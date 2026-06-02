@@ -2,8 +2,6 @@ import { Elysia, t } from 'elysia';
 import type { DbClient } from "../types";
 import { authMiddleware } from './authMiddleware';
 
-const { NotificationType } = await import(`../generated/prisma${process.env.NODE_ENV === "dev" ? '' : 'pg'}/client`);
-
 export const commentRoutes = (getPrisma: () => DbClient) =>
     new Elysia({ prefix: '/comments' })
         .use(authMiddleware) // verifikasi & ambil data user session (id, email)
@@ -40,7 +38,7 @@ export const commentRoutes = (getPrisma: () => DbClient) =>
                         data: {
                             user_id: targetPost.user_id, // Penerima
                             actor_id: user.id,           // Pelaku
-                            type: NotificationType.comment, // atau 'comment' jika string literal
+                            type: "comment", // atau 'comment' jika string literal
                             post_id: targetPost.id,
                             comment_id: newComment.id
                         }

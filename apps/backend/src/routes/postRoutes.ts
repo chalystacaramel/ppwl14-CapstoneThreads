@@ -2,8 +2,9 @@ import { Elysia, t } from 'elysia';
 import type { DbClient } from "../types";
 import { deleteS3File, uploadS3File } from '../lib/s3';
 import { authMiddleware } from './authMiddleware';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 
-const { NotificationType } = await import(`../generated/prisma${process.env.NODE_ENV === "dev" ? '' : 'pg'}/client`);
+const s3 = new S3Client({ region: process.env.AWS_REGION || "us-east-1" });
 
 export const postRoutes = (getPrisma: () => DbClient) =>
     new Elysia({ prefix: '/posts' })
@@ -14,17 +15,55 @@ export const postRoutes = (getPrisma: () => DbClient) =>
         // ==========================================
         .post('/', async ({ user, body, set }) => {
             const { content, image } = body;
+            let imageUrl: string | null = null;
 
             try {
+                // Upload gambar ke S3 (ikuti pola di dataRoutes.ts)
+                if (image && image instanceof File && image.size > 0) {
+                    const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+                    if (!allowed.includes(image.type)) {
+                        set.status = 400;
+                        return { success: false, message: "Tipe file tidak didukung. Gunakan JPG, PNG, GIF, atau WebP." };
+                    }
+                    if (image.size > 5 * 1024 * 1024) {
+                        set.status = 400;
+                        return { success: false, message: "Ukuran gambar maksimal 5MB" };
+                    }
+
+                    const bucketName = process.env.AWS_BUCKET_NAME || "ppwl11-images";
+                    const regionName = process.env.AWS_REGION || "us-east-1";
+
+                    console.log("AWS_ACCESS_KEY_ID:", process.env.AWS_ACCESS_KEY_ID);
+                    console.log("AWS_REGION:", process.env.AWS_REGION);
+                    console.log("AWS_BUCKET_NAME:", process.env.AWS_BUCKET_NAME);
+
+                    const buffer = Buffer.from(await image.arrayBuffer());
+                    const ext = image.type.split("/")[1];
+                    const key = `posts/${user.id}-${Date.now()}.${ext}`;
+
+                    await s3.send(new PutObjectCommand({
+                        Bucket: bucketName,
+                        Key: key,
+                        Body: buffer,
+                        ContentType: image.type,
+                    }));
+
+                    imageUrl = `https://${bucketName}.s3.${regionName}.amazonaws.com/${key}`;
+                    console.log("imageUrl:", imageUrl);
+                }
+
                 const newPost = await getPrisma().post.create({
                     data: {
                         userId: Number(user.id),
                         content,
-                        image_url: image ? await uploadS3File(image) : null
+                        image_url: imageUrl
                     }
                 });
+
                 return { success: true, message: "Postingan berhasil dibuat", data: newPost };
             } catch (error) {
+                console.log("ERROR:", (error as Error).message);
+                console.log("STACK:", (error as Error).stack);
                 set.status = 500;
                 return { success: false, message: "Gagal membuat postingan", detail: (error as Error).message };
             }
@@ -157,7 +196,7 @@ export const postRoutes = (getPrisma: () => DbClient) =>
                         data: {
                             userId: targetPost.userId,     // sesuaikan dengan schema Notification
                             actorId: userId,
-                            type: NotificationType.like,
+                            type: "like",
                             postId: targetPost.id
                         }
                     });

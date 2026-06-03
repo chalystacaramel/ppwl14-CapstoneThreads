@@ -1,8 +1,7 @@
 ﻿import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Camera } from "lucide-react";
-import { useAuthStore } from "@/stores/useAuthStore";
-import { defAvatar } from "@/lib/utils";
+import { useAuthStore } from "@/stores/auth.store";
 
 const getInitial = (name: string) => name.charAt(0).toUpperCase();
 
@@ -54,8 +53,7 @@ export default function EditProfilePage() {
         <div className="flex flex-col items-center gap-3">
           <div className="relative">
             <div className="w-20 h-20 rounded-full bg-[#333638] flex items-center justify-center text-2xl font-bold text-[#F3F5F7]">
-              <img className="rounded-full" 
-              src={user!.avatar_url ?? defAvatar(user!.name)} loading="lazy" alt="" />
+              {getInitial(name || "U")}
             </div>
             <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-[#333638] flex items-center justify-center opacity-50 cursor-not-allowed">
               <Camera size={14} />

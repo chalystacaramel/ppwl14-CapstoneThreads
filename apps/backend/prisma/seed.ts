@@ -17,7 +17,6 @@ async function main() {
       name: "Aisyah",
       email: "aisyah@example.com",
       password: passwordHash,
-      provider: "email",
     },
   });
 
@@ -30,7 +29,6 @@ async function main() {
       name: "Chalysta",
       email: "chalysta@example.com",
       password: passwordHash,
-      provider: "email",
     },
   });
 
@@ -43,7 +41,6 @@ async function main() {
       name: "Adhelia",
       email: "adhelia@example.com",
       password: passwordHash,
-      provider: "email",
     },
   });
 

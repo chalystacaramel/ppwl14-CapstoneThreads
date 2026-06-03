@@ -3,13 +3,13 @@ import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ThreadCard from '../components/ThreadCard'
 import type { ThreadPost } from '../components/ThreadCard'
-import { useAuthStore } from '../stores/useAuthStore'
+import { useAuthStore } from '../stores/auth.store'
 import { BACKEND_URL } from '../constants'
 
 async function fetchPosts(token?: string | null): Promise<ThreadPost[]> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
-  const res = await fetch(`${BACKEND_URL}/data/posts`, { headers })
+  const res = await fetch(`${BACKEND_URL}/posts`, { headers })
   if (!res.ok) throw new Error('Gagal mengambil postingan')
   const data = await res.json()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -32,13 +32,11 @@ async function fetchPosts(token?: string | null): Promise<ThreadPost[]> {
   }))
 }
 
-async function toggleLike(postId: string, token: string): Promise<any> {
-  const res = await fetch(`${BACKEND_URL}/data/posts/${postId}/like`, {
+async function toggleLike(postId: string, token: string): Promise<void> {
+  await fetch(`${BACKEND_URL}/posts/${postId}/like`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
   })
-  if (!res.ok) throw new Error('Gagal mengubah status suka')
-  return await res.json()
 }
 
 // ─── Threadster Logo (mini) ───────────────────────────────────
@@ -71,7 +69,7 @@ export default function Feed() {
   const [loading, setLoading]       = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError]           = useState<string | null>(null)
-  const { token, logout } = useAuthStore()
+  const { accessToken, logout } = useAuthStore()
   const navigate = useNavigate()
 
   const loadPosts = useCallback(async (isRefresh = false) => {
@@ -79,7 +77,7 @@ export default function Feed() {
     else setLoading(true)
     setError(null)
     try {
-      const data = await fetchPosts(token)
+      const data = await fetchPosts(accessToken)
       setPosts(data)
     } catch (e) {
       setError((e as Error).message ?? 'Gagal memuat postingan')
@@ -87,7 +85,7 @@ export default function Feed() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [token])
+  }, [accessToken])
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadPosts() }, [loadPosts])
@@ -99,8 +97,8 @@ export default function Feed() {
   }, [loadPosts])
 
   const handleLike = async (postId: string) => {
-    if (!token) return
-    await toggleLike(postId, token)
+    if (!accessToken) return
+    await toggleLike(postId, accessToken)
     setPosts(prev => prev.map(p =>
       p.id === postId
         ? { ...p, isLiked: !p.isLiked, likeCount: p.isLiked ? p.likeCount - 1 : p.likeCount + 1 }

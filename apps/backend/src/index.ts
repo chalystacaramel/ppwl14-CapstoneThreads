@@ -1,28 +1,49 @@
 import { Elysia } from "elysia";
+import { cors } from "@elysiajs/cors";
 import { cookie } from "@elysiajs/cookie";
+import { jwt } from "@elysiajs/jwt";
 import type { DbClient } from "./types";
-import type { ApiResponse, HealthCheck } from "shared";
-import { authRoutes } from "./routes/auth.routes";
-import { postRoutes } from "./routes/postRoutes";
-import { notificationRoutes } from "./routes/notifications.routes";
-import { dataRoutes } from "./routes/dataRoutes";
-import { commentRoutes } from "./routes/commentRoutes";
+import { authRoutes } from "./auth.routes";
+import { postRoutes } from "./posts.routes";
+import { notificationRoutes } from "./notifications.routes";
 export const createApp = (getPrisma: () => DbClient) => {
   const app = new Elysia()
-    .use(cookie())
-    .get("/", (): ApiResponse<HealthCheck> => ({
-      data: { status: "ok" },
-      message: "server running",
+    .use(cors({
+      origin: process.env.FRONTEND_URL || "http://localhost:5173",
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization"],
     }))
+    .use(cookie())
+    .use(jwt({ name: "jwt", secret: process.env.JWT_SECRET!, exp: "1d" }))
+    .onError(({ code, error }) => {
+      console.error("[SERVER_ERROR]", code, error);
+    })
 
-    // public
+    .onRequest(({ request, set }) => {
+      const url = new URL(request.url);
+      console.log(`[DEBUG] [${request.method}] ${url.pathname}`);
+      if (request.method === "OPTIONS") return;
+      if (!url.pathname.startsWith("/users")) return;
+      const origin = request.headers.get("origin");
+      const frontendUrl = process.env.FRONTEND_URL ?? "http://localhost:5173";
+      const key = url.searchParams.get("key");
+      if (origin === frontendUrl) return;
+      if (key !== process.env.API_KEY) {
+        set.status = 401;
+        return { message: "Unauthorized: Access denied without valid API Key" };
+      }
+    })
+
+    .get("/", () => ({ data: { status: "ok" }, message: "server running" }))
+
+    .get("/users", async () => {
+      const users = await getPrisma().user.findMany();
+      return { data: users, message: "User list retrieved" };
+    })
+
     .use(authRoutes(getPrisma))
-    .use(dataRoutes(getPrisma))
-    
-    // protected
     .use(postRoutes(getPrisma))
-    .use(notificationRoutes(getPrisma))
-    .use(commentRoutes(getPrisma));
+    .use(notificationRoutes(getPrisma));
 
   return app;
 };

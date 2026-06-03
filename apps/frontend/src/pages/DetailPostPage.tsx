@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Heart, MessageCircle, Repeat2, Send, MoreHorizontal, Pencil, Trash2, X, ImagePlus } from "lucide-react";
+import { ArrowLeft, Heart, MessageCircle, Repeat2, Send, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import CommentCard from "@/components/CommentCard";
 import {
   DropdownMenu,
@@ -8,104 +8,125 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useAuthStore } from "@/stores/useAuthStore";
-import { usePostStore } from "@/stores/usePostStore";
-import { useLike } from "@/hooks/useLike";
-import { BACKEND_URL } from "@/constants";
-import { usePost } from "@/hooks/usePost";
-import type { Comment } from "@/types";
-import { defAvatar } from "@/lib/utils";
+import { useAuthStore } from "@/stores/auth.store";
+
+interface User {
+  id: string;
+  name: string;
+  avatar?: string;
+}
+
+interface Comment {
+  id: string;
+  content: string;
+  author: User;
+  createdAt: string;
+}
+
+interface Post {
+  id: string;
+  content: string;
+  image?: string;
+  author: User;
+  createdAt: string;
+  likes: { userId: string }[];
+}
 
 const MAX_COMMENTS = 5;
+const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 export default function DetailPostPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const user = useAuthStore((s) => s.user);
-  const token = useAuthStore((s) => s.token);
-  const post = usePostStore((s) => s.post);
-  const { toggleLike } = useLike();
-  const { loading, fetchPost, updatePost } = usePost();
-  const editPostFileInputRef = useRef<HTMLInputElement>(null);
+  const { user, accessToken } = useAuthStore();
 
-  const [liked, setLiked] = useState<boolean>(false);
+  const [post, setPost] = useState<Post | null>(null);
+  const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
+  const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState("");
-  const [editImage, setEditImage] = useState<File | null>(null);
-  const [removePostImage, setRemovePostImage] = useState(false);
 
-  const isPostOwner = user && post && user.id === post.userId;
+  const isPostOwner = user && post && String(user.id) === String(post.author.id);
 
-  const userCommentCount = post?.user
-    ? comments.filter((c) => c.userId === post.userId).length
-    : 0;
+  useEffect(() => {
+    const fetchPostAndComments = async () => {
+      try {
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
+
+        const res = await fetch(`${API_URL}/posts/${id ?? "1"}`, { headers });
+        if (!res.ok) throw new Error("Gagal memuat post");
+        const json = await res.json();
+
+        const postData = json.data ?? json;
+        if (postData && postData.id) {
+          setPost({
+            id: postData.id,
+            content: postData.content,
+            image: postData.image || postData.imageUrl,
+            createdAt: postData.createdAt,
+            likes: [],
+            author: {
+              id: postData.user.id,
+              name: postData.user.name,
+              avatar: postData.user.avatarUrl,
+            },
+          });
+          setComments(
+            postData.comments?.map((c: any) => ({
+              id: c.id,
+              content: c.content,
+              createdAt: c.createdAt,
+              author: { id: c.user.id, name: c.user.name, avatar: c.user.avatarUrl },
+            })) ?? []
+          );
+          setLiked(postData.isLiked ?? false);
+          setLikeCount(postData.likeCount ?? 0);
+        }
+      } catch (err) {
+        console.error("Gagal fetch post/komentar:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPostAndComments();
+  }, [id, accessToken]);
+
+  const CURRENT_USER = user
+    ? { id: String(user.id), name: user.name, avatar: user.avatarUrl }
+    : { id: "guest", name: "Guest" };
+
+  const userCommentCount = comments.filter(c => c.author.id === CURRENT_USER.id).length;
   const canComment = userCommentCount < MAX_COMMENTS;
 
-  const fetchingPost = () => {
-    if (id) {
-      const postId = Number(id);
-      fetchPost(postId);
-    }
-  };
-
-  useEffect(() => {
-    fetchingPost();
-  }, [id]);
-
-  useEffect(() => {
-    if (post) {
-      // 1. Set jumlah total like langsung dari counter database store
-      setLikeCount(post._count?.likes ?? 0);
-      
-      // 2. Periksa apakah ID user saat ini terdaftar di dalam array list liking post
-      if (user && post.likes) {
-        const isUserLiked = post.likes.some((l) => l.userId === user.id);
-        setLiked(isUserLiked);
-      } else {
-        setLiked(false);
-      }
-    }
-  }, [post, user]);
-
-  const handleLikeClick = (e: React.MouseEvent) => {
-    if (!post) return;
-    e.stopPropagation();
-    toggleLike(Number(post.id), liked);
-  };
-
-  const handleEditPost = async () => {
-    if (!token || !post || !editContent.trim()) return;
-
+  const handleLike = async () => {
+    if (!accessToken) { navigate("/login"); return; }
     try {
-      // 1. Jalankan updatePost dan berikan casting 'as any' agar TypeScript tidak menganggapnya 'void'
-      const updatedData = await (updatePost(post.id, editContent, editImage) as any);
-      
-      // 2. Gunakan usePostStore untuk memperbarui data secara langsung jika updatedData ada
-      if (updatedData) {
-        usePostStore.setState({ post: updatedData });
-      }
-
-      // 3. Tutup form edit dan bersihkan state temporary
-      setIsEditing(false);
-      setEditImage(null);
-      setRemovePostImage(false);
-
-    } catch (error) {
-      console.error("Gagal menyimpan perubahan postingan:", error);
+      const nextLiked = !liked;
+      setLiked(nextLiked);
+      setLikeCount(prev => nextLiked ? prev + 1 : prev - 1);
+      const res = await fetch(`${API_URL}/posts/${id}/like`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${accessToken}` },
+      });
+      const data = await res.json();
+      if (typeof data.liked === "boolean") setLiked(data.liked);
+    } catch (err) {
+      console.error("Gagal toggle like:", err);
     }
   };
 
   const handleSubmitComment = async () => {
-    if (!newComment.trim() || !canComment || !token) return;
+    if (!newComment.trim() || !canComment || !accessToken) return;
     try {
-      const res = await fetch(`${BACKEND_URL}/posts/${id}/comment`, {
+      const res = await fetch(`${API_URL}/posts/${id}/comment`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          "Authorization": `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ content: newComment.trim() }),
       });
@@ -113,14 +134,11 @@ export default function DetailPostPage() {
       if (res.ok) {
         const comment: Comment = {
           id: data.id,
-          postId: Number(id),
-          userId: user!.id,
           content: data.content,
           createdAt: data.createdAt,
-          updatedAt: data.createdAt,
-          user: user!,
+          author: { id: data.user.id, name: data.user.name, avatar: data.user.avatarUrl },
         };
-        setComments((prev) => [comment, ...prev]);
+        setComments(prev => [comment, ...prev]);
         setNewComment("");
       } else {
         console.error("Gagal kirim komentar:", data.message);
@@ -130,46 +148,35 @@ export default function DetailPostPage() {
     }
   };
 
-  const handleDeleteComment = async (commentId: number) => {
-    if (!token) return;
+  const handleDeleteComment = async (commentId: string) => {
+    if (!accessToken) return;
     try {
-      const res = await fetch(`${BACKEND_URL}/posts/comments/${commentId}`, {
+      const res = await fetch(`${API_URL}/posts/comments/${commentId}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { "Authorization": `Bearer ${accessToken}` },
       });
-      if (res.ok) setComments((prev) => prev.filter((c) => c.id !== commentId));
+      if (res.ok) setComments(prev => prev.filter(c => c.id !== commentId));
     } catch (err) {
       console.error("Gagal hapus komentar:", err);
     }
   };
 
-  const handleEditComment = async (
-    commentId: number,
-    newContent: string,
-    newImage?: File | null,
-    removeImage?: boolean
-  ) => {
-    if (!token) return;
+  const handleEditComment = async (commentId: string, newContent: string) => {
+    if (!accessToken) return;
     try {
-      const formData = new FormData();
-      formData.append("content", newContent);
-      if (newImage) formData.append("image", newImage);
-      if (removeImage) formData.append("remove_image", "yes");
-
-      const res = await fetch(`${BACKEND_URL}/posts/comments/${commentId}`, {
+      const res = await fetch(`${API_URL}/posts/comments/${commentId}`, {
         method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ content: newContent }),
       });
       const data = await res.json();
       if (res.ok) {
-        setComments((prev) =>
-          prev.map((c) =>
-            c.id === commentId
-              ? { ...c, content: data.content, image_url: data.image_url }
-              : c
-          )
-        );
+        setComments(prev => prev.map(c =>
+          c.id === commentId ? { ...c, content: data.content } : c
+        ));
       }
     } catch (err) {
       console.error("Gagal edit komentar:", err);
@@ -177,17 +184,51 @@ export default function DetailPostPage() {
   };
 
   const handleDeletePost = async () => {
-    if (!token || !post) return;
+    if (!accessToken || !post) return;
     try {
-      const res = await fetch(`${BACKEND_URL}/posts/${post.id}`, {
+      const res = await fetch(`${API_URL}/posts/${post.id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { "Authorization": `Bearer ${accessToken}` },
       });
       if (res.ok) navigate("/");
     } catch (err) {
       console.error("Gagal hapus post:", err);
     }
   };
+
+  const handleEditPost = async () => {
+    if (!accessToken || !post || !editContent.trim()) return;
+    try {
+      const res = await fetch(`${API_URL}/posts/${post.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ content: editContent }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPost(prev => prev ? { ...prev, content: data.content } : prev);
+        setIsEditing(false);
+      }
+    } catch (err) {
+      console.error("Gagal edit post:", err);
+    }
+  };
+
+  const formatTime = (iso: string) => {
+    const d = new Date(iso);
+    const diffMs = new Date().getTime() - d.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffH = Math.floor(diffMin / 60);
+    if (diffMin < 1) return "baru saja";
+    if (diffMin < 60) return `${diffMin} menit`;
+    if (diffH < 24) return `${diffH} jam`;
+    return d.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+  };
+
+  const getInitial = (name: string) => name.charAt(0).toUpperCase();
 
   if (loading || !post) {
     return (
@@ -197,68 +238,37 @@ export default function DetailPostPage() {
     );
   }
 
-  // Gambar yang ditampilkan saat mode edit post
-  const editPreviewSrc = editImage
-    ? URL.createObjectURL(editImage)
-    : !removePostImage && post.image_url
-    ? post.image_url
-    : null;
-
   return (
     <div className="min-h-screen bg-[#101010] text-[#F3F5F7]">
-      {/* Navbar */}
       <div className="sticky top-0 z-10 bg-[#101010]/90 backdrop-blur border-b border-[#3E4042] flex items-center gap-4 px-4 py-3">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-2 rounded-full hover:bg-[#1E1E1E] transition-colors"
-        >
+        <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-[#1E1E1E] transition-colors">
           <ArrowLeft size={20} />
         </button>
         <span className="text-base font-semibold">Thread</span>
       </div>
 
       <div className="max-w-xl mx-auto pb-24">
-
-        {/* Section: Detail Post */}
         <div className="px-4 pt-4 pb-3 border-b border-[#3E4042]">
           <div className="flex items-start gap-3">
-            <img
-              src={post.user?.avatar_url ?? defAvatar(post.user?.avatar_url ?? "")}
-              alt="avatar"
-              loading="lazy"
-              className="rounded-full w-10 h-10 bg-[#333638]"
-            />
+            <div className="w-10 h-10 rounded-full bg-[#333638] flex items-center justify-center text-sm font-semibold shrink-0">
+              {getInitial(post.author.name)}
+            </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-sm">{post?.user?.name ?? ""}</span>
+                <span className="font-semibold text-sm">{post.author.name}</span>
                 <div className="flex items-center gap-2 text-[#777]">
-                  <span className="text-xs">
-                    {new Date(post.createdAt).toLocaleDateString("id-ID", {
-                      day: "numeric",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
+                  <span className="text-xs">{formatTime(post.createdAt)}</span>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button className="p-1 hover:bg-[#1E1E1E] rounded-full transition-colors">
                         <MoreHorizontal size={18} />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="end"
-                      className="bg-[#1E1E1E] border-[#3E4042] text-[#F3F5F7] rounded-2xl w-48"
-                    >
+                    <DropdownMenuContent align="end" className="bg-[#1E1E1E] border-[#3E4042] text-[#F3F5F7] rounded-2xl w-48">
                       {isPostOwner ? (
                         <>
                           <DropdownMenuItem
-                            onClick={() => {
-                              setIsEditing(true);
-                              setEditContent(post.content);
-                              setEditImage(null);
-                              setRemovePostImage(false);
-                            }}
+                            onClick={() => { setIsEditing(true); setEditContent(post.content); }}
                             className="hover:bg-[#333638] rounded-xl cursor-pointer flex items-center gap-2"
                           >
                             <Pencil size={14} /> Edit
@@ -272,18 +282,10 @@ export default function DetailPostPage() {
                         </>
                       ) : (
                         <>
-                          <DropdownMenuItem className="hover:bg-[#333638] rounded-xl cursor-pointer">
-                            Simpan
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="hover:bg-[#333638] rounded-xl cursor-pointer">
-                            Salin tautan
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="hover:bg-[#333638] rounded-xl cursor-pointer">
-                            Tidak tertarik
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-[#FF2E40] hover:bg-[#333638] rounded-xl cursor-pointer">
-                            Laporkan
-                          </DropdownMenuItem>
+                          <DropdownMenuItem className="hover:bg-[#333638] rounded-xl cursor-pointer">Simpan</DropdownMenuItem>
+                          <DropdownMenuItem className="hover:bg-[#333638] rounded-xl cursor-pointer">Salin tautan</DropdownMenuItem>
+                          <DropdownMenuItem className="hover:bg-[#333638] rounded-xl cursor-pointer">Tidak tertarik</DropdownMenuItem>
+                          <DropdownMenuItem className="text-[#FF2E40] hover:bg-[#333638] rounded-xl cursor-pointer">Laporkan</DropdownMenuItem>
                         </>
                       )}
                     </DropdownMenuContent>
@@ -298,79 +300,14 @@ export default function DetailPostPage() {
               <div>
                 <textarea
                   value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  className="w-full bg-[#1E1E1E] border border-[#3E4042] rounded-xl px-3 py-2 text-[15px] text-[#F3F5F7] resize-none outline-none min-h-20"
+                  onChange={e => setEditContent(e.target.value)}
+                  className="w-full bg-[#1E1E1E] border border-[#3E4042] rounded-xl px-3 py-2 text-[15px] text-[#F3F5F7] resize-none outline-none min-h-[80px]"
                 />
-
-                {/* Preview gambar saat edit */}
-                {editPreviewSrc && (
-                  <div className="relative mt-2 inline-block">
-                    <img
-                      src={editPreviewSrc}
-                      alt="preview"
-                      className="rounded-2xl max-w-full max-h-60 object-cover"
-                    />
-                    <button
-                      onClick={() => {
-                        if (editImage) setEditImage(null);
-                        else setRemovePostImage(true);
-                      }}
-                      className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 rounded-full p-1.5 text-white transition-colors"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                )}
-
-                {/* Tombol tambah/ganti gambar */}
-                <div className="flex items-center gap-3 mt-2">
-                  <button
-                    onClick={() => editPostFileInputRef.current?.click()}
-                    className="flex items-center gap-1.5 text-sm text-[#777] hover:text-[#F3F5F7] transition-colors"
-                  >
-                    <ImagePlus size={16} />
-                    {editPreviewSrc ? "Ganti gambar" : "Tambah gambar"}
-                  </button>
-                </div>
-
-                <input
-                  ref={editPostFileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] ?? null;
-                    if (!file) return;
-                    const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-                    if (!allowed.includes(file.type)) {
-                      alert("Tipe file tidak didukung. Gunakan JPG, PNG, GIF, atau WebP.");
-                      return;
-                    }
-                    if (file.size > 8 * 1024 * 1024) {
-                      alert("Ukuran gambar maksimal 8MB.");
-                      return;
-                    }
-                    setEditImage(file);
-                    setRemovePostImage(false);
-                    e.target.value = "";
-                  }}
-                />
-
                 <div className="flex gap-2 mt-2">
-                  <button
-                    onClick={handleEditPost}
-                    className="px-4 py-1.5 bg-[#F3F5F7] text-[#101010] text-sm font-semibold rounded-xl hover:bg-white transition-colors"
-                  >
+                  <button onClick={handleEditPost} className="px-4 py-1.5 bg-[#F3F5F7] text-[#101010] text-sm font-semibold rounded-xl hover:bg-white transition-colors">
                     Simpan
                   </button>
-                  <button
-                    onClick={() => {
-                      setIsEditing(false);
-                      setEditImage(null);
-                      setRemovePostImage(false);
-                    }}
-                    className="px-4 py-1.5 bg-[#1E1E1E] text-[#777] text-sm rounded-xl hover:bg-[#333638] transition-colors"
-                  >
+                  <button onClick={() => setIsEditing(false)} className="px-4 py-1.5 bg-[#1E1E1E] text-[#777] text-sm rounded-xl hover:bg-[#333638] transition-colors">
                     Batal
                   </button>
                 </div>
@@ -378,23 +315,15 @@ export default function DetailPostPage() {
             ) : (
               <>
                 <p className="text-[15px] leading-5 whitespace-pre-wrap">{post.content}</p>
-                {post.image_url && (
-                  <img
-                    src={post.image_url}
-                    alt="Post"
-                    className="mt-3 rounded-2xl max-w-full max-h-100 object-cover"
-                  />
+                {post.image && (
+                  <img src={post.image} alt="Post" className="mt-3 rounded-2xl max-w-full max-h-100 object-cover" />
                 )}
               </>
             )}
           </div>
 
-          {/* Action buttons */}
           <div className="ml-13 mt-3 flex items-center gap-4">
-            <button
-              onClick={handleLikeClick}
-              className="flex items-center gap-1.5 text-[#777] hover:text-[#FF2E40] transition-colors"
-            >
+            <button onClick={handleLike} className="flex items-center gap-1.5 text-[#777] hover:text-[#FF2E40] transition-colors">
               <Heart size={20} className={liked ? "fill-[#FF2E40] text-[#FF2E40]" : ""} />
               <span className="text-sm">{likeCount}</span>
             </button>
@@ -411,43 +340,35 @@ export default function DetailPostPage() {
           </div>
         </div>
 
-        {/* Section: Input Komentar */}
         <div className="px-4 py-3 border-b border-[#3E4042]">
           <div className="flex items-start gap-3">
-            <img
-              src={post.user?.avatar_url ?? defAvatar(post.user?.avatar_url ?? "")}
-              alt="avatar"
-              loading="lazy"
-              className="rounded-full w-8 h-8 bg-[#333638]"
-            />
+            <div className="w-8 h-8 rounded-full bg-[#333638] flex items-center justify-center text-xs font-semibold shrink-0">
+              {getInitial(CURRENT_USER.name)}
+            </div>
             <div className="flex-1">
               <textarea
                 value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
+                onChange={e => setNewComment(e.target.value)}
                 placeholder={
-                  !token
-                    ? "Silakan login untuk memberikan komentar"
-                    : canComment
-                    ? `Balas sebagai ${user?.name}...`
-                    : "Kamu sudah mencapai batas 5 komentar"
+                  !accessToken ? "Silakan login untuk memberikan komentar"
+                  : canComment ? `Balas sebagai ${CURRENT_USER.name}...`
+                  : "Kamu sudah mencapai batas 5 komentar"
                 }
-                disabled={!canComment || !token}
+                disabled={!canComment || !accessToken}
                 rows={2}
                 className="w-full bg-transparent text-[15px] text-[#F3F5F7] placeholder:text-[#777] resize-none outline-none disabled:opacity-50"
               />
-              {!token ? (
+              {!accessToken ? (
                 <p className="text-xs text-[#777] mt-1">Gunakan akun Anda untuk berdiskusi</p>
               ) : !canComment ? (
                 <p className="text-xs text-[#FF2E40] mt-1">Batas komentar (5) sudah tercapai</p>
               ) : (
-                <p className="text-xs text-[#777] mt-1">
-                  Sisa komentar: {MAX_COMMENTS - userCommentCount}
-                </p>
+                <p className="text-xs text-[#777] mt-1">Sisa komentar: {MAX_COMMENTS - userCommentCount}</p>
               )}
             </div>
             <button
               onClick={handleSubmitComment}
-              disabled={!newComment.trim() || !canComment || !token}
+              disabled={!newComment.trim() || !canComment || !accessToken}
               className="px-4 py-1.5 rounded-full bg-[#F3F5F7] text-[#101010] text-sm font-semibold disabled:opacity-30 hover:bg-white transition-colors shrink-0"
             >
               Kirim
@@ -455,7 +376,6 @@ export default function DetailPostPage() {
           </div>
         </div>
 
-        {/* Section: Jumlah Komentar */}
         <div className="px-4 py-2 flex items-center justify-between border-b border-[#3E4042]">
           <span className="text-sm text-[#777]">{comments.length} komentar</span>
           <button className="text-sm text-[#777] flex items-center gap-1 hover:text-[#F3F5F7] transition-colors">
@@ -463,7 +383,6 @@ export default function DetailPostPage() {
           </button>
         </div>
 
-        {/* Section: List Komentar */}
         <div>
           {comments.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-[#777]">
@@ -471,7 +390,7 @@ export default function DetailPostPage() {
               <p className="text-sm">Belum ada komentar</p>
             </div>
           ) : (
-            comments.map((comment) => (
+            comments.map(comment => (
               <CommentCard
                 key={comment.id}
                 comment={comment}

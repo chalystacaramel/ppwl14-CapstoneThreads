@@ -1,7 +1,7 @@
 // apps/frontend/src/components/ThreadCard.tsx
-import { useState , useRef } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuthStore } from '../stores/useAuthStore'
+import { useAuthStore } from '../stores/auth.store'
 import { BACKEND_URL } from '../constants'
 
 export interface ThreadPost {
@@ -91,14 +91,10 @@ export default function ThreadCard({ post, onLike, onDelete, showThread = false 
   const [showMenu, setShowMenu]       = useState(false)
   const [isEditing, setIsEditing]     = useState(false)
   const [editContent, setEditContent] = useState(post.content)
-  const [editImage, setEditImage]     = useState<File | null>(null)
-  const [removeImage, setRemoveImage] = useState(false)
-  const [imageUrl, setImageUrl]       = useState(post.imageUrl)
-  const editFileInputRef              = useRef<HTMLInputElement>(null)
   const [content, setContent]         = useState(post.content)
   const [deleted, setDeleted]         = useState(false)
 
-  const { user, token, isAuthenticated } = useAuthStore()
+  const { user, accessToken, isAuthenticated } = useAuthStore()
   const navigate = useNavigate()
 
   const isOwner = user && String(user.id) === String(post.user.id)
@@ -128,11 +124,11 @@ export default function ThreadCard({ post, onLike, onDelete, showThread = false 
   async function handleDelete(e: React.MouseEvent) {
     e.stopPropagation()
     setShowMenu(false)
-    if (!token) return
+    if (!accessToken) return
     try {
       const res = await fetch(`${BACKEND_URL}/posts/${post.id}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { 'Authorization': `Bearer ${accessToken}` },
       })
       if (res.ok) {
         setDeleted(true)
@@ -145,30 +141,25 @@ export default function ThreadCard({ post, onLike, onDelete, showThread = false 
 
   async function handleSaveEdit(e: React.MouseEvent) {
     e.stopPropagation()
-    if (!token || !editContent.trim()) return
+    if (!accessToken || !editContent.trim()) return
     try {
-      const formData = new FormData()
-      formData.append('content', editContent)
-      if (editImage) formData.append('image_new', editImage)
-      if (removeImage) formData.append('remove_image', 'yes')
-
-          const res = await fetch(`${BACKEND_URL}/posts/${post.id}`, {
-          method: 'PATCH',
-          headers: { 'Authorization': `Bearer ${token}` },
-          body: formData,
-        })
-        const data = await res.json()
-        if (res.ok) {
-          setContent(data.content)
-          setImageUrl(data.image_url ?? null)
-          setIsEditing(false)
-          setEditImage(null)
-          setRemoveImage(false)
-        }
-      } catch (err) {
-        console.error('Gagal edit post:', err)
+      const res = await fetch(`${BACKEND_URL}/posts/${post.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ content: editContent }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setContent(data.content)
+        setIsEditing(false)
       }
+    } catch (err) {
+      console.error('Gagal edit post:', err)
     }
+  }
 
   const goToPost    = () => navigate(`/post/${post.id}`)
   const goToProfile = (e: React.MouseEvent) => {

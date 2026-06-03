@@ -9,6 +9,7 @@ let lastUrl: string | undefined
 export const getPrisma = () => {
   const url = getDbUrl()
 
+  // Reset singleton if URL changed (e.g. SSM loaded after first call)
   if (prisma && lastUrl !== url) {
     prisma = undefined
   }

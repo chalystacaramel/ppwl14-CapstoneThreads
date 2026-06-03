@@ -1,38 +1,19 @@
-<<<<<<< HEAD
-import { PrismaClient } from "../src/generated/prisma/client";
-import { PrismaLibSql } from "@prisma/adapter-libsql";
-import path from "path";
-=======
 // apps/backend/prisma/db.ts
 import { PrismaClient } from "../src/generated/prisma/client.js"
->>>>>>> e6c330b
 
-export const dbUrl = process.env.DATABASE_URL || `file:${path.resolve(__dirname, "../dev.db")}`;
+export const getDbUrl = () => process.env.DATABASE_URL || "file:./dev.db"
 
-<<<<<<< HEAD
-const adapter = new PrismaLibSql({ url: dbUrl, authToken: process.env.DB_TOKEN });
-
-let prisma: PrismaClient;
-=======
 let prisma: PrismaClient | undefined
 let lastUrl: string | undefined
->>>>>>> e6c330b
 
 export const getPrisma = () => {
   const url = getDbUrl()
 
-  // Reset singleton if URL changed (e.g. SSM loaded after first call)
   if (prisma && lastUrl !== url) {
     prisma = undefined
   }
 
   if (!prisma) {
-<<<<<<< HEAD
-    prisma = new PrismaClient({ adapter });
-  }
-  return prisma;
-};
-=======
     lastUrl = url
     console.log("[DB] Connecting to:", url.startsWith("postgresql") ? "PostgreSQL (RDS)" : url)
 
@@ -53,4 +34,3 @@ export const getPrisma = () => {
 
   return prisma
 }
->>>>>>> e6c330b

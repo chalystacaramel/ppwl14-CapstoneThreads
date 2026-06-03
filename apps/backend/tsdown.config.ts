@@ -1,7 +1,6 @@
 import { defineConfig } from 'tsdown'
-
 export default defineConfig({
   deps: {
-    alwaysBundle: ['shared']
+    alwaysBundle: ['shared', '@prisma/adapter-pg', 'pg', '@prisma/client']
   }
 })

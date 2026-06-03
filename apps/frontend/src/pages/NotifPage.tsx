@@ -22,7 +22,6 @@ export default function NotifPage() {
 
   useEffect(() => {
     if (!accessToken) return
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     fetch(`${BACKEND_URL}/notifications`, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -33,13 +32,25 @@ export default function NotifPage() {
       .finally(() => setLoading(false))
   }, [accessToken])
 
+  // FIX issue #8: markAllRead sekarang menunggu response dan handle error
   const markAllRead = async () => {
     if (!accessToken) return
-    await fetch(`${BACKEND_URL}/notifications/read-all`, {
-      method: "PATCH",
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
-    setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })))
+    try {
+      const res = await fetch(`${BACKEND_URL}/notifications/read-all`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      })
+      if (res.ok) {
+        setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })))
+      } else {
+        console.error("Gagal tandai semua dibaca:", res.status)
+      }
+    } catch (err) {
+      console.error("Error tandai semua dibaca:", err)
+    }
   }
 
   const unreadCount = notifs.filter((n) => !n.isRead).length
@@ -53,9 +64,9 @@ export default function NotifPage() {
           {unreadCount > 0 && (
             <button
               onClick={markAllRead}
-              className="text-xs text-[#1877F2] font-semibold"
+              className="text-xs text-[#1877F2] font-semibold hover:text-[#18A3FE] transition-colors px-2 py-1 rounded-lg hover:bg-[#1877F2]/10"
             >
-              Tandai semua dibaca
+              Tandai semua dibaca ({unreadCount})
             </button>
           )}
         </div>

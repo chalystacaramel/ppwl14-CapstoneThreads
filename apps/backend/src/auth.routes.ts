@@ -1,3 +1,4 @@
+// apps/backend/src/auth.routes.ts
 import { Elysia, t } from "elysia"
 import { jwt } from "@elysiajs/jwt"
 import bcrypt from "bcryptjs"
@@ -64,7 +65,7 @@ export const authRoutes = (getPrisma: () => DbClient) =>
         body: t.Object({
           name: t.String({ minLength: 1 }),
           email: t.String({ format: "email" }),
-          password: t.String({ minLength: 4 }),
+          password: t.String({ minLength: 1 }),
         }),
       }
     )
@@ -85,32 +86,21 @@ export const authRoutes = (getPrisma: () => DbClient) =>
             where: { email },
           })
 
-          console.log("USER FOUND:", user)
+          console.log("USER FOUND:", user ? "yes" : "no")
 
           if (!user) {
-            console.log("❌ USER NOT FOUND")
             set.status = 401
             return { message: "Email atau password salah" }
           }
 
           if (!user.password) {
-            console.log("❌ USER HAS NO PASSWORD")
             set.status = 401
             return { message: "Email atau password salah" }
           }
 
-          console.log("PASSWORD INPUT:", password)
-          console.log("HASH IN DB:", user.password)
-
-          const valid = await bcrypt.compare(
-            password,
-            user.password
-          )
-
-          console.log("BCRYPT RESULT:", valid)
+          const valid = await bcrypt.compare(password, user.password)
 
           if (!valid) {
-            console.log("❌ PASSWORD MISMATCH")
             set.status = 401
             return { message: "Email atau password salah" }
           }
@@ -119,9 +109,6 @@ export const authRoutes = (getPrisma: () => DbClient) =>
             userId: user.id,
             email: user.email,
           })
-
-          console.log("✅ LOGIN SUCCESS")
-          console.log("TOKEN GENERATED:", token)
 
           return {
             accessToken: token,
@@ -134,9 +121,7 @@ export const authRoutes = (getPrisma: () => DbClient) =>
           }
         } catch (e) {
           console.error("LOGIN ERROR:", e)
-
           set.status = 500
-
           return {
             message: "Login gagal",
             error: String(e),
@@ -189,6 +174,60 @@ export const authRoutes = (getPrisma: () => DbClient) =>
       {
         body: t.Object({
           token: t.String(),
+        }),
+      }
+    )
+
+    // FIX issue #4 & #5: UPDATE PROFILE
+    .put(
+      "/profile",
+      async ({ body, headers, jwt, set }) => {
+        const authHeader = headers.authorization
+        if (!authHeader) { set.status = 401; return { message: "Unauthorized" } }
+        const token = authHeader.replace("Bearer ", "")
+        const payload = await jwt.verify(token) as any
+        if (!payload) { set.status = 401; return { message: "Unauthorized" } }
+
+        try {
+          const db = getPrisma() as any
+          const { name, bio, avatarUrl, password } = body as any
+
+          const updateData: any = {}
+          if (name) updateData.name = name
+          if (avatarUrl !== undefined) updateData.avatar_url = avatarUrl
+          // bio disimpan ke field yang ada — jika schema belum ada bio, skip
+          // (bisa ditambah migration nanti)
+
+          if (password) {
+            updateData.password = await bcrypt.hash(password, 10)
+          }
+
+          const user = await db.user.update({
+            where: { id: payload.userId },
+            data: updateData,
+          })
+
+          return {
+            user: {
+              id: String(user.id),
+              name: user.name,
+              email: user.email,
+              avatarUrl: user.avatar_url ?? null,
+              bio: bio ?? null,
+            },
+          }
+        } catch (e) {
+          console.error("UPDATE PROFILE ERROR:", e)
+          set.status = 500
+          return { message: "Gagal update profil", error: String(e) }
+        }
+      },
+      {
+        body: t.Object({
+          name: t.Optional(t.String({ minLength: 1 })),
+          bio: t.Optional(t.String()),
+          avatarUrl: t.Optional(t.Nullable(t.String())),
+          password: t.Optional(t.String({ minLength: 6 })),
         }),
       }
     )

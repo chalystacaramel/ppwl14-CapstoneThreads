@@ -1,12 +1,8 @@
 // apps/frontend/src/components/layout/Navbar.tsx
-// Threadster — Mobile-first navbar
-// Desktop = left sidebar dengan label | Mobile = bottom nav
-
 import React from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../stores/auth.store'
 
-// ─── Threadster Logo ───────────────────────────────────────────
 function ThreadsterLogo({ size = 32 }: { size?: number }) {
   return (
     <svg viewBox="0 0 64 64" width={size} height={size} fill="none">
@@ -18,7 +14,6 @@ function ThreadsterLogo({ size = 32 }: { size?: number }) {
   )
 }
 
-// ─── Icons ─────────────────────────────────────────────────────
 function HomeIcon({ filled }: { filled?: boolean }) {
   return filled ? (
     <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
@@ -33,9 +28,11 @@ function HomeIcon({ filled }: { filled?: boolean }) {
   )
 }
 
-function PlusIcon() {
+function PlusIcon({ filled }: { filled?: boolean }) {
   return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="26" height="26" viewBox="0 0 24 24"
+      fill={filled ? 'currentColor' : 'none'}
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="3" width="18" height="18" rx="5" />
       <line x1="12" y1="8" x2="12" y2="16" />
       <line x1="8" y1="12" x2="16" y2="12" />
@@ -58,8 +55,12 @@ function HeartIcon({ filled }: { filled?: boolean }) {
 function ProfileIcon({ avatarUrl, size = 26 }: { avatarUrl?: string; size?: number }) {
   if (avatarUrl) {
     return (
-      <img src={avatarUrl} alt="avatar"
+      <img
+        src={avatarUrl}
+        alt="avatar"
+        referrerPolicy="no-referrer"
         style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
       />
     )
   }
@@ -71,10 +72,9 @@ function ProfileIcon({ avatarUrl, size = 26 }: { avatarUrl?: string; size?: numb
   )
 }
 
-// ─── Nav items ─────────────────────────────────────────────────
 const NAV_ITEMS = [
   { path: '/',              label: 'Beranda',    icon: HomeIcon },
-  { path: '/post',          label: 'Buat Post',  icon: PlusIcon, isCreate: true },
+  { path: '/post',          label: 'Buat Post',  icon: PlusIcon },
   { path: '/notifications', label: 'Notifikasi', icon: HeartIcon },
 ]
 
@@ -83,50 +83,42 @@ export default function Navbar() {
   const location  = useLocation()
   const { user, isAuthenticated, logout } = useAuthStore()
 
+  // FIX issue #2: /post/:id dan halaman detail TIDAK mengaktifkan tab "Buat Post"
+  // Tab "Buat Post" hanya aktif kalau path-nya PERSIS /post
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/'
+    if (path === '/post') return location.pathname === '/post' // exact match, bukan startsWith
     return location.pathname.startsWith(path)
   }
 
   const handleProfile = () => navigate(isAuthenticated ? '/edit-profile' : '/login')
 
-  // ── Desktop Left Sidebar ──────────────────────────────────
   const renderDesktopNav = () => (
     <nav style={ds.sidebar}>
-
-      {/* Logo + nama brand */}
       <div style={ds.logoWrap} onClick={() => navigate('/')}>
         <ThreadsterLogo size={28} />
         <span style={ds.brandName}>threadster</span>
       </div>
 
-      {/* Nav items dengan label */}
       <div style={ds.navList}>
         {NAV_ITEMS.map(({ path, label, icon: Icon }) => {
           const active = isActive(path)
           return (
             <button
               key={path}
-              style={{
-                ...ds.navItem,
-                ...(active ? ds.navItemActive : {}),
-              }}
+              style={{ ...ds.navItem, ...(active ? ds.navItemActive : {}) }}
               onClick={() => navigate(path)}
             >
               <span style={ds.iconWrap}>
                 <Icon filled={active} />
               </span>
-              <span style={{
-                ...ds.label,
-                ...(active ? ds.labelActive : {}),
-              }}>
+              <span style={{ ...ds.label, ...(active ? ds.labelActive : {}) }}>
                 {label}
               </span>
             </button>
           )
         })}
 
-        {/* Profil */}
         <button
           style={{
             ...ds.navItem,
@@ -138,16 +130,12 @@ export default function Navbar() {
           <span style={ds.iconWrap}>
             <ProfileIcon avatarUrl={user?.avatarUrl} size={26} />
           </span>
-          <span style={{
-            ...ds.label,
-            ...(isActive('/edit-profile') ? ds.labelActive : {}),
-          }}>
+          <span style={{ ...ds.label, ...(isActive('/edit-profile') ? ds.labelActive : {}) }}>
             {user?.name ?? 'Profil'}
           </span>
         </button>
       </div>
 
-      {/* Logout */}
       {isAuthenticated && (
         <button
           style={ds.logoutItem}
@@ -166,7 +154,6 @@ export default function Navbar() {
     </nav>
   )
 
-  // ── Mobile Bottom Nav ────────────────────────────────────
   const renderMobileNav = () => (
     <nav style={ms.bottomNav}>
       {NAV_ITEMS.map(({ path, label, icon: Icon }) => {
@@ -182,7 +169,6 @@ export default function Navbar() {
           </button>
         )
       })}
-      {/* Avatar → edit profil */}
       <button
         style={{ ...ms.navBtn, ...(isActive('/edit-profile') ? ms.navBtnActive : {}) }}
         onClick={handleProfile}
@@ -205,7 +191,6 @@ export default function Navbar() {
   )
 }
 
-// ─── Desktop Styles ───────────────────────────────────────────
 const ds: Record<string, React.CSSProperties> = {
   sidebar: {
     position: 'fixed', top: 0, left: 0,
@@ -281,7 +266,6 @@ const ds: Record<string, React.CSSProperties> = {
   },
 }
 
-// ─── Mobile Styles ────────────────────────────────────────────
 const ms: Record<string, React.CSSProperties> = {
   bottomNav: {
     position: 'fixed', bottom: 0, left: 0, right: 0,

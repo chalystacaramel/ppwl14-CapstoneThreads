@@ -37,11 +37,23 @@ function timeAgo(date: string | Date): string {
   return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
 }
 
+// FIX issue #6: tambah referrerPolicy dan onError fallback untuk Google avatar
 function Avatar({ url, name, size = 36 }: { url?: string; name: string; size?: number }) {
+  const [imgError, setImgError] = useState(false)
   const initials = (name ?? '?').slice(0, 1).toUpperCase()
-  return url ? (
-    <img src={url} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
-  ) : (
+
+  if (url && !imgError) {
+    return (
+      <img
+        src={url}
+        alt={name}
+        referrerPolicy="no-referrer"
+        onError={() => setImgError(true)}
+        style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', display: 'block', flexShrink: 0 }}
+      />
+    )
+  }
+  return (
     <div style={{ width: size, height: size, borderRadius: '50%', background: '#262626', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#aaa', flexShrink: 0 }}>
       {initials}
     </div>
@@ -92,6 +104,7 @@ export default function ThreadCard({ post, onLike, onDelete, showThread = false 
   const [isEditing, setIsEditing]     = useState(false)
   const [editContent, setEditContent] = useState(post.content)
   const [content, setContent]         = useState(post.content)
+  const [currentImageUrl, setCurrentImageUrl] = useState(post.imageUrl)
   const [deleted, setDeleted]         = useState(false)
 
   const { user, accessToken, isAuthenticated } = useAuthStore()
@@ -154,6 +167,7 @@ export default function ThreadCard({ post, onLike, onDelete, showThread = false 
       const data = await res.json()
       if (res.ok) {
         setContent(data.content)
+        if (data.imageUrl !== undefined) setCurrentImageUrl(data.imageUrl)
         setIsEditing(false)
       }
     } catch (err) {
@@ -200,7 +214,6 @@ export default function ThreadCard({ post, onLike, onDelete, showThread = false 
               </svg>
             </button>
 
-            {/* Dropdown menu */}
             {showMenu && (
               <div
                 onClick={e => e.stopPropagation()}
@@ -259,14 +272,19 @@ export default function ThreadCard({ post, onLike, onDelete, showThread = false 
           </div>
         ) : (
           <>
-            {post.content && (
+            {content && (
               <p onClick={goToPost} style={{ fontSize: 15, color: '#f3f3f3', lineHeight: 1.55, margin: '0 0 8px', cursor: 'pointer', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                 {content}
               </p>
             )}
-            {post.imageUrl && (
+            {currentImageUrl && (
               <div onClick={goToPost} style={{ marginBottom: 10, borderRadius: 12, overflow: 'hidden', border: '1px solid #262626', cursor: 'pointer', maxWidth: '100%' }}>
-                <img src={post.imageUrl} alt="gambar postingan" style={{ width: '100%', display: 'block', objectFit: 'cover', maxHeight: 480 }} />
+                <img
+                  src={currentImageUrl}
+                  alt="gambar postingan"
+                  referrerPolicy="no-referrer"
+                  style={{ width: '100%', display: 'block', objectFit: 'cover', maxHeight: 480 }}
+                />
               </div>
             )}
           </>

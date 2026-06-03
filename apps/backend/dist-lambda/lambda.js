@@ -119427,7 +119427,7 @@ var authRoutes = (getPrisma) => new Elysia({ prefix: "/auth" }).use(jwt({
   body: t2.Object({
     name: t2.String({ minLength: 1 }),
     email: t2.String({ format: "email" }),
-    password: t2.String({ minLength: 4 })
+    password: t2.String({ minLength: 1 })
   })
 }).post("/login", async ({ body, jwt: jwt2, set }) => {
   const { email, password } = body;
@@ -119439,23 +119439,17 @@ var authRoutes = (getPrisma) => new Elysia({ prefix: "/auth" }).use(jwt({
     const user = await db.user.findUnique({
       where: { email }
     });
-    console.log("USER FOUND:", user);
+    console.log("USER FOUND:", user ? "yes" : "no");
     if (!user) {
-      console.log("❌ USER NOT FOUND");
       set.status = 401;
       return { message: "Email atau password salah" };
     }
     if (!user.password) {
-      console.log("❌ USER HAS NO PASSWORD");
       set.status = 401;
       return { message: "Email atau password salah" };
     }
-    console.log("PASSWORD INPUT:", password);
-    console.log("HASH IN DB:", user.password);
     const valid = await bcryptjs_default.compare(password, user.password);
-    console.log("BCRYPT RESULT:", valid);
     if (!valid) {
-      console.log("❌ PASSWORD MISMATCH");
       set.status = 401;
       return { message: "Email atau password salah" };
     }
@@ -119463,8 +119457,6 @@ var authRoutes = (getPrisma) => new Elysia({ prefix: "/auth" }).use(jwt({
       userId: user.id,
       email: user.email
     });
-    console.log("✅ LOGIN SUCCESS");
-    console.log("TOKEN GENERATED:", token);
     return {
       accessToken: token,
       user: {
@@ -119521,6 +119513,54 @@ var authRoutes = (getPrisma) => new Elysia({ prefix: "/auth" }).use(jwt({
 }, {
   body: t2.Object({
     token: t2.String()
+  })
+}).put("/profile", async ({ body, headers, jwt: jwt2, set }) => {
+  const authHeader = headers.authorization;
+  if (!authHeader) {
+    set.status = 401;
+    return { message: "Unauthorized" };
+  }
+  const token = authHeader.replace("Bearer ", "");
+  const payload = await jwt2.verify(token);
+  if (!payload) {
+    set.status = 401;
+    return { message: "Unauthorized" };
+  }
+  try {
+    const db = getPrisma();
+    const { name, bio, avatarUrl, password } = body;
+    const updateData = {};
+    if (name)
+      updateData.name = name;
+    if (avatarUrl !== undefined)
+      updateData.avatar_url = avatarUrl;
+    if (password) {
+      updateData.password = await bcryptjs_default.hash(password, 10);
+    }
+    const user = await db.user.update({
+      where: { id: payload.userId },
+      data: updateData
+    });
+    return {
+      user: {
+        id: String(user.id),
+        name: user.name,
+        email: user.email,
+        avatarUrl: user.avatar_url ?? null,
+        bio: bio ?? null
+      }
+    };
+  } catch (e) {
+    console.error("UPDATE PROFILE ERROR:", e);
+    set.status = 500;
+    return { message: "Gagal update profil", error: String(e) };
+  }
+}, {
+  body: t2.Object({
+    name: t2.Optional(t2.String({ minLength: 1 })),
+    bio: t2.Optional(t2.String()),
+    avatarUrl: t2.Optional(t2.Nullable(t2.String())),
+    password: t2.Optional(t2.String({ minLength: 6 }))
   })
 });
 
@@ -120028,9 +120068,10 @@ var notificationRoutes = (getPrisma) => new Elysia({ prefix: "/notifications" })
 // src/index.ts
 var createApp = (getPrisma) => {
   const app = new Elysia().use(cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    origin: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true
   })).use(import_cookie2.cookie()).use(jwt({ name: "jwt", secret: process.env.JWT_SECRET, exp: "1d" })).onError(({ code, error }) => {
     console.error("[SERVER_ERROR]", code, error);
   }).onRequest(({ request, set }) => {

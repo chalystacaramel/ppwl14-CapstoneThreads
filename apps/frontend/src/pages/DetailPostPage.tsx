@@ -233,7 +233,7 @@ export default function DetailPostPage() {
   if (loading || !post) {
     return (
       <div className="min-h-screen bg-[#101010] text-[#F3F5F7] flex items-center justify-center">
-        <p className="text-sm text-[#777]">Memuat thread...</p>
+        <p className="text-sm text-[#777]">Memuat threadster...</p>
       </div>
     );
   }
@@ -244,7 +244,7 @@ export default function DetailPostPage() {
         <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-[#1E1E1E] transition-colors">
           <ArrowLeft size={20} />
         </button>
-        <span className="text-base font-semibold">Thread</span>
+        <span className="text-base font-semibold">Threadster</span>
       </div>
 
       <div className="max-w-xl mx-auto pb-24">

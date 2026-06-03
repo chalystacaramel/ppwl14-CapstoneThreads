@@ -21,7 +21,6 @@ interface AuthResponse {
   user: { id: string; name: string; email: string; avatarUrl?: string; isGoogle?: boolean }
 }
 
-// ─── Threadster Logo (dari file ke-2) ────────────────────────
 function ThreadsterLogo({ size = 56 }: { size?: number }) {
   return (
     <svg viewBox="0 0 64 64" width={size} height={size} fill="none">
@@ -33,7 +32,6 @@ function ThreadsterLogo({ size = 56 }: { size?: number }) {
   )
 }
 
-// ─── Komponen utama ───────────────────────────────────────────
 export default function LoginPage() {
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [form, setForm] = useState({ name: '', email: '', password: '' })
@@ -124,16 +122,14 @@ export default function LoginPage() {
 
       <div className="flex-1 flex flex-col items-center justify-center z-10 w-full px-4 pt-10 pb-16 sm:pb-24">
 
-        {/* Container Utama Form */}
         <div className="w-full max-w-[420px] flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
 
-          {/* Logo Threadster */}
           <div className="mb-6 md:mb-10 text-white">
             <ThreadsterLogo size={56} />
           </div>
 
           <h1 className="text-[16px] md:text-[18px] font-bold text-center mb-6 text-[#f3f3f3] tracking-wide">
-            {mode === 'login' ? 'Login dengan akun Instagram Anda' : 'Buat Akun Tehreads Baru'}
+            {mode === 'login' ? 'Login dengan akun Instagram Anda' : 'Buat Akun Threadster Baru'}
           </h1>
 
           {error && (
@@ -142,7 +138,6 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Form Input Group */}
           <div className="w-full flex flex-col gap-3">
             {mode === 'register' && (
               <input
@@ -154,7 +149,8 @@ export default function LoginPage() {
             <input
               className="w-full bg-[#1e1e1e] border border-[#333] focus:border-[#555] rounded-xl px-5 py-[18px] text-[#f3f3f3] text-[15px] outline-none transition-colors placeholder:text-[#555]"
               type="email" name="email"
-              placeholder="Nama pengguna, telepon, atau email"
+              // FIX issue #3: input type="email" hanya menerima email, placeholder harus sesuai
+              placeholder="Email"
               value={form.email} onChange={handleChange} onKeyDown={handleKeyDown}
             />
             <input
@@ -185,7 +181,6 @@ export default function LoginPage() {
             <div className="flex-1 h-[1px] bg-[#333]" />
           </div>
 
-          {/* Google Login */}
           <div className="w-full flex justify-center mb-5 hover:scale-[1.02] active:scale-[0.98] transition-transform">
             <div className="overflow-hidden rounded-xl border border-[#333] bg-black">
               <GoogleLogin
@@ -200,7 +195,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Toggle login/register */}
           <button
             onClick={switchMode}
             className="w-full bg-transparent border border-[#333] hover:bg-[#1a1a1a] active:scale-[0.98] rounded-xl px-5 py-[16px] text-[#f3f3f3] text-[15px] font-semibold cursor-pointer flex items-center gap-4 transition-all"
@@ -229,7 +223,6 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Footer */}
       <footer className="w-full flex justify-center pb-6 z-10 px-4">
         <p className="text-[12px] md:text-[13px] text-[#555] text-center flex flex-wrap justify-center gap-x-4 gap-y-2">
           <span>© 2026</span>
@@ -240,7 +233,6 @@ export default function LoginPage() {
         </p>
       </footer>
 
-      {/* QR pojok kanan bawah (Desktop only) */}
       <div className="hidden lg:flex flex-col items-center gap-3 absolute bottom-8 right-8 z-10 opacity-70 hover:opacity-100 transition-opacity">
         <p className="text-[12px] font-semibold text-[#555]">Pindai untuk aplikasi</p>
         <div className="bg-white p-2 rounded-xl">

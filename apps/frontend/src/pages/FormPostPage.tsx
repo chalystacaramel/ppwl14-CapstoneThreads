@@ -1,3 +1,4 @@
+// apps/frontend/src/pages/FormPostPage.tsx
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { X } from "lucide-react";
@@ -24,7 +25,6 @@ export default function FormPostPage() {
   const editId = searchParams.get("edit");
 
   const { accessToken } = useAuthStore();
-  console.log("ACCESS TOKEN:", accessToken);
   const { draft, setDraft, clearDraft, posts } = usePostStore();
   const { text, images } = draft;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -36,7 +36,7 @@ export default function FormPostPage() {
   const isEmpty = text.trim().length === 0 && images.length === 0;
   const isEditMode = !!editId;
 
-  // load edit
+  // FIX issue #7: load existing image saat edit mode
   useEffect(() => {
     if (!editId) return;
     const post = posts.find((p) => p.id === editId);
@@ -58,9 +58,10 @@ export default function FormPostPage() {
     setUploadStatus(null);
 
     try {
-      // 1. Upload gambar ke S3 dulu (kalau ada file baru)
       let imageUrl: string | null = null;
+
       if (images[0]?.file) {
+        // File baru dipilih — upload ke S3
         setUploadStatus("Mengupload gambar...");
         const formData = new FormData();
         formData.append("file", images[0].file);
@@ -78,25 +79,49 @@ export default function FormPostPage() {
 
         const uploadData = await uploadRes.json();
         imageUrl = uploadData.imageUrl;
+      } else if (images[0]?.previewUrl && !images[0]?.file) {
+        // FIX issue #7: gambar lama (sudah di S3) — pakai URL yang ada
+        imageUrl = images[0].previewUrl;
       }
 
-      // 2. POST konten + URL gambar permanen dari S3
       setUploadStatus("Menyimpan postingan...");
-      const res = await fetch(`${BACKEND_URL}/posts`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          content: text.trim(),
-          ...(imageUrl ? { imageUrl } : {}),
-        }),
-      });
 
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(`${res.status}: ${errData.message || "Unknown error"}`);
+      if (isEditMode && editId) {
+        // Mode edit
+        const res = await fetch(`${BACKEND_URL}/posts/${editId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            content: text.trim(),
+            ...(imageUrl !== undefined ? { imageUrl: imageUrl ?? null } : {}),
+          }),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(`${res.status}: ${errData.message || "Unknown error"}`);
+        }
+      } else {
+        // Mode buat baru
+        const res = await fetch(`${BACKEND_URL}/posts`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            content: text.trim(),
+            ...(imageUrl ? { imageUrl } : {}),
+          }),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(`${res.status}: ${errData.message || "Unknown error"}`);
+        }
       }
 
       clearDraft();
@@ -125,9 +150,8 @@ export default function FormPostPage() {
               Batal
             </button>
             <h1 style={{ color: tokens.textPrimary, fontSize: 16, fontWeight: 600 }}>
-              {isEditMode ? "Edit thread" : "Thread baru"}
+              {isEditMode ? "Edit threadster" : "Threadster baru"}
             </h1>
-            {/* Kosong untuk spacing — hapus FileText & MoreHorizontal yang tidak dipakai */}
             <div style={{ width: 40 }} />
           </div>
 
@@ -162,9 +186,8 @@ export default function FormPostPage() {
               </div>
             )}
 
-            {!isEditMode && (
-              <ImageUpload images={images} onChange={(imgs) => setDraft(text, imgs)} />
-            )}
+            {/* FIX issue #7: tampilkan ImageUpload di edit mode juga */}
+            <ImageUpload images={images} onChange={(imgs) => setDraft(text, imgs)} />
           </div>
 
           {/* footer */}

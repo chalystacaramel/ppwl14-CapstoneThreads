@@ -1,6 +1,4 @@
 // apps/backend/src/notifications.routes.ts
-// Routes: Notifikasi user
-
 import { Elysia } from "elysia"
 import { jwt } from "@elysiajs/jwt"
 import type { DbClient } from "./types"
@@ -18,7 +16,7 @@ export const notificationRoutes = (getPrisma: () => DbClient) =>
   new Elysia({ prefix: "/notifications" })
     .use(jwt({ name: "jwt", secret: process.env.JWT_SECRET!, exp: "1d" }))
 
-    // ── GET /notifications — list notif user yang login ────────
+    // GET /notifications
     .get("/", async ({ headers, jwt, set }) => {
       const me = await getUser(headers, jwt, set)
       if (!me) return { message: "Unauthorized" }
@@ -32,6 +30,8 @@ export const notificationRoutes = (getPrisma: () => DbClient) =>
         include: {
           actor: { select: { id: true, name: true, avatar_url: true } },
           post: { select: { id: true, content: true } },
+          // FIX: include comment agar bisa tampilkan isi komentar
+          comment: { select: { id: true, content: true } },
         },
       })
 
@@ -50,50 +50,48 @@ export const notificationRoutes = (getPrisma: () => DbClient) =>
           id: String(n.post.id),
           content: n.post.content?.slice(0, 60) + (n.post.content?.length > 60 ? "..." : ""),
         } : null,
+        // FIX: sertakan data komentar
+        comment: n.comment ? {
+          id: String(n.comment.id),
+          content: n.comment.content?.slice(0, 80) + (n.comment.content?.length > 80 ? "..." : ""),
+        } : null,
       }))
     })
 
-    // ── PATCH /notifications/:id/read — tandai sudah dibaca ────
+    // PATCH /notifications/:id/read
     .patch("/:id/read", async ({ params, headers, jwt, set }) => {
       const me = await getUser(headers, jwt, set)
       if (!me) return { message: "Unauthorized" }
 
       const db = getPrisma() as any
-      const notifId = parseInt(params.id)
-
       await db.notification.updateMany({
-        where: { id: notifId, userId: me.userId },
+        where: { id: parseInt(params.id), userId: me.userId },
         data: { isRead: true },
       })
-
       return { message: "Ditandai sudah dibaca" }
     })
 
-    // ── PATCH /notifications/read-all — tandai semua dibaca ────
+    // PATCH /notifications/read-all
     .patch("/read-all", async ({ headers, jwt, set }) => {
       const me = await getUser(headers, jwt, set)
       if (!me) return { message: "Unauthorized" }
 
       const db = getPrisma() as any
-
       await db.notification.updateMany({
         where: { userId: me.userId, isRead: false },
         data: { isRead: true },
       })
-
       return { message: "Semua notifikasi ditandai dibaca" }
     })
 
-    // ── GET /notifications/unread-count — jumlah belum dibaca ──
+    // GET /notifications/unread-count
     .get("/unread-count", async ({ headers, jwt, set }) => {
       const me = await getUser(headers, jwt, set)
       if (!me) return { message: "Unauthorized" }
 
       const db = getPrisma() as any
-
       const count = await db.notification.count({
         where: { userId: me.userId, isRead: false },
       })
-
       return { count }
     })

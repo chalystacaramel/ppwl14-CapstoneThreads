@@ -120014,7 +120014,8 @@ var notificationRoutes = (getPrisma) => new Elysia({ prefix: "/notifications" })
     take: 30,
     include: {
       actor: { select: { id: true, name: true, avatar_url: true } },
-      post: { select: { id: true, content: true } }
+      post: { select: { id: true, content: true } },
+      comment: { select: { id: true, content: true } }
     }
   });
   return notifs.map((n) => ({
@@ -120031,6 +120032,10 @@ var notificationRoutes = (getPrisma) => new Elysia({ prefix: "/notifications" })
     post: n.post ? {
       id: String(n.post.id),
       content: n.post.content?.slice(0, 60) + (n.post.content?.length > 60 ? "..." : "")
+    } : null,
+    comment: n.comment ? {
+      id: String(n.comment.id),
+      content: n.comment.content?.slice(0, 80) + (n.comment.content?.length > 80 ? "..." : "")
     } : null
   }));
 }).patch("/:id/read", async ({ params, headers, jwt: jwt2, set }) => {
@@ -120038,9 +120043,8 @@ var notificationRoutes = (getPrisma) => new Elysia({ prefix: "/notifications" })
   if (!me)
     return { message: "Unauthorized" };
   const db = getPrisma();
-  const notifId = parseInt(params.id);
   await db.notification.updateMany({
-    where: { id: notifId, userId: me.userId },
+    where: { id: parseInt(params.id), userId: me.userId },
     data: { isRead: true }
   });
   return { message: "Ditandai sudah dibaca" };
@@ -120068,10 +120072,9 @@ var notificationRoutes = (getPrisma) => new Elysia({ prefix: "/notifications" })
 // src/index.ts
 var createApp = (getPrisma) => {
   const app = new Elysia().use(cors({
-    origin: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
   })).use(import_cookie2.cookie()).use(jwt({ name: "jwt", secret: process.env.JWT_SECRET, exp: "1d" })).onError(({ code, error }) => {
     console.error("[SERVER_ERROR]", code, error);
   }).onRequest(({ request, set }) => {
@@ -120182,7 +120185,7 @@ var handler = async (event) => {
       statusCode: 204,
       headers: {
         "Access-Control-Allow-Origin": requestOrigin,
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
         "Access-Control-Allow-Credentials": "true",
         "Access-Control-Max-Age": "86400"

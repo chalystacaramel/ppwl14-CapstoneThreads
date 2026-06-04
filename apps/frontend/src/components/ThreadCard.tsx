@@ -1,5 +1,5 @@
 // apps/frontend/src/components/ThreadCard.tsx
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/auth.store'
 import { BACKEND_URL } from '../constants'
@@ -37,11 +37,10 @@ function timeAgo(date: string | Date): string {
   return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
 }
 
-// FIX issue #6: tambah referrerPolicy dan onError fallback untuk Google avatar
+// FIX issue #6: referrerPolicy + onError fallback untuk Google avatar
 function Avatar({ url, name, size = 36 }: { url?: string; name: string; size?: number }) {
   const [imgError, setImgError] = useState(false)
   const initials = (name ?? '?').slice(0, 1).toUpperCase()
-
   if (url && !imgError) {
     return (
       <img
@@ -96,6 +95,16 @@ function SendIcon() {
   )
 }
 
+// FIX issue #2: PlusIcon aktif = bold/tebal, bukan filled kotak
+function PlusIconBold() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  )
+}
+
 export default function ThreadCard({ post, onLike, onDelete, showThread = false }: ThreadCardProps) {
   const [liked, setLiked]             = useState(post.isLiked ?? false)
   const [likeCount, setLikeCount]     = useState(post.likeCount)
@@ -105,16 +114,19 @@ export default function ThreadCard({ post, onLike, onDelete, showThread = false 
   const [editContent, setEditContent] = useState(post.content)
   const [content, setContent]         = useState(post.content)
   const [currentImageUrl, setCurrentImageUrl] = useState(post.imageUrl)
+  // FIX issue #3: state untuk edit gambar
+  const [editImageFile, setEditImageFile] = useState<File | null>(null)
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(null)
+  const [removeImage, setRemoveImage] = useState(false)
   const [deleted, setDeleted]         = useState(false)
+  const [saving, setSaving]           = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { user, accessToken, isAuthenticated } = useAuthStore()
   const navigate = useNavigate()
 
   const isOwner = user && String(user.id) === String(post.user.id)
-
-  const username = post.user.username
-    ?? post.user.name?.toLowerCase().replace(/\s+/g, '_')
-    ?? 'user'
+  const username = post.user.username ?? post.user.name?.toLowerCase().replace(/\s+/g, '_') ?? 'user'
 
   async function handleLike(e: React.MouseEvent) {
     e.stopPropagation()
@@ -143,43 +155,74 @@ export default function ThreadCard({ post, onLike, onDelete, showThread = false 
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${accessToken}` },
       })
-      if (res.ok) {
-        setDeleted(true)
-        onDelete?.(post.id)
-      }
-    } catch (err) {
-      console.error('Gagal hapus post:', err)
-    }
+      if (res.ok) { setDeleted(true); onDelete?.(post.id) }
+    } catch (err) { console.error('Gagal hapus post:', err) }
+  }
+
+  // FIX issue #3: handle pilih gambar baru saat edit
+  function handleEditImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setEditImageFile(file)
+    setEditImagePreview(URL.createObjectURL(file))
+    setRemoveImage(false)
   }
 
   async function handleSaveEdit(e: React.MouseEvent) {
     e.stopPropagation()
     if (!accessToken || !editContent.trim()) return
+    setSaving(true)
     try {
+      let imageUrl: string | null | undefined = undefined
+
+      // Upload gambar baru jika dipilih
+      if (editImageFile) {
+        const formData = new FormData()
+        formData.append('file', editImageFile)
+        const uploadRes = await fetch(`${BACKEND_URL}/posts/upload-image`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}` },
+          body: formData,
+        })
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json()
+          imageUrl = uploadData.imageUrl
+        }
+      } else if (removeImage) {
+        imageUrl = null // hapus gambar
+      }
+
       const res = await fetch(`${BACKEND_URL}/posts/${post.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ content: editContent }),
+        body: JSON.stringify({
+          content: editContent,
+          ...(imageUrl !== undefined ? { imageUrl } : {}),
+        }),
       })
       const data = await res.json()
       if (res.ok) {
         setContent(data.content)
         if (data.imageUrl !== undefined) setCurrentImageUrl(data.imageUrl)
+        else if (removeImage) setCurrentImageUrl(undefined)
+        else if (editImagePreview) setCurrentImageUrl(editImagePreview)
         setIsEditing(false)
+        setEditImageFile(null)
+        setEditImagePreview(null)
+        setRemoveImage(false)
       }
     } catch (err) {
       console.error('Gagal edit post:', err)
+    } finally {
+      setSaving(false)
     }
   }
 
   const goToPost    = () => navigate(`/post/${post.id}`)
-  const goToProfile = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    navigate(`/profile/${post.user.id}`)
-  }
+  const goToProfile = (e: React.MouseEvent) => { e.stopPropagation(); navigate(`/profile/${post.user.id}`) }
 
   if (deleted) return null
 
@@ -206,35 +249,18 @@ export default function ThreadCard({ post, onLike, onDelete, showThread = false 
             <span style={{ fontSize: 13, color: '#555' }}>{timeAgo(post.createdAt)}</span>
             <button
               style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', padding: '0 2px', lineHeight: 1 }}
-              aria-label="Lebih banyak"
               onClick={e => { e.stopPropagation(); setShowMenu(v => !v) }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                 <circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>
               </svg>
             </button>
-
             {showMenu && (
-              <div
-                onClick={e => e.stopPropagation()}
-                style={{
-                  position: 'absolute', top: 24, right: 0, zIndex: 100,
-                  background: '#1E1E1E', border: '1px solid #3E4042',
-                  borderRadius: 16, minWidth: 180, overflow: 'hidden',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-                }}
-              >
+              <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: 24, right: 0, zIndex: 100, background: '#1E1E1E', border: '1px solid #3E4042', borderRadius: 16, minWidth: 180, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
                 {isOwner ? (
                   <>
-                    <button
-                      onClick={e => { e.stopPropagation(); setIsEditing(true); setEditContent(content); setShowMenu(false) }}
-                      style={menuItemStyle}
-                    >
-                      Edit
-                    </button>
-                    <button onClick={handleDelete} style={{ ...menuItemStyle, color: '#FF2E40' }}>
-                      Hapus
-                    </button>
+                    <button onClick={e => { e.stopPropagation(); setIsEditing(true); setEditContent(content); setShowMenu(false) }} style={menuItemStyle}>Edit</button>
+                    <button onClick={handleDelete} style={{ ...menuItemStyle, color: '#FF2E40' }}>Hapus</button>
                   </>
                 ) : (
                   <>
@@ -248,24 +274,42 @@ export default function ThreadCard({ post, onLike, onDelete, showThread = false 
           </div>
         </div>
 
-        {/* Edit mode */}
+        {/* Edit mode - FIX issue #3: tambah ubah gambar */}
         {isEditing ? (
           <div onClick={e => e.stopPropagation()}>
             <textarea
               value={editContent}
               onChange={e => setEditContent(e.target.value)}
-              style={{
-                width: '100%', background: '#1E1E1E', border: '1px solid #3E4042',
-                borderRadius: 12, padding: '8px 12px', color: '#F3F5F7',
-                fontSize: 15, resize: 'none', outline: 'none', minHeight: 80,
-                fontFamily: 'inherit', boxSizing: 'border-box',
-              }}
+              style={{ width: '100%', background: '#1E1E1E', border: '1px solid #3E4042', borderRadius: 12, padding: '8px 12px', color: '#F3F5F7', fontSize: 15, resize: 'none', outline: 'none', minHeight: 80, fontFamily: 'inherit', boxSizing: 'border-box' }}
             />
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <button onClick={handleSaveEdit} style={{ padding: '6px 16px', background: '#F3F5F7', color: '#101010', border: 'none', borderRadius: 12, fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
-                Simpan
+
+            {/* Preview gambar saat edit */}
+            {(editImagePreview || (currentImageUrl && !removeImage)) && (
+              <div style={{ position: 'relative', display: 'inline-block', marginTop: 8 }}>
+                <img
+                  src={editImagePreview ?? currentImageUrl}
+                  style={{ maxWidth: 200, maxHeight: 150, borderRadius: 8, objectFit: 'cover', display: 'block' }}
+                />
+                <button
+                  onClick={() => { setEditImageFile(null); setEditImagePreview(null); setRemoveImage(true) }}
+                  style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: '50%', width: 22, height: 22, color: '#fff', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >✕</button>
+              </div>
+            )}
+
+            {/* Tombol tambah/ganti gambar */}
+            <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                style={{ padding: '5px 12px', background: '#2a2a2a', color: '#aaa', border: '1px solid #3E4042', borderRadius: 10, cursor: 'pointer', fontSize: 12 }}
+              >
+                {currentImageUrl && !removeImage ? '🖼 Ganti gambar' : '🖼 Tambah gambar'}
               </button>
-              <button onClick={e => { e.stopPropagation(); setIsEditing(false) }} style={{ padding: '6px 16px', background: '#2a2a2a', color: '#777', border: 'none', borderRadius: 12, cursor: 'pointer', fontSize: 13 }}>
+              <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handleEditImageChange} />
+              <button onClick={handleSaveEdit} disabled={saving} style={{ padding: '6px 16px', background: '#F3F5F7', color: '#101010', border: 'none', borderRadius: 12, fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1 }}>
+                {saving ? 'Menyimpan...' : 'Simpan'}
+              </button>
+              <button onClick={e => { e.stopPropagation(); setIsEditing(false); setEditImageFile(null); setEditImagePreview(null); setRemoveImage(false) }} style={{ padding: '6px 16px', background: '#2a2a2a', color: '#777', border: 'none', borderRadius: 12, cursor: 'pointer', fontSize: 13 }}>
                 Batal
               </button>
             </div>
@@ -279,12 +323,7 @@ export default function ThreadCard({ post, onLike, onDelete, showThread = false 
             )}
             {currentImageUrl && (
               <div onClick={goToPost} style={{ marginBottom: 10, borderRadius: 12, overflow: 'hidden', border: '1px solid #262626', cursor: 'pointer', maxWidth: '100%' }}>
-                <img
-                  src={currentImageUrl}
-                  alt="gambar postingan"
-                  referrerPolicy="no-referrer"
-                  style={{ width: '100%', display: 'block', objectFit: 'cover', maxHeight: 480 }}
-                />
+                <img src={currentImageUrl} alt="gambar postingan" referrerPolicy="no-referrer" style={{ width: '100%', display: 'block', objectFit: 'cover', maxHeight: 480 }} />
               </div>
             )}
           </>
@@ -292,11 +331,11 @@ export default function ThreadCard({ post, onLike, onDelete, showThread = false 
 
         {/* Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginLeft: -8, marginTop: 2 }}>
-          <button onClick={handleLike} aria-label="Suka" style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: liked ? '#ff3040' : '#777', cursor: 'pointer', padding: '8px 8px', borderRadius: 8, fontSize: 13, transition: 'color 0.15s' }}>
+          <button onClick={handleLike} aria-label="Suka" style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: liked ? '#ff3040' : '#777', cursor: 'pointer', padding: '8px 8px', borderRadius: 8, fontSize: 13 }}>
             <HeartIcon filled={liked} />
             {likeCount > 0 && <span style={{ fontSize: 13, lineHeight: 1, color: liked ? '#ff3040' : '#777' }}>{likeCount}</span>}
           </button>
-          <button onClick={e => { e.stopPropagation(); if (isAuthenticated) goToPost(); else navigate('/login') }} aria-label="Balas" style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: '#777', cursor: 'pointer', padding: '8px 8px', borderRadius: 8, fontSize: 13, transition: 'color 0.15s' }}>
+          <button onClick={e => { e.stopPropagation(); if (isAuthenticated) goToPost(); else navigate('/login') }} aria-label="Balas" style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: '#777', cursor: 'pointer', padding: '8px 8px', borderRadius: 8, fontSize: 13 }}>
             <CommentIcon />
             {post.commentCount > 0 && <span style={{ fontSize: 13, lineHeight: 1 }}>{post.commentCount}</span>}
           </button>

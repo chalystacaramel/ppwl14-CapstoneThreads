@@ -11,11 +11,10 @@ import { notificationRoutes } from "./notifications.routes";
 export const createApp = (getPrisma: () => DbClient) => {
   const app = new Elysia()
     .use(cors({
-      origin: true, // allow all origins (Lambda URL + custom domain)
-      // FIX issue #4 (tandai semua): tambah PATCH ke methods
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+      origin: process.env.FRONTEND_URL || "http://localhost:5173",
+      // FIX issue #5: tambah PATCH ke allowed methods
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],
-      credentials: true,
     }))
     .use(cookie())
     .use(jwt({ name: "jwt", secret: process.env.JWT_SECRET!, exp: "1d" }))

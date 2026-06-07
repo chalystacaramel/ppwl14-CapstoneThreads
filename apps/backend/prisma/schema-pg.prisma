@@ -1,11 +1,11 @@
-// prisma/schema.prisma - LOCAL DEV (SQLite / Turso)
+// prisma/schema-pg.prisma - PRODUCTION (PostgreSQL RDS)
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
+  output   = "../src/generated/prisma-pg"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model User {

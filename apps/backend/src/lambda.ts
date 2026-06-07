@@ -1,7 +1,8 @@
 // apps/backend/src/lambda.ts
 import { createApp } from "./index";
 import { loadConfig } from "./config";
-import { getPrisma } from "../prisma/db";
+// Production pakai dbPostgres.ts
+import { getPrisma } from "../prisma/dbPostgres";
 
 let app: ReturnType<typeof createApp>;
 
@@ -15,7 +16,6 @@ export const handler = async (event: any) => {
   const frontendUrl = process.env.FRONTEND_URL ?? "http://localhost:5173";
   const requestOrigin = event.headers?.origin || event.headers?.Origin || frontendUrl;
 
-  // FIX issue #5: tambah PATCH ke allowed methods di OPTIONS preflight
   if (event.requestContext.http.method === "OPTIONS") {
     return {
       statusCode: 204,

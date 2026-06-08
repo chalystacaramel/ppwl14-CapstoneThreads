@@ -1,3 +1,4 @@
+// apps/frontend/src/pages/DetailPostPage.tsx
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Heart, MessageCircle, Repeat2, Send, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
@@ -35,6 +36,28 @@ interface Post {
 const MAX_COMMENTS = 5;
 const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
+// FIX issue #1: Avatar component dengan referrerPolicy dan fallback
+function Avatar({ url, name, size = 40 }: { url?: string; name: string; size?: number }) {
+  const [err, setErr] = useState(false);
+  const initial = (name ?? "?").charAt(0).toUpperCase();
+  if (url && !err) {
+    return (
+      <img
+        src={url}
+        alt={name}
+        referrerPolicy="no-referrer"
+        onError={() => setErr(true)}
+        style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+      />
+    );
+  }
+  return (
+    <div style={{ width: size, height: size, borderRadius: "50%", background: "#333638", display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.35, fontWeight: 600, color: "#F3F5F7", flexShrink: 0 }}>
+      {initial}
+    </div>
+  );
+}
+
 export default function DetailPostPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -66,13 +89,14 @@ export default function DetailPostPage() {
           setPost({
             id: postData.id,
             content: postData.content,
-            image: postData.image || postData.imageUrl,
+            image: postData.image || postData.imageUrl || postData.image_url,
             createdAt: postData.createdAt,
             likes: [],
             author: {
-              id: postData.user.id,
-              name: postData.user.name,
-              avatar: postData.user.avatarUrl,
+              id: postData.user?.id ?? postData.author?.id,
+              name: postData.user?.name ?? postData.author?.name ?? "User",
+              // FIX: ambil avatarUrl dari user data
+              avatar: postData.user?.avatarUrl ?? postData.user?.avatar_url ?? postData.author?.avatar,
             },
           });
           setComments(
@@ -80,7 +104,11 @@ export default function DetailPostPage() {
               id: c.id,
               content: c.content,
               createdAt: c.createdAt,
-              author: { id: c.user.id, name: c.user.name, avatar: c.user.avatarUrl },
+              author: {
+                id: c.user?.id ?? c.author?.id,
+                name: c.user?.name ?? c.author?.name ?? "User",
+                avatar: c.user?.avatarUrl ?? c.user?.avatar_url ?? c.author?.avatar,
+              },
             })) ?? []
           );
           setLiked(postData.isLiked ?? false);
@@ -136,12 +164,14 @@ export default function DetailPostPage() {
           id: data.id,
           content: data.content,
           createdAt: data.createdAt,
-          author: { id: data.user.id, name: data.user.name, avatar: data.user.avatarUrl },
+          author: {
+            id: data.user?.id ?? data.author?.id,
+            name: data.user?.name ?? data.author?.name ?? user?.name ?? "User",
+            avatar: data.user?.avatarUrl ?? data.user?.avatar_url ?? user?.avatarUrl,
+          },
         };
         setComments(prev => [comment, ...prev]);
         setNewComment("");
-      } else {
-        console.error("Gagal kirim komentar:", data.message);
       }
     } catch (err) {
       console.error("Gagal kirim komentar:", err);
@@ -228,12 +258,10 @@ export default function DetailPostPage() {
     return d.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
   };
 
-  const getInitial = (name: string) => name.charAt(0).toUpperCase();
-
   if (loading || !post) {
     return (
       <div className="min-h-screen bg-[#101010] text-[#F3F5F7] flex items-center justify-center">
-        <p className="text-sm text-[#777]">Memuat threadster...</p>
+        <p className="text-sm text-[#777]">Memuat thread...</p>
       </div>
     );
   }
@@ -244,15 +272,14 @@ export default function DetailPostPage() {
         <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-[#1E1E1E] transition-colors">
           <ArrowLeft size={20} />
         </button>
-        <span className="text-base font-semibold">Threadster</span>
+        <span className="text-base font-semibold">Thread</span>
       </div>
 
       <div className="max-w-xl mx-auto pb-24">
         <div className="px-4 pt-4 pb-3 border-b border-[#3E4042]">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#333638] flex items-center justify-center text-sm font-semibold shrink-0">
-              {getInitial(post.author.name)}
-            </div>
+            {/* FIX issue #1: pakai Avatar component, bukan getInitial */}
+            <Avatar url={post.author.avatar} name={post.author.name} size={40} />
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-sm">{post.author.name}</span>
@@ -316,7 +343,7 @@ export default function DetailPostPage() {
               <>
                 <p className="text-[15px] leading-5 whitespace-pre-wrap">{post.content}</p>
                 {post.image && (
-                  <img src={post.image} alt="Post" className="mt-3 rounded-2xl max-w-full max-h-100 object-cover" />
+                  <img src={post.image} alt="Post" referrerPolicy="no-referrer" className="mt-3 rounded-2xl max-w-full max-h-100 object-cover" />
                 )}
               </>
             )}
@@ -340,11 +367,10 @@ export default function DetailPostPage() {
           </div>
         </div>
 
+        {/* Comment input */}
         <div className="px-4 py-3 border-b border-[#3E4042]">
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-[#333638] flex items-center justify-center text-xs font-semibold shrink-0">
-              {getInitial(CURRENT_USER.name)}
-            </div>
+            <Avatar url={CURRENT_USER.avatar} name={CURRENT_USER.name} size={32} />
             <div className="flex-1">
               <textarea
                 value={newComment}

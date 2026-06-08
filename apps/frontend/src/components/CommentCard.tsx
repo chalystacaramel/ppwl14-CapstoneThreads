@@ -1,3 +1,4 @@
+// apps/frontend/src/components/CommentCard.tsx
 import { useState } from "react";
 import { Heart, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import {
@@ -27,6 +28,28 @@ interface CommentCardProps {
   onEdit?: (id: string, newContent: string) => void;
 }
 
+// FIX: Avatar dengan referrerPolicy dan fallback
+function Avatar({ url, name, size = 36 }: { url?: string; name: string; size?: number }) {
+  const [err, setErr] = useState(false);
+  const initial = (name ?? "?").charAt(0).toUpperCase();
+  if (url && !err) {
+    return (
+      <img
+        src={url}
+        alt={name}
+        referrerPolicy="no-referrer"
+        onError={() => setErr(true)}
+        style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", flexShrink: 0, display: "block" }}
+      />
+    );
+  }
+  return (
+    <div style={{ width: size, height: size, borderRadius: "50%", background: "#333638", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 600, color: "#F3F5F7", flexShrink: 0 }}>
+      {initial}
+    </div>
+  );
+}
+
 export default function CommentCard({ comment, onDelete, onEdit }: CommentCardProps) {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
@@ -35,8 +58,6 @@ export default function CommentCard({ comment, onDelete, onEdit }: CommentCardPr
   const { user } = useAuthStore();
 
   const isOwner = user && String(user.id) === String(comment.author.id);
-
-  const getInitial = (name: string) => name.charAt(0).toUpperCase();
 
   const formatTime = (iso: string) => {
     const d = new Date(iso);
@@ -56,12 +77,11 @@ export default function CommentCard({ comment, onDelete, onEdit }: CommentCardPr
   };
 
   return (
-    <div className="px-4 py-3">
+    <div className="px-4 py-3 border-b border-[#1e1e1e]">
       <div className="flex gap-3">
         <div className="flex flex-col items-center">
-          <div className="w-9 h-9 rounded-full bg-[#333638] flex items-center justify-center text-xs font-semibold shrink-0">
-            {getInitial(comment.author.name)}
-          </div>
+          {/* FIX: pakai Avatar component */}
+          <Avatar url={comment.author.avatar} name={comment.author.name} size={36} />
           <div className="w-px flex-1 bg-[#3E4042] mt-2" />
         </div>
 
@@ -115,16 +135,10 @@ export default function CommentCard({ comment, onDelete, onEdit }: CommentCardPr
                 className="w-full bg-[#1E1E1E] border border-[#3E4042] rounded-xl px-3 py-2 text-sm text-[#F3F5F7] resize-none outline-none min-h-[60px]"
               />
               <div className="flex gap-2 mt-1">
-                <button
-                  onClick={handleSaveEdit}
-                  className="px-3 py-1 bg-[#F3F5F7] text-[#101010] text-xs font-semibold rounded-xl hover:bg-white transition-colors"
-                >
+                <button onClick={handleSaveEdit} className="px-3 py-1 bg-[#F3F5F7] text-[#101010] text-xs font-semibold rounded-xl hover:bg-white transition-colors">
                   Simpan
                 </button>
-                <button
-                  onClick={() => setIsEditing(false)}
-                  className="px-3 py-1 bg-[#1E1E1E] text-[#777] text-xs rounded-xl hover:bg-[#333638] transition-colors"
-                >
+                <button onClick={() => setIsEditing(false)} className="px-3 py-1 bg-[#1E1E1E] text-[#777] text-xs rounded-xl hover:bg-[#333638] transition-colors">
                   Batal
                 </button>
               </div>
